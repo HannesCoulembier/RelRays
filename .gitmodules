@@ -1,0 +1,3 @@
+[submodule "LoFox/vendor/spdlog"]
+	path = LoFox/vendor/spdlog
+	url = https://github.com/gabime/spdlog
