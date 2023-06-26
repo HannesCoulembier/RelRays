@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Core.h"
+#include "LoFox/Core/Core.h"
+
+int main(int argc, char** argv);
 
 namespace LoFox {
 
@@ -19,6 +21,8 @@ namespace LoFox {
 		void Run();
 	private:
 
+		static Application* s_Instance;
+		friend int ::main(int argc, char** argv);
 	};
 
 	// To be defined in client

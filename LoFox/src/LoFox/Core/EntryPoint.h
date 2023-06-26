@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core.h"
-#include "Application.h"
+#include "LoFox/Core/Core.h"
+#include "LoFox/Core/Application.h"
 
 #ifdef LF_PLATFORM_WINDOWS
 

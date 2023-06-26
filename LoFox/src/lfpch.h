@@ -1,5 +1,13 @@
 #pragma once
 
+#include "LoFox/Core/Core.h"
+
+#ifdef LF_PLATFORM_WINDOWS
+	#ifndef NOMINMAX
+		#define NOMINMAX
+	#endif
+#endif
+
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -13,7 +21,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "LoFox/Core/Core.h"
 
 #include "LoFox/Core/Log.h"
 

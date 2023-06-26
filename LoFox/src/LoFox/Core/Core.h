@@ -14,6 +14,27 @@
 	#error "LoFox only supports Windows"
 #endif
 
+#ifdef LF_DEBUG
+	#if defined(LF_PLATFORM_WINDOWS)
+		#define LF_DEBUGBREAK() __debugbreak()
+	#elif defined(LF_PLATFORM_LINUX)
+		#include <signal.h>
+		#define LF_DEBUGBREAK() raise(SIGTRAP)
+	#else
+		#error "Platform doesn't support debugbreak yet!"
+	#endif
+	#define LF_ENABLE_ASSERTS()
+#else
+	#define LF_DEBUGBREAK()
+#endif
+
+#define LF_EXPAND_MACRO(x) x
+#define LF_STRINGIFY_MACRO(x) #x
+
+#define BIT(x) (1 << x)
+
+#define LF_BIND_EVENT_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
+
 namespace LoFox {
 
 	template<typename T>
@@ -31,4 +52,5 @@ namespace LoFox {
 	}
 }
 
-#include "Log.h"
+#include "LoFox/Core/Log.h"
+#include "LoFox/Core/Assert.h"

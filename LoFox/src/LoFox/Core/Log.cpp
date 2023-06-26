@@ -1,5 +1,5 @@
 #include "lfpch.h"
-#include "Log.h"
+#include "LoFox/Core/Log.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 

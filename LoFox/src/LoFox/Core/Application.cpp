@@ -1,7 +1,8 @@
 #include "lfpch.h"
-#include "Application.h"
+#include "LoFox/Core/Application.h"
 
-#include "Log.h"
+#include "LoFox/Core/Log.h"
+
 
 namespace LoFox {
 

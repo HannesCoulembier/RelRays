@@ -13,18 +13,26 @@ project "LoFox"
 	files {
 
 		"src/**.h",
-		"src/**.cpp"
+		"src/**.cpp",
+	}
+
+	defines {
+
+		"_CRT_SECURE_NO_WARNINGS",
+		"GLFW_INCLUDE_NONE"
 	}
 
 	includedirs {
 
 		"src",
-		"vendor/spdlog/include"
+		"vendor/spdlog/include",
+		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.VulkanSDK}",
 	}
 
-	defines {
+	links {
 
-		"_CRT_SECURE_NO_WARNINGS" -- Disables warnings of spdlog
+		"GLFW",
 	}
 
 	filter "system:windows"
