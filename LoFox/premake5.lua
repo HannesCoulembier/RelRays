@@ -33,6 +33,7 @@ project "LoFox"
 	links {
 
 		"GLFW",
+		"%{Library.Vulkan}",
 	}
 
 	filter "system:windows"

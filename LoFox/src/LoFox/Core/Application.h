@@ -2,7 +2,11 @@
 
 #include "LoFox/Core/Core.h"
 
+#include "vulkan/vulkan.h"
+
 int main(int argc, char** argv);
+
+struct GLFWwindow;
 
 namespace LoFox {
 
@@ -20,6 +24,11 @@ namespace LoFox {
 
 		void Run();
 	private:
+		void InitWindow(const ApplicationSpec& spec);
+		void InitVulkan();
+	private:
+		GLFWwindow* m_WindowHandle = nullptr;
+		VkInstance m_VulkanInstance = VK_NULL_HANDLE;
 
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);
