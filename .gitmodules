@@ -1,3 +1,6 @@
 [submodule "LoFox/vendor/spdlog"]
 	path = LoFox/vendor/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "LoFox/vendor/GLFW"]
+	path = LoFox/vendor/GLFW
+	url = https://github.com/HannesCoulembier/glfw
