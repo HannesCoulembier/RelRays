@@ -20,7 +20,7 @@ namespace LoFox {
 		
 	public:
 		Application(const ApplicationSpec& spec);
-		~Application() = default;
+		~Application();
 
 		void Run();
 	private:
@@ -29,6 +29,8 @@ namespace LoFox {
 	private:
 		GLFWwindow* m_WindowHandle = nullptr;
 		VkInstance m_VulkanInstance = VK_NULL_HANDLE;
+
+		static const std::vector<const char*> s_ValidationLayers;
 
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);
