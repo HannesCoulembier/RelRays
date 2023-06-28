@@ -28,7 +28,8 @@ namespace LoFox {
 	private:
 		Scope<Window> m_Window;
 		VkInstance m_VulkanInstance = nullptr;
-		VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
+		VkPhysicalDevice m_VulkanPhysicalDevice = nullptr;
+		VkDebugUtilsMessengerEXT m_VulkanDebugMessenger = nullptr;
 		ApplicationSpec m_Spec;
 
 		static const std::vector<const char*> s_ValidationLayers;

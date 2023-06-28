@@ -5,9 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-#ifdef LF_DEBUG
-	#define LF_USE_VULKAN_VALIDATION_LAYERS
-#endif
+#include "LoFox/Utils/VulkanUtils.h"
 
 namespace LoFox {
 
@@ -52,95 +50,6 @@ namespace LoFox {
 		return VK_FALSE; // When VK_TRUE is returned, Vulkan will abort the call that made this callback
 	}
 
-	namespace Utils {
-
-		std::vector<const char*> GetRequiredVulkanExtensions() {
-
-			std::vector<const char*> extensions = GetRequiredGLFWExtensions();
-			#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-			#endif
-			return extensions;
-		}
-
-		std::vector<VkExtensionProperties> GetVulkanExtensions() {
-
-			uint32_t extensionCount;
-			vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-			std::vector<VkExtensionProperties> extensions(extensionCount);
-			vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-			return extensions;
-		}
-
-		void ListVulkanExtensions() {
-
-			std::vector<VkExtensionProperties> extensions = GetVulkanExtensions();
-
-			std::string message = "All available Vulkan extensions:\n";
-			for (const VkExtensionProperties& extension : extensions)
-				message += "\t" + (std::string)extension.extensionName + "\n";
-			LF_CORE_INFO(message);
-		}
-
-		std::vector<VkLayerProperties> GetAvailableVulkanLayers() {
-
-			uint32_t availableLayerCount;
-			vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
-			std::vector<VkLayerProperties> availableLayers(availableLayerCount);
-			vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers.data());
-			return availableLayers;
-		}
-
-		void ListAvailableVulkanLayers() {
-
-			std::vector<VkLayerProperties> availableLayers = GetAvailableVulkanLayers();
-
-			std::string message = "All available Vulkan layers:\n";
-			for (const VkLayerProperties& layer : availableLayers)
-				message += "\t" + (std::string)layer.layerName + "\n";
-			LF_CORE_INFO(message);
-		}
-
-		// Checks if a list of layer names are available
-		bool CheckVulkanValidationLayerSupport(const std::vector<const char*>& layers) {
-
-			std::vector<VkLayerProperties> availableLayers = GetAvailableVulkanLayers();
-
-			// Checks every layername against all available layers names
-			for (const char* layerName : layers) {
-				bool layerFound = false;
-
-				for (const const VkLayerProperties& availableLayerProperties : availableLayers) {
-
-					if (strcmp(layerName, availableLayerProperties.layerName) == 0) {
-						layerFound = true;
-						break;
-					}
-				}
-
-				if (!layerFound)
-					return false;
-			}
-			return true;
-		}
-
-		void PopulateDebugMessageCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-			
-			VkDebugUtilsMessageSeverityFlagsEXT messageSeverities;
-			messageSeverities = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-			#ifdef LF_BE_OVERLYSPECIFIC
-			messageSeverities |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-			#endif
-
-			createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-			createInfo.messageSeverity = messageSeverities;
-			createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-			createInfo.pfnUserCallback = VulkanMessageCallback;
-			createInfo.pUserData = nullptr;
-		}
-	}
-
 	// Should only be used when LF_USE_VULKAN_VALIDATION_LAYERS is defined
 	const std::vector<const char*> Application::s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
@@ -162,7 +71,7 @@ namespace LoFox {
 		LF_OVERSPECIFY("Destroying Vulkan instance");
 
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_DebugMessenger, nullptr);
+		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_VulkanDebugMessenger, nullptr);
 		#endif
 		vkDestroyInstance(m_VulkanInstance, nullptr);
 
@@ -222,7 +131,7 @@ namespace LoFox {
 		#ifdef LF_BE_OVERLYSPECIFIC
 		// Add debug messenger to instance creation and cleanup
 		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo;
-		Utils::PopulateDebugMessageCreateInfo(debugMessengerCreateInfo);
+		Utils::PopulateDebugMessageCreateInfo(debugMessengerCreateInfo, VulkanMessageCallback);
 		instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugMessengerCreateInfo;
 		#endif
 
@@ -237,11 +146,17 @@ namespace LoFox {
 			throw std::runtime_error("failed to create instance!");
 		}
 
-		// Setting up m_DebugMessenger (for entire runtime of the application)
+		// Setting up m_VulkanDebugMessenger (for entire runtime of the application)
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo;
-		Utils::PopulateDebugMessageCreateInfo(messengerCreateInfo);
-		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_VulkanInstance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
+		Utils::PopulateDebugMessageCreateInfo(messengerCreateInfo, VulkanMessageCallback);
+		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_VulkanInstance, &messengerCreateInfo, nullptr, &m_VulkanDebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
 		#endif
+
+		#ifdef LF_BE_OVERLYSPECIFIC
+		Utils::ListVulkanPhysicalDevices(m_VulkanInstance);
+		#endif
+
+		m_VulkanPhysicalDevice = Utils::PickVulkanPhysicalDevice(m_VulkanInstance);
 	}
 }
