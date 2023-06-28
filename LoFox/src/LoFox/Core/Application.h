@@ -4,9 +4,9 @@
 
 #include "vulkan/vulkan.h"
 
-int main(int argc, char** argv);
+#include "LoFox/Core/Window.h"
 
-struct GLFWwindow;
+int main(int argc, char** argv);
 
 namespace LoFox {
 
@@ -27,7 +27,7 @@ namespace LoFox {
 		void InitWindow(const ApplicationSpec& spec);
 		void InitVulkan();
 	private:
-		GLFWwindow* m_WindowHandle = nullptr;
+		Scope<Window> m_Window;
 		VkInstance m_VulkanInstance = nullptr;
 		VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
 

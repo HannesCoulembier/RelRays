@@ -3,12 +3,7 @@
 
 #include "LoFox/Core/Log.h"
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
-
-// Will give A LOT of debug info (that you propably don't need)
-// #define LF_BE_OVERLYSPECIFIC
 
 #ifdef LF_DEBUG
 	#define LF_USE_VULKAN_VALIDATION_LAYERS
@@ -17,8 +12,8 @@
 namespace LoFox {
 
 	// proxy functions: -----------
-		// vkCreateDebugUtilsMessengerEXT is an extension that needs to be loaded. This proxy function loads and then runs it as if it was there all along.
-	VkResult CreateDebugMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+	// vkCreateDebugUtilsMessengerEXT is an extension that needs to be loaded. This proxy function loads and then runs it as if it was there all along.
+	VkResult CreateVulkanDebugMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
 
 		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 		if (func == nullptr)
@@ -27,7 +22,7 @@ namespace LoFox {
 	}
 
 	// vkDestroyDebugUtilsMessengerEXT is an extension that needs to be loaded. This proxy function loads and then runs it as if it was there all along.
-	void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+	void DestroyVulkanDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
 
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 		if (func != nullptr)
@@ -58,16 +53,6 @@ namespace LoFox {
 	}
 
 	namespace Utils {
-		
-		std::vector<const char*> GetRequiredGLFWExtensions() {
-
-			uint32_t glfwExtensionCount;
-			const char** glfwExtensions;
-			glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-			std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-			return requiredExtensions;
-		}
 
 		std::vector<const char*> GetRequiredVulkanExtensions() {
 
@@ -161,19 +146,18 @@ namespace LoFox {
 
 	Application::Application(const ApplicationSpec& spec) {
 
+		LF_OVERSPECIFY("Creating application named \"{0}\":\n", spec.Name);
 		InitWindow(spec);
 		InitVulkan();
+		LF_OVERSPECIFY("Creation of application \"{0}\" complete.\n", spec.Name);
 	}
 
 	Application::~Application() {
 
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		DestroyDebugUtilsMessengerEXT(m_VulkanInstance, m_DebugMessenger, nullptr);
+		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_DebugMessenger, nullptr);
 		#endif
 		vkDestroyInstance(m_VulkanInstance, nullptr);
-
-		glfwDestroyWindow(m_WindowHandle);
-		glfwTerminate();
 	}
 
 	void Application::Run() {
@@ -196,12 +180,7 @@ namespace LoFox {
 
 	void Application::InitWindow(const ApplicationSpec& spec) {
 
-		glfwInit();
-
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-		m_WindowHandle = glfwCreateWindow(800, 600, "LoFox Application", nullptr, nullptr);
+		m_Window = Window::Create({ spec.Name, 1720, 960 });
 	}
 
 	void Application::InitVulkan() {
@@ -257,7 +236,7 @@ namespace LoFox {
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo;
 		Utils::PopulateDebugMessageCreateInfo(messengerCreateInfo);
-		LF_CORE_ASSERT(CreateDebugMessengerEXT(m_VulkanInstance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
+		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_VulkanInstance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
 		#endif
 	}
 }

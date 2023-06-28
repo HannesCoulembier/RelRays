@@ -32,3 +32,10 @@ namespace LoFox {
 #define LF_WARN(...)		::LoFox::Log::GetClientLogger()->warn(__VA_ARGS__)
 #define LF_ERROR(...)		::LoFox::Log::GetClientLogger()->error(__VA_ARGS__)
 #define LF_CRITICAL(...)	::LoFox::Log::GetClientLogger()->critical(__VA_ARGS__)
+
+// Will give A LOT of debug info (that you propably don't need)
+#ifdef LF_BE_OVERLYSPECIFIC
+#define LF_OVERSPECIFY(...) LF_CORE_INFO(__VA_ARGS__)
+#else
+#define LF_OVERSPECIFY(...)
+#endif

@@ -2,6 +2,9 @@
 
 #include <memory>
 
+// Will give A LOT of debug info (that you propably don't need)
+#define LF_BE_OVERLYSPECIFIC
+
 #ifdef _WIN32
 	// Windows x86/x64
 	#define LF_PLATFORM_WINDOWS
