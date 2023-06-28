@@ -24,12 +24,12 @@ namespace LoFox {
 
 		void Run();
 	private:
-		void InitWindow(const ApplicationSpec& spec);
 		void InitVulkan();
 	private:
 		Scope<Window> m_Window;
 		VkInstance m_VulkanInstance = nullptr;
 		VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
+		ApplicationSpec m_Spec;
 
 		static const std::vector<const char*> s_ValidationLayers;
 

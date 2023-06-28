@@ -3,7 +3,14 @@
 #include <memory>
 
 // Will give A LOT of debug info (that you propably don't need)
-#define LF_BE_OVERLYSPECIFIC
+/*
+Enables progress messages like: "Creating application named: name_of_app"
+Shows all Vulkan messages (otherwise only messages with severity warning or higer are shown)
+Lists as much information as possible (all available Vulkan extensions, layers, application name, window size, ...)
+*/
+#ifdef LF_DEBUG
+// #define LF_BE_OVERLYSPECIFIC
+#endif
 
 #ifdef _WIN32
 	// Windows x86/x64

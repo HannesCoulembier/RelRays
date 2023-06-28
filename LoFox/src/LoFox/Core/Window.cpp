@@ -26,15 +26,21 @@ namespace LoFox {
 		return CreateScope<Window>(spec);
 	}
 
-	Window::Window(const WindowSpec& spec) {
-		Init(spec);
+	Window::Window(const WindowSpec& spec) 
+		: m_Spec(spec) {
+
+		LF_OVERSPECIFY("Creating {0}x{1} window named \"{2}\"", m_Spec.Width, m_Spec.Height, m_Spec.Title);
+		Init();
 	}
 
 	Window::~Window() {
+
+		LF_OVERSPECIFY("Destroying window named \"{0}\"", m_Spec.Title);
+		
 		Shutdown();
 	}
 
-	void Window::Init(const WindowSpec& spec) {
+	void Window::Init() {
 
 		if (windowCount == 0)
 			glfwInit();
@@ -42,7 +48,7 @@ namespace LoFox {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-		m_WindowHandle = glfwCreateWindow(spec.Width, spec.Height, spec.Title.c_str(), nullptr, nullptr);
+		m_WindowHandle = glfwCreateWindow(m_Spec.Width, m_Spec.Height, m_Spec.Title.c_str(), nullptr, nullptr);
 		windowCount++;
 	}
 

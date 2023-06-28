@@ -144,20 +144,29 @@ namespace LoFox {
 	// Should only be used when LF_USE_VULKAN_VALIDATION_LAYERS is defined
 	const std::vector<const char*> Application::s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-	Application::Application(const ApplicationSpec& spec) {
+	Application::Application(const ApplicationSpec& spec)
+		: m_Spec(spec) {
 
-		LF_OVERSPECIFY("Creating application named \"{0}\":\n", spec.Name);
-		InitWindow(spec);
+		LF_OVERSPECIFY("Creating application named \"{0}\":\n", m_Spec.Name);
+
+		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
 		InitVulkan();
-		LF_OVERSPECIFY("Creation of application \"{0}\" complete.\n", spec.Name);
+
+		LF_OVERSPECIFY("Creation of application \"{0}\" complete.\n", m_Spec.Name);
 	}
 
 	Application::~Application() {
+
+		LF_OVERSPECIFY("Destroying application named \"{0}\"", m_Spec.Name);
+
+		LF_OVERSPECIFY("Destroying Vulkan instance");
 
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_DebugMessenger, nullptr);
 		#endif
 		vkDestroyInstance(m_VulkanInstance, nullptr);
+
+		LF_OVERSPECIFY("Finished destruction of application named \"{0}\"", m_Spec.Name);
 	}
 
 	void Application::Run() {
@@ -178,13 +187,9 @@ namespace LoFox {
 		*/
 	}
 
-	void Application::InitWindow(const ApplicationSpec& spec) {
-
-		m_Window = Window::Create({ spec.Name, 1720, 960 });
-	}
-
 	void Application::InitVulkan() {
 
+		LF_OVERSPECIFY("Creating Vulkan instance");
 		#ifdef LF_BE_OVERLYSPECIFIC
 		Utils::ListVulkanExtensions();
 		Utils::ListAvailableVulkanLayers();

@@ -25,9 +25,10 @@ namespace LoFox {
 
 		static Scope<Window> Create(const WindowSpec& spec);
 	private:
-		void Init(const WindowSpec& spec);
+		void Init();
 		void Shutdown();
 	private:
 		GLFWwindow* m_WindowHandle = nullptr;
+		WindowSpec m_Spec;
 	};
 }
