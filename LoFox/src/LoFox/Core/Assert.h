@@ -16,6 +16,6 @@
 #define LF_ASSERT(...) LF_EXPAND_MACRO( LF_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_, __VA_ARGS__) )
 #define LF_CORE_ASSERT(...) LF_EXPAND_MACRO( LF_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
 #else
-#define LF_ASSERT(...)
-#define LF_CORE_ASSERT(...)
+#define LF_ASSERT(...)		(__VA_ARGS__)
+#define LF_CORE_ASSERT(...)	(__VA_ARGS__)
 #endif

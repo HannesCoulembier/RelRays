@@ -27,10 +27,14 @@ namespace LoFox {
 		void InitVulkan();
 	private:
 		Scope<Window> m_Window;
+		ApplicationSpec m_Spec;
+
 		VkInstance m_VulkanInstance = nullptr;
 		VkPhysicalDevice m_VulkanPhysicalDevice = nullptr;
+		VkDevice m_VulkanLogicalDevice = nullptr;
 		VkDebugUtilsMessengerEXT m_VulkanDebugMessenger = nullptr;
-		ApplicationSpec m_Spec;
+
+		VkQueue m_GraphicsQueueHandle = nullptr;
 
 		static const std::vector<const char*> s_ValidationLayers;
 

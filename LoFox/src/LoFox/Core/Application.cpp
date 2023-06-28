@@ -73,6 +73,7 @@ namespace LoFox {
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_VulkanDebugMessenger, nullptr);
 		#endif
+		vkDestroyDevice(m_VulkanLogicalDevice, nullptr);
 		vkDestroyInstance(m_VulkanInstance, nullptr);
 
 		LF_OVERSPECIFY("Finished destruction of application named \"{0}\"", m_Spec.Name);
@@ -157,6 +158,39 @@ namespace LoFox {
 		Utils::ListVulkanPhysicalDevices(m_VulkanInstance);
 		#endif
 
+		// Pick physical device (= GPU to use)
 		m_VulkanPhysicalDevice = Utils::PickVulkanPhysicalDevice(m_VulkanInstance);
+
+		// Create logical device
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(m_VulkanPhysicalDevice);
+
+		VkDeviceQueueCreateInfo queueCreateInfo = {};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = indices.GraphicsFamilyIndex;
+		queueCreateInfo.queueCount = 1;
+		float queuePriority = 1.0f;
+		queueCreateInfo.pQueuePriorities = &queuePriority;
+
+		VkPhysicalDeviceFeatures logicalDeviceFeatures = {};
+
+		VkDeviceCreateInfo logicalDeviceCreateInfo{};
+		logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		logicalDeviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+		logicalDeviceCreateInfo.queueCreateInfoCount = 1;
+		logicalDeviceCreateInfo.pEnabledFeatures = &logicalDeviceFeatures;
+		logicalDeviceCreateInfo.enabledExtensionCount = 0;
+
+		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+		logicalDeviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
+		logicalDeviceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
+		#else
+		logicalDeviceCreateInfo.enabledLayerCount = 0;
+		logicalDeviceCreateInfo.pNext = nullptr;
+		#endif
+
+		LF_CORE_ASSERT(vkCreateDevice(m_VulkanPhysicalDevice, &logicalDeviceCreateInfo, nullptr, &m_VulkanLogicalDevice) == VK_SUCCESS, "Failed to create logical device!");
+		
+		// Retrieve graphics queue handle
+		vkGetDeviceQueue(m_VulkanLogicalDevice, indices.GraphicsFamilyIndex, 0, &m_GraphicsQueueHandle);
 	}
 }

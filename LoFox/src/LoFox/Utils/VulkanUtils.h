@@ -12,7 +12,7 @@ namespace LoFox {
 		struct QueueFamilyIndices {
 
 			bool HasGraphicsFamily = false;
-			uint32_t GraphicsFamily = 0;
+			uint32_t GraphicsFamilyIndex = 0;
 
 			bool IsComplete() { return HasGraphicsFamily; }
 		};
@@ -127,7 +127,7 @@ namespace LoFox {
 
 				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 					indices.HasGraphicsFamily = true;
-					indices.GraphicsFamily = i;
+					indices.GraphicsFamilyIndex = i;
 				}
 				if (indices.IsComplete()) break;
 			}
