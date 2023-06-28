@@ -28,7 +28,8 @@ namespace LoFox {
 		void InitVulkan();
 	private:
 		GLFWwindow* m_WindowHandle = nullptr;
-		VkInstance m_VulkanInstance = VK_NULL_HANDLE;
+		VkInstance m_VulkanInstance = nullptr;
+		VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
 
 		static const std::vector<const char*> s_ValidationLayers;
 
