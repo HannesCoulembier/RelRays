@@ -71,12 +71,16 @@ namespace LoFox {
 
 		LF_OVERSPECIFY("Destroying Vulkan instance");
 
+		for (auto framebuffer : m_SwapChainFramebuffers)
+			vkDestroyFramebuffer(m_VulkanLogicalDevice, framebuffer, nullptr);
+
 		vkDestroyPipeline(m_VulkanLogicalDevice, m_VulkanGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(m_VulkanLogicalDevice, m_VulkanPipelineLayout, nullptr);
 		vkDestroyRenderPass(m_VulkanLogicalDevice, m_VulkanRenderpass, nullptr);
-		for (auto imageView : m_VulkanSwapChainImageViews) {
+
+		for (auto imageView : m_VulkanSwapChainImageViews)
 			vkDestroyImageView(m_VulkanLogicalDevice, imageView, nullptr);
-		}
+
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_VulkanDebugMessenger, nullptr);
 		#endif
@@ -450,5 +454,26 @@ namespace LoFox {
 		// Cleaning up shadermodules:
 		vkDestroyShaderModule(m_VulkanLogicalDevice, vertexShaderModule, nullptr);
 		vkDestroyShaderModule(m_VulkanLogicalDevice, fragmentShaderModule, nullptr);
+
+		// Create Framebuffers
+		m_SwapChainFramebuffers.resize(m_VulkanSwapChainImageViews.size());
+
+		for (size_t i = 0; i < m_VulkanSwapChainImageViews.size(); i++) {
+
+			VkImageView attachments[] = {
+				m_VulkanSwapChainImageViews[i]
+			};
+
+			VkFramebufferCreateInfo framebufferCreateInfo{};
+			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferCreateInfo.renderPass = m_VulkanRenderpass;
+			framebufferCreateInfo.attachmentCount = 1;
+			framebufferCreateInfo.pAttachments = attachments;
+			framebufferCreateInfo.width = m_SwapChainExtent.width;
+			framebufferCreateInfo.height = m_SwapChainExtent.height;
+			framebufferCreateInfo.layers = 1;
+
+			LF_CORE_ASSERT(vkCreateFramebuffer(m_VulkanLogicalDevice, &framebufferCreateInfo, nullptr, &m_SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+		}
 	}
 }

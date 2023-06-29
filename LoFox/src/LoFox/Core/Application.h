@@ -43,6 +43,7 @@ namespace LoFox {
 
 		VkFormat m_SwapChainImageFormat;
 		VkExtent2D m_SwapChainExtent;
+		std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
 		VkRenderPass m_VulkanRenderpass;
 		VkPipelineLayout m_VulkanPipelineLayout;
