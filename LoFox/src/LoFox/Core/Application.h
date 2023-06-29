@@ -23,6 +23,9 @@ namespace LoFox {
 		~Application();
 
 		void Run();
+		void OnRender();
+
+		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 		inline Window& GetWindow() { return *m_Window; }
 
@@ -49,8 +52,15 @@ namespace LoFox {
 		VkPipelineLayout m_VulkanPipelineLayout;
 		VkPipeline m_VulkanGraphicsPipeline;
 
+		VkCommandPool m_VulkanCommandPool;
+		VkCommandBuffer m_VulkanCommandBuffer;
+
 		VkQueue m_GraphicsQueueHandle = nullptr;
 		VkQueue m_PresentQueueHandle = nullptr;
+
+		VkSemaphore m_ImageAvailableSemaphore;
+		VkSemaphore m_RenderFinishedSemaphore;
+		VkFence m_InFlightFence;
 
 		static const std::vector<const char*> s_ValidationLayers;
 

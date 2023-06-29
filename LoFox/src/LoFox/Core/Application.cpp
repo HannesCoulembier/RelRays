@@ -71,9 +71,14 @@ namespace LoFox {
 
 		LF_OVERSPECIFY("Destroying Vulkan instance");
 
+		vkDestroySemaphore(m_VulkanLogicalDevice, m_ImageAvailableSemaphore, nullptr);
+		vkDestroySemaphore(m_VulkanLogicalDevice, m_RenderFinishedSemaphore, nullptr);
+		vkDestroyFence(m_VulkanLogicalDevice, m_InFlightFence, nullptr);
+
 		for (auto framebuffer : m_SwapChainFramebuffers)
 			vkDestroyFramebuffer(m_VulkanLogicalDevice, framebuffer, nullptr);
 
+		vkDestroyCommandPool(m_VulkanLogicalDevice, m_VulkanCommandPool, nullptr);
 		vkDestroyPipeline(m_VulkanLogicalDevice, m_VulkanGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(m_VulkanLogicalDevice, m_VulkanPipelineLayout, nullptr);
 		vkDestroyRenderPass(m_VulkanLogicalDevice, m_VulkanRenderpass, nullptr);
@@ -85,7 +90,9 @@ namespace LoFox {
 		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_VulkanDebugMessenger, nullptr);
 		#endif
 		vkDestroySwapchainKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, nullptr);
+
 		vkDestroyDevice(m_VulkanLogicalDevice, nullptr);
+
 		vkDestroySurfaceKHR(m_VulkanInstance, m_VulkanSurface, nullptr);
 
 		vkDestroyInstance(m_VulkanInstance, nullptr);
@@ -109,6 +116,53 @@ namespace LoFox {
 		LF_ERROR("TEST");
 		LF_CRITICAL("TEST");
 		*/
+
+		while (!m_Window->ShouldClose()) {
+
+			m_Window->OnUpdate();
+			OnRender();
+		}
+
+		vkDeviceWaitIdle(m_VulkanLogicalDevice);
+	}
+
+	void Application::OnRender() {
+
+		vkWaitForFences(m_VulkanLogicalDevice, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
+		vkResetFences(m_VulkanLogicalDevice, 1, &m_InFlightFence);
+
+		uint32_t imageIndex;
+		vkAcquireNextImageKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		
+		vkResetCommandBuffer(m_VulkanCommandBuffer, 0);
+		RecordCommandBuffer(m_VulkanCommandBuffer, imageIndex);
+
+		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
+		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_VulkanCommandBuffer;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		LF_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueueHandle, 1, &submitInfo, m_InFlightFence) == VK_SUCCESS, "Failed to submit draw command buffer!");
+
+		VkSwapchainKHR swapChains[] = { m_VulkanSwapChain };
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pResults = nullptr;
+
+		vkQueuePresentKHR(m_PresentQueueHandle, &presentInfo);
 	}
 
 	void Application::InitVulkan() {
@@ -308,12 +362,22 @@ namespace LoFox {
 		subpassDescription.colorAttachmentCount = 1;
 		subpassDescription.pColorAttachments = &colorAttachmentRef;
 
+		VkSubpassDependency subpassDependency = {};
+		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		subpassDependency.dstSubpass = 0;
+		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpassDependency.srcAccessMask = 0;
+		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 		VkRenderPassCreateInfo renderPassCreateInfo = {};
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassCreateInfo.attachmentCount = 1;
 		renderPassCreateInfo.pAttachments = &colorAttachmentDescription;
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpassDescription;
+		renderPassCreateInfo.dependencyCount = 1;
+		renderPassCreateInfo.pDependencies = &subpassDependency;
 
 		LF_CORE_ASSERT(vkCreateRenderPass(m_VulkanLogicalDevice, &renderPassCreateInfo, nullptr, &m_VulkanRenderpass) == VK_SUCCESS, "Failed to create render pass!");
 
@@ -422,7 +486,7 @@ namespace LoFox {
 		colorBlendingCreateInfo.blendConstants[2] = 0.0f;
 		colorBlendingCreateInfo.blendConstants[3] = 0.0f;
 
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 0;
 		pipelineLayoutCreateInfo.pSetLayouts = nullptr;
@@ -464,7 +528,7 @@ namespace LoFox {
 				m_VulkanSwapChainImageViews[i]
 			};
 
-			VkFramebufferCreateInfo framebufferCreateInfo{};
+			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferCreateInfo.renderPass = m_VulkanRenderpass;
 			framebufferCreateInfo.attachmentCount = 1;
@@ -475,5 +539,77 @@ namespace LoFox {
 
 			LF_CORE_ASSERT(vkCreateFramebuffer(m_VulkanLogicalDevice, &framebufferCreateInfo, nullptr, &m_SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
 		}
+
+		// Create Commandpool
+		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		commandPoolCreateInfo.queueFamilyIndex = indices.GraphicsFamilyIndex;
+
+		LF_CORE_ASSERT(vkCreateCommandPool(m_VulkanLogicalDevice, &commandPoolCreateInfo, nullptr, &m_VulkanCommandPool) == VK_SUCCESS, "Failed to create command pool!");
+	
+		// Create Commandbuffers
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandPool = m_VulkanCommandPool;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.commandBufferCount = 1;
+
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(m_VulkanLogicalDevice, &commandBufferAllocInfo, &m_VulkanCommandBuffer) == VK_SUCCESS, "Failed to allocate command buffers!");
+	
+		// Create sync objects
+		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		VkFenceCreateInfo fenceCreateInfo = {};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		LF_CORE_ASSERT(vkCreateSemaphore(m_VulkanLogicalDevice, &semaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
+		LF_CORE_ASSERT(vkCreateSemaphore(m_VulkanLogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
+		LF_CORE_ASSERT(vkCreateFence(m_VulkanLogicalDevice, &fenceCreateInfo, nullptr, &m_InFlightFence) == VK_SUCCESS, "Failed to create inFlight fence!");
+		
+	}
+
+	void Application::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		commandBufferBeginInfo.flags = 0;
+		commandBufferBeginInfo.pInheritanceInfo = nullptr;
+
+		LF_CORE_ASSERT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
+
+		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.renderPass = m_VulkanRenderpass;
+		renderPassBeginInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
+		renderPassBeginInfo.renderArea.offset = { 0, 0 };
+		renderPassBeginInfo.renderArea.extent = m_SwapChainExtent;
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearColor;
+
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_VulkanGraphicsPipeline);
+
+		VkViewport viewport = {};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(m_SwapChainExtent.width);
+		viewport.height = static_cast<float>(m_SwapChainExtent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = {};
+		scissor.offset = { 0, 0 };
+		scissor.extent = m_SwapChainExtent;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+		vkCmdEndRenderPass(commandBuffer);
+
+		LF_CORE_ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
 	}
 }

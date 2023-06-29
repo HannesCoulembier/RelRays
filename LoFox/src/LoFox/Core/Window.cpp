@@ -60,6 +60,16 @@ namespace LoFox {
 			glfwTerminate();
 	}
 
+	void Window::OnUpdate() {
+
+		glfwPollEvents();
+	}
+
+	bool Window::ShouldClose() {
+
+		return glfwWindowShouldClose(m_WindowHandle);
+	}
+
 	void Window::CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface) {
 
 		LF_CORE_ASSERT(glfwCreateWindowSurface(instance, m_WindowHandle, nullptr, surface) == VK_SUCCESS, "Failed to create window surface!");

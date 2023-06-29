@@ -27,6 +27,9 @@ namespace LoFox {
 
 		void CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface);
 
+		void OnUpdate();
+
+		bool ShouldClose();
 		void GetFramebufferSize(int* width, int* height) const;
 
 		static Scope<Window> Create(const WindowSpec& spec);
