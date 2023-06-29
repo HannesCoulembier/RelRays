@@ -23,6 +23,9 @@ namespace LoFox {
 		~Application();
 
 		void Run();
+
+		inline Window& GetWindow() { return *m_Window; }
+
 	private:
 		void InitVulkan();
 	private:
@@ -33,8 +36,15 @@ namespace LoFox {
 		VkPhysicalDevice m_VulkanPhysicalDevice = nullptr;
 		VkDevice m_VulkanLogicalDevice = nullptr;
 		VkDebugUtilsMessengerEXT m_VulkanDebugMessenger = nullptr;
+		VkSurfaceKHR m_VulkanSurface = nullptr;
+		VkSwapchainKHR m_VulkanSwapChain = nullptr;
+		std::vector<VkImage> m_VulkanSwapChainImages;
+
+		VkFormat m_SwapChainImageFormat;
+		VkExtent2D m_SwapChainExtent;
 
 		VkQueue m_GraphicsQueueHandle = nullptr;
+		VkQueue m_PresentQueueHandle = nullptr;
 
 		static const std::vector<const char*> s_ValidationLayers;
 

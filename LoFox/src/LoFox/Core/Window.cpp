@@ -59,4 +59,13 @@ namespace LoFox {
 		if (windowCount == 0)
 			glfwTerminate();
 	}
+
+	void Window::CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface) {
+
+		LF_CORE_ASSERT(glfwCreateWindowSurface(instance, m_WindowHandle, nullptr, surface) == VK_SUCCESS, "Failed to create window surface!");
+	}
+
+	void Window::GetFramebufferSize(int* width, int* height) const {
+		return glfwGetFramebufferSize(m_WindowHandle, width, height);
+	}
 }

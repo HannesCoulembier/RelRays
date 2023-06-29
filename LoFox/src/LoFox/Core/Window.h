@@ -2,6 +2,8 @@
 
 #include "LoFox/Core/Core.h"
 
+#include <vulkan/vulkan.h>
+
 struct GLFWwindow;
 
 namespace LoFox {
@@ -22,6 +24,10 @@ namespace LoFox {
 	public:
 		Window(const WindowSpec& spec);
 		~Window();
+
+		void CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface);
+
+		void GetFramebufferSize(int* width, int* height) const;
 
 		static Scope<Window> Create(const WindowSpec& spec);
 	private:

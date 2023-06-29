@@ -8,14 +8,25 @@ namespace LoFox {
 
 	namespace Utils {
 
-		// Structs --------------------------------------------------------------------------------------
+		// Structs and stuff ----------------------------------------------------------------------------
 		struct QueueFamilyIndices {
 
 			bool HasGraphicsFamily = false;
 			uint32_t GraphicsFamilyIndex = 0;
+			bool HasPresentFamily = false;
+			uint32_t PresentFamilyIndex = 0;
 
-			bool IsComplete() { return HasGraphicsFamily; }
+			bool IsComplete() { return HasGraphicsFamily && HasPresentFamily; }
 		};
+
+		struct SwapChainSupportDetails {
+
+			VkSurfaceCapabilitiesKHR Capabilities;
+			std::vector<VkSurfaceFormatKHR> Formats;
+			std::vector<VkPresentModeKHR> PresentModes;
+		};
+
+		const std::vector<const char*> requiredVulkanDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 		// Populators (populate createInfo structs) -----------------------------------------------------
 		void PopulateDebugMessageCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo, PFN_vkDebugUtilsMessengerCallbackEXT userCallback) {
@@ -52,6 +63,15 @@ namespace LoFox {
 			for (const VkExtensionProperties& extension : extensions)
 				message += "\t" + (std::string)extension.extensionName + "\n";
 			LF_CORE_INFO(message);
+		}
+
+		std::vector<VkExtensionProperties> GetVulkanPhysicalDeviceExtensions(VkPhysicalDevice device) {
+
+			uint32_t extensionCount;
+			vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+			std::vector<VkExtensionProperties> extensions(extensionCount);
+			vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, extensions.data());
+			return extensions;
 		}
 
 		std::vector<const char*> GetRequiredVulkanExtensions() {
@@ -117,7 +137,7 @@ namespace LoFox {
 			return queueFamilies;
 		}
 
-		QueueFamilyIndices IdentifyVulkanQueueFamilies(VkPhysicalDevice device) {
+		QueueFamilyIndices IdentifyVulkanQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
 
 			QueueFamilyIndices indices;
 
@@ -129,10 +149,80 @@ namespace LoFox {
 					indices.HasGraphicsFamily = true;
 					indices.GraphicsFamilyIndex = i;
 				}
+				VkBool32 presentSupport;
+				vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+				if (presentSupport) {
+					indices.HasPresentFamily = true;
+					indices.GraphicsFamilyIndex = i;
+				}
 				if (indices.IsComplete()) break;
 			}
 
 			return indices;
+		}
+
+		// SwapChain ------------------------------------------------------------------------------------
+		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+
+			for (const auto& availableFormat : availableFormats) {
+				if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) // = Ideal format
+					return availableFormat;
+			}
+			return availableFormats[0]; // We couldn't find our preferred format, so we will pick the first one.
+		}
+
+		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+
+			for (const auto& availablePresentMode : availablePresentModes) {
+				if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) // Ideal present mode (renders as fast as possible, when queue is full first image is popped -> less latency, higher power usage)
+					return availablePresentMode;
+			}
+
+			return VK_PRESENT_MODE_FIFO_KHR; // Is always available
+		}
+
+		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Window& window) {
+
+			if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+				return capabilities.currentExtent;
+			}
+			else {
+
+				int width, height;
+				window.GetFramebufferSize(&width, &height);
+
+				VkExtent2D actualExtent = {
+					static_cast<uint32_t>(width),
+					static_cast<uint32_t>(height)
+				};
+
+				actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+				actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+				return actualExtent;
+			}
+		}
+
+		SwapChainSupportDetails GetSwapChainSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface) {
+
+			SwapChainSupportDetails details;
+
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.Capabilities);
+
+			uint32_t formatCount;
+			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+			if (formatCount != 0) {
+				details.Formats.resize(formatCount);
+				vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.data());
+			}
+
+			uint32_t presentModeCount;
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+			if (presentModeCount != 0) {
+				details.PresentModes.resize(presentModeCount);
+				vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.PresentModes.data());
+			}
+			return details;
 		}
 
 		// PhysicalDevices ------------------------------------------------------------------------
@@ -160,7 +250,7 @@ namespace LoFox {
 			LF_CORE_INFO(message);
 		}
 
-		bool IsVulkanPhysicalDeviceSuitable(VkPhysicalDevice device) {
+		bool IsVulkanPhysicalDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface) {
 
 			/* Don't need this yet
 			VkPhysicalDeviceProperties deviceProps;
@@ -169,19 +259,33 @@ namespace LoFox {
 			vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 			*/
 
-			QueueFamilyIndices indices = IdentifyVulkanQueueFamilies(device);
+			QueueFamilyIndices indices = IdentifyVulkanQueueFamilies(device, surface);
 
-			return indices.IsComplete(); // We need our GPU to have a graphicsfamily
+			std::vector<VkExtensionProperties> availableExtensions = GetVulkanPhysicalDeviceExtensions(device);
+			std::set<std::string> requiredDeviceExtensionsLeft(requiredVulkanDeviceExtensions.begin(), requiredVulkanDeviceExtensions.end());
+			for (const VkExtensionProperties& extension : availableExtensions) {
+
+				requiredDeviceExtensionsLeft.erase(extension.extensionName);
+				if (requiredDeviceExtensionsLeft.empty()) break;
+			}
+			bool supportsRequiredExtensions = requiredDeviceExtensionsLeft.empty();
+			bool swapChainIsAdequate = false;
+			if (supportsRequiredExtensions) {
+				SwapChainSupportDetails supportDetails = GetSwapChainSupportDetails(device, surface);
+				swapChainIsAdequate = !(supportDetails.Formats.empty()) && !(supportDetails.PresentModes.empty());
+			}
+
+			return indices.IsComplete() && supportsRequiredExtensions && swapChainIsAdequate;
 		}
 
-		VkPhysicalDevice PickVulkanPhysicalDevice(VkInstance instance) {
+		VkPhysicalDevice PickVulkanPhysicalDevice(VkInstance instance, VkSurfaceKHR surface) {
 
 			std::vector<VkPhysicalDevice> physicalDevices = GetVulkanPhysicalDevices(instance);
 
 			// Selects first suitable physical device
 			VkPhysicalDevice physicalDevice = nullptr;
 			for (auto device : physicalDevices) {
-				if (IsVulkanPhysicalDeviceSuitable(device)) {
+				if (IsVulkanPhysicalDeviceSuitable(device, surface)) {
 
 					physicalDevice = device;
 					break;

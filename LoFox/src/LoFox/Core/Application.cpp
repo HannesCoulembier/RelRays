@@ -73,7 +73,10 @@ namespace LoFox {
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_VulkanDebugMessenger, nullptr);
 		#endif
+		vkDestroySwapchainKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, nullptr);
 		vkDestroyDevice(m_VulkanLogicalDevice, nullptr);
+		vkDestroySurfaceKHR(m_VulkanInstance, m_VulkanSurface, nullptr);
+
 		vkDestroyInstance(m_VulkanInstance, nullptr);
 
 		LF_OVERSPECIFY("Finished destruction of application named \"{0}\"", m_Spec.Name);
@@ -154,31 +157,44 @@ namespace LoFox {
 		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_VulkanInstance, &messengerCreateInfo, nullptr, &m_VulkanDebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
 		#endif
 
+		// Setting up m_VulkanSurface
+		m_Window->CreateVulkanSurface(m_VulkanInstance, &m_VulkanSurface);
+
+		// Pick physical device (= GPU to use)
 		#ifdef LF_BE_OVERLYSPECIFIC
 		Utils::ListVulkanPhysicalDevices(m_VulkanInstance);
 		#endif
 
-		// Pick physical device (= GPU to use)
-		m_VulkanPhysicalDevice = Utils::PickVulkanPhysicalDevice(m_VulkanInstance);
+		m_VulkanPhysicalDevice = Utils::PickVulkanPhysicalDevice(m_VulkanInstance, m_VulkanSurface);
 
 		// Create logical device
-		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(m_VulkanPhysicalDevice);
+		// Figuring out what queues we want
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(m_VulkanPhysicalDevice, m_VulkanSurface);
 
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = indices.GraphicsFamilyIndex;
-		queueCreateInfo.queueCount = 1;
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+		std::set<uint32_t> uniqueQueueFamilies = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
 		float queuePriority = 1.0f;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
+		for (auto queueFamily : uniqueQueueFamilies) {
 
-		VkPhysicalDeviceFeatures logicalDeviceFeatures = {};
+			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.queueFamilyIndex = queueFamily;
+			queueCreateInfo.queueCount = 1;
+			queueCreateInfo.pQueuePriorities = &queuePriority;
+
+			queueCreateInfos.push_back(queueCreateInfo);
+		}
+
+		// Actually setting up the logical device info structs
+		VkPhysicalDeviceFeatures logicalDeviceFeatures = {}; // No features needed for now
 
 		VkDeviceCreateInfo logicalDeviceCreateInfo{};
 		logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		logicalDeviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-		logicalDeviceCreateInfo.queueCreateInfoCount = 1;
+		logicalDeviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+		logicalDeviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 		logicalDeviceCreateInfo.pEnabledFeatures = &logicalDeviceFeatures;
-		logicalDeviceCreateInfo.enabledExtensionCount = 0;
+		logicalDeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(Utils::requiredVulkanDeviceExtensions.size());
+		logicalDeviceCreateInfo.ppEnabledExtensionNames = Utils::requiredVulkanDeviceExtensions.data();
 
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		logicalDeviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
@@ -190,7 +206,53 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkCreateDevice(m_VulkanPhysicalDevice, &logicalDeviceCreateInfo, nullptr, &m_VulkanLogicalDevice) == VK_SUCCESS, "Failed to create logical device!");
 		
-		// Retrieve graphics queue handle
+		// Retrieve queue handles
 		vkGetDeviceQueue(m_VulkanLogicalDevice, indices.GraphicsFamilyIndex, 0, &m_GraphicsQueueHandle);
+		vkGetDeviceQueue(m_VulkanLogicalDevice, indices.PresentFamilyIndex, 0, &m_PresentQueueHandle);
+
+		// Create SwapChain
+		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(m_VulkanPhysicalDevice, m_VulkanSurface);
+
+		VkSurfaceFormatKHR surfaceFormat = Utils::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
+		m_SwapChainImageFormat = surfaceFormat.format;
+		VkPresentModeKHR presentMode = Utils::ChooseSwapPresentMode(swapChainSupport.PresentModes);
+		m_SwapChainExtent = Utils::ChooseSwapExtent(swapChainSupport.Capabilities, GetWindow());
+
+		uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
+		if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) // when maxImageCount = 0, there is no limit
+			imageCount = swapChainSupport.Capabilities.maxImageCount;
+
+		uint32_t queueFamilyIndices[] = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
+		
+		VkSwapchainCreateInfoKHR swapChainCreateInfo{};
+		swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapChainCreateInfo.surface = m_VulkanSurface;
+		swapChainCreateInfo.minImageCount = imageCount;
+		swapChainCreateInfo.imageFormat = surfaceFormat.format;
+		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+		swapChainCreateInfo.imageExtent = m_SwapChainExtent;
+		swapChainCreateInfo.imageArrayLayers = 1;
+		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
+
+			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			swapChainCreateInfo.queueFamilyIndexCount = 2; // Specifies there are 2 (graphics and present) families that will need to share the swapchain images
+			swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
+		}
+		else {
+			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		}
+		swapChainCreateInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
+		swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapChainCreateInfo.presentMode = presentMode;
+		swapChainCreateInfo.clipped = VK_TRUE; // Pixels obscured by another window are ignored
+		swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+
+		LF_CORE_ASSERT(vkCreateSwapchainKHR(m_VulkanLogicalDevice, &swapChainCreateInfo, nullptr, &m_VulkanSwapChain) == VK_SUCCESS, "Failed to create swap chain!");
+		
+		// Retrieving the images in the swap chain
+		vkGetSwapchainImagesKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
+		m_VulkanSwapChainImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, &imageCount, m_VulkanSwapChainImages.data());
 	}
 }
