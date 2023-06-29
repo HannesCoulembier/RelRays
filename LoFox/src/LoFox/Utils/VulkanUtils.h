@@ -295,5 +295,19 @@ namespace LoFox {
 			LF_CORE_ASSERT(physicalDevice, "Failed to find suitable GPU!");
 			return physicalDevice;
 		}
+
+		// Shaders --------------------------------------------------------------------------------------
+		VkShaderModule CreateShaderModule(VkDevice device, const std::vector<char>& byteCode) {
+
+			VkShaderModuleCreateInfo shaderModuleCreateInfo{};
+			shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			shaderModuleCreateInfo.codeSize = byteCode.size();
+			shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(byteCode.data());
+
+			VkShaderModule shaderModule;
+			LF_CORE_ASSERT(vkCreateShaderModule(device, &shaderModuleCreateInfo, nullptr, &shaderModule) == VK_SUCCESS, "failed to create shader module!");
+			
+			return shaderModule;
+		}
 	}
 }

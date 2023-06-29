@@ -44,6 +44,10 @@ namespace LoFox {
 		VkFormat m_SwapChainImageFormat;
 		VkExtent2D m_SwapChainExtent;
 
+		VkRenderPass m_VulkanRenderpass;
+		VkPipelineLayout m_VulkanPipelineLayout;
+		VkPipeline m_VulkanGraphicsPipeline;
+
 		VkQueue m_GraphicsQueueHandle = nullptr;
 		VkQueue m_PresentQueueHandle = nullptr;
 
