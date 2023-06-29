@@ -39,6 +39,7 @@ namespace LoFox {
 		VkSurfaceKHR m_VulkanSurface = nullptr;
 		VkSwapchainKHR m_VulkanSwapChain = nullptr;
 		std::vector<VkImage> m_VulkanSwapChainImages;
+		std::vector<VkImageView> m_VulkanSwapChainImageViews;
 
 		VkFormat m_SwapChainImageFormat;
 		VkExtent2D m_SwapChainExtent;

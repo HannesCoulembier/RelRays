@@ -70,6 +70,9 @@ namespace LoFox {
 
 		LF_OVERSPECIFY("Destroying Vulkan instance");
 
+		for (auto imageView : m_VulkanSwapChainImageViews) {
+			vkDestroyImageView(m_VulkanLogicalDevice, imageView, nullptr);
+		}
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		DestroyVulkanDebugUtilsMessengerEXT(m_VulkanInstance, m_VulkanDebugMessenger, nullptr);
 		#endif
@@ -254,5 +257,28 @@ namespace LoFox {
 		vkGetSwapchainImagesKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
 		m_VulkanSwapChainImages.resize(imageCount);
 		vkGetSwapchainImagesKHR(m_VulkanLogicalDevice, m_VulkanSwapChain, &imageCount, m_VulkanSwapChainImages.data());
+
+		// Create the image views
+		m_VulkanSwapChainImageViews.resize(m_VulkanSwapChainImages.size());
+		for (uint32_t i = 0; i < m_VulkanSwapChainImages.size(); i++) {
+
+			VkImageViewCreateInfo imageViewCreateInfo{};
+			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewCreateInfo.image = m_VulkanSwapChainImages[i];
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageViewCreateInfo.format = m_SwapChainImageFormat;
+			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+			imageViewCreateInfo.subresourceRange.levelCount = 1;
+			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+			imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+			LF_CORE_ASSERT(vkCreateImageView(m_VulkanLogicalDevice, &imageViewCreateInfo, nullptr, &m_VulkanSwapChainImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
+		}
+
 	}
 }
