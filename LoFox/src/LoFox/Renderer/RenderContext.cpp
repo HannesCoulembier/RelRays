@@ -1,6 +1,8 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/RenderContext.h"
 
+#include "LoFox/Renderer/Shader.h"
+
 #include "LoFox/Utils/VulkanUtils.h"
 #include "LoFox/Utils/Utils.h"
 
@@ -48,7 +50,9 @@ namespace LoFox {
 
 	Ref<RenderContext> RenderContext::Create() {
 
-		return CreateRef<RenderContext>();
+		Ref<RenderContext> context = CreateRef<RenderContext>();
+		context->LinkReference(context);
+		return context;
 	}
 
 	void RenderContext::Init(Ref<Window> window) {
@@ -270,25 +274,10 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateRenderPass(m_LogicalDevice, &renderPassCreateInfo, nullptr, &m_Renderpass) == VK_SUCCESS, "Failed to create render pass!");
 
 		// Create Graphics pipeline
-		auto vertexShaderCode = Utils::ReadFile("Assets/Shaders/vert.spv");
-		auto fragmentShaderCode = Utils::ReadFile("Assets/Shaders/frag.spv");
+		Shader vertexShader(m_Context, "Assets/Shaders/VertexShader.vert", ShaderType::Vertex);
+		Shader fragmentShader(m_Context, "Assets/Shaders/FragmentShader.frag", ShaderType::Fragment);
 
-		VkShaderModule vertexShaderModule = Utils::CreateShaderModule(m_LogicalDevice, vertexShaderCode);
-		VkShaderModule fragmentShaderModule = Utils::CreateShaderModule(m_LogicalDevice, fragmentShaderCode);
-
-		VkPipelineShaderStageCreateInfo vertexShaderStageCreateInfo = {};
-		vertexShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertexShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertexShaderStageCreateInfo.module = vertexShaderModule;
-		vertexShaderStageCreateInfo.pName = "main";
-
-		VkPipelineShaderStageCreateInfo fragmentShaderStageCreateInfo{};
-		fragmentShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragmentShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragmentShaderStageCreateInfo.module = fragmentShaderModule;
-		fragmentShaderStageCreateInfo.pName = "main";
-
-		VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderStageCreateInfo, fragmentShaderStageCreateInfo };
+		VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShader.GetCreateInfo(), fragmentShader.GetCreateInfo() };
 
 		VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
 		vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -403,10 +392,6 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkCreateGraphicsPipelines(m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_GraphicsPipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
 
-		// Cleaning up shadermodules:
-		vkDestroyShaderModule(m_LogicalDevice, vertexShaderModule, nullptr);
-		vkDestroyShaderModule(m_LogicalDevice, fragmentShaderModule, nullptr);
-
 		// Create Framebuffers
 		m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
 
@@ -456,7 +441,7 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateSemaphore(m_LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
 		LF_CORE_ASSERT(vkCreateFence(m_LogicalDevice, &fenceCreateInfo, nullptr, &m_InFlightFence) == VK_SUCCESS, "Failed to create inFlight fence!");
 	}
-
+	
 	void RenderContext::Shutdown() {
 
 		vkDestroySemaphore(m_LogicalDevice, m_ImageAvailableSemaphore, nullptr);

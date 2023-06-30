@@ -43,13 +43,34 @@ project "LoFox"
 		defines "LF_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		
+		links {
+
+			"%{Library.ShaderC_Debug}",
+			"%{Library.SPIRV_Cross_Debug}",
+			"%{Library.SPIRV_Cross_GLSL_Debug}",
+		}
 
 	filter "configurations:Release"
 		defines "LF_RELEASE"
 		runtime "Release"
 		optimize "on"
 
+		links {
+
+			"%{Library.ShaderC_Release}",
+			"%{Library.SPIRV_Cross_Release}",
+			"%{Library.SPIRV_Cross_GLSL_Release}",
+		}
+
 	filter "configurations:Dist"
 		defines "LF_DIST"
 		runtime "Release"
 		optimize "on"
+
+		links {
+
+			"%{Library.ShaderC_Release}",
+			"%{Library.SPIRV_Cross_Release}",
+			"%{Library.SPIRV_Cross_GLSL_Release}",
+		}

@@ -18,20 +18,19 @@ namespace LoFox {
 
 		void OnRender();
 
+		VkDevice GetLogicalDevice() { return m_LogicalDevice; }
+
 		void WaitIdle() { vkDeviceWaitIdle(m_LogicalDevice); }
 
 		static Ref<RenderContext> Create();
 	private:
 		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
-		static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanMessageCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagsEXT messageType,
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData);
+		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
+		static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 	private:
 		Ref<Window> m_Window = nullptr;
-		std::vector<Window> tests;
+		Ref<RenderContext> m_Context;
 
 		VkInstance m_Instance = nullptr;
 		VkPhysicalDevice m_PhysicalDevice = nullptr;

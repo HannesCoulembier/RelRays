@@ -72,8 +72,5 @@ namespace LoFox {
 		bool IsVulkanPhysicalDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 		VkPhysicalDevice PickVulkanPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
-
-		// Shaders --------------------------------------------------------------------------------------
-		VkShaderModule CreateShaderModule(VkDevice device, const std::vector<char>& byteCode);
 	}
 }
