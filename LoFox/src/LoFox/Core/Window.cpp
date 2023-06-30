@@ -21,9 +21,9 @@ namespace LoFox {
 
 	static uint32_t windowCount = 0;
 
-	Scope<Window> Window::Create(const WindowSpec& spec) {
+	Ref<Window> Window::Create(const WindowSpec& spec) {
 
-		return CreateScope<Window>(spec);
+		return CreateRef<Window>(spec);
 	}
 
 	Window::Window(const WindowSpec& spec) 

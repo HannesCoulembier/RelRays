@@ -5,6 +5,7 @@
 #include "vulkan/vulkan.h"
 
 #include "LoFox/Core/Window.h"
+#include "LoFox/Renderer/RenderContext.h"
 
 int main(int argc, char** argv);
 
@@ -23,46 +24,13 @@ namespace LoFox {
 		~Application();
 
 		void Run();
-		void OnRender();
-
-		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 		inline Window& GetWindow() { return *m_Window; }
-
+		
 	private:
-		void InitVulkan();
-	private:
-		Scope<Window> m_Window;
 		ApplicationSpec m_Spec;
-
-		VkInstance m_VulkanInstance = nullptr;
-		VkPhysicalDevice m_VulkanPhysicalDevice = nullptr;
-		VkDevice m_VulkanLogicalDevice = nullptr;
-		VkDebugUtilsMessengerEXT m_VulkanDebugMessenger = nullptr;
-		VkSurfaceKHR m_VulkanSurface = nullptr;
-		VkSwapchainKHR m_VulkanSwapChain = nullptr;
-		std::vector<VkImage> m_VulkanSwapChainImages;
-		std::vector<VkImageView> m_VulkanSwapChainImageViews;
-
-		VkFormat m_SwapChainImageFormat;
-		VkExtent2D m_SwapChainExtent;
-		std::vector<VkFramebuffer> m_SwapChainFramebuffers;
-
-		VkRenderPass m_VulkanRenderpass;
-		VkPipelineLayout m_VulkanPipelineLayout;
-		VkPipeline m_VulkanGraphicsPipeline;
-
-		VkCommandPool m_VulkanCommandPool;
-		VkCommandBuffer m_VulkanCommandBuffer;
-
-		VkQueue m_GraphicsQueueHandle = nullptr;
-		VkQueue m_PresentQueueHandle = nullptr;
-
-		VkSemaphore m_ImageAvailableSemaphore;
-		VkSemaphore m_RenderFinishedSemaphore;
-		VkFence m_InFlightFence;
-
-		static const std::vector<const char*> s_ValidationLayers;
+		Ref<Window> m_Window;
+		Ref<RenderContext> m_RenderContext;
 
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);

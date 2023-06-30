@@ -32,7 +32,7 @@ namespace LoFox {
 		bool ShouldClose();
 		void GetFramebufferSize(int* width, int* height) const;
 
-		static Scope<Window> Create(const WindowSpec& spec);
+		static Ref<Window> Create(const WindowSpec& spec);
 	private:
 		void Init();
 		void Shutdown();
