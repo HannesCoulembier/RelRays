@@ -28,6 +28,8 @@ namespace LoFox {
 
 		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
 		static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+		
+		void InitInstance();
 	private:
 		Ref<Window> m_Window = nullptr;
 		Ref<RenderContext> m_Context;
@@ -49,8 +51,8 @@ namespace LoFox {
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;
 
-		VkCommandPool m_CommandPool;
-		VkCommandBuffer m_CommandBuffer;
+		VkCommandPool m_CommandPool = nullptr;
+		VkCommandBuffer m_CommandBuffer = nullptr;
 
 		VkQueue m_GraphicsQueueHandle = nullptr;
 		VkQueue m_PresentQueueHandle = nullptr;

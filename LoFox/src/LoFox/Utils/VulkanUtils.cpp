@@ -89,7 +89,7 @@ namespace LoFox {
 			for (const char* layerName : layers) {
 				bool layerFound = false;
 
-				for (const const VkLayerProperties& availableLayerProperties : availableLayers) {
+				for (const VkLayerProperties& availableLayerProperties : availableLayers) {
 
 					if (strcmp(layerName, availableLayerProperties.layerName) == 0) {
 						layerFound = true;

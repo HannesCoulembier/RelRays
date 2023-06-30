@@ -3,6 +3,7 @@
 
 #include "LoFox/Renderer/Shader.h"
 
+#include "LoFox/Core/Settings.h"
 #include "LoFox/Utils/VulkanUtils.h"
 #include "LoFox/Utils/Utils.h"
 
@@ -69,43 +70,7 @@ namespace LoFox {
 		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(s_ValidationLayers), "Validation layers requested, but not available!");
 		#endif
 
-		// Setting up m_Instance
-		VkApplicationInfo appInfo;
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pNext = NULL;
-		appInfo.pApplicationName = "LoFox Application";
-		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "LoFox";
-		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_0;
-
-		VkInstanceCreateInfo instanceCreateInfo = {};
-		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		instanceCreateInfo.pApplicationInfo = &appInfo;
-		auto extensions = Utils::GetRequiredVulkanExtensions();
-		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
-		instanceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
-
-		#ifdef LF_BE_OVERLYSPECIFIC
-		// Add debug messenger to instance creation and cleanup
-		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo;
-		Utils::PopulateDebugMessageCreateInfo(debugMessengerCreateInfo, VulkanMessageCallback);
-		instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreateInfo;
-		#endif
-
-		#else
-		instanceCreateInfo.enabledLayerCount = 0;
-		instanceCreateInfo.pNext = nullptr;
-		#endif
-
-		VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &m_Instance);
-
-		if (result != VK_SUCCESS) {
-			throw std::runtime_error("failed to create instance!");
-		}
+		InitInstance();
 
 		// Setting up m_DebugMessenger (for entire runtime of the application)
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
@@ -551,5 +516,42 @@ namespace LoFox {
 		vkCmdEndRenderPass(commandBuffer);
 
 		LF_CORE_ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
+	}
+
+	void RenderContext::InitInstance() {
+
+		VkApplicationInfo appInfo;
+		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		appInfo.pNext = NULL;
+		appInfo.pApplicationName = m_Window->GetSpec().Title.c_str();
+		appInfo.applicationVersion = VK_MAKE_VERSION(LF_VERSION_MAJOR, LF_VERSION_MINOR, LF_VERSION_PATCH);
+		appInfo.pEngineName = LF_ENGINE_NAME;
+		appInfo.engineVersion = VK_MAKE_VERSION(LF_VERSION_MAJOR, LF_VERSION_MINOR, LF_VERSION_PATCH);
+		appInfo.apiVersion = VK_API_VERSION_1_0;
+
+		auto extensions = Utils::GetRequiredVulkanExtensions();
+		VkInstanceCreateInfo instanceCreateInfo = {};
+		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		instanceCreateInfo.pApplicationInfo = &appInfo;
+		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
+
+		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+		instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
+		instanceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
+
+		#ifdef LF_BE_OVERLYSPECIFIC
+		// Add debug messenger to instance creation and cleanup
+		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo;
+		Utils::PopulateDebugMessageCreateInfo(debugMessengerCreateInfo, VulkanMessageCallback);
+		instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreateInfo;
+		#endif
+
+		#else
+		instanceCreateInfo.enabledLayerCount = 0;
+		instanceCreateInfo.pNext = nullptr;
+		#endif
+
+		LF_CORE_ASSERT(vkCreateInstance(&instanceCreateInfo, nullptr, &m_Instance) == VK_SUCCESS, "Failed to create instance!");
 	}
 }
