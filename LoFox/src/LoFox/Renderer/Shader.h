@@ -18,7 +18,7 @@ namespace LoFox {
 		Shader(Ref<RenderContext> context, const std::string& path, ShaderType type);
 		~Shader();
 
-		VkPipelineShaderStageCreateInfo GetCreateInfo() { return m_CreateInfo; }
+		inline VkPipelineShaderStageCreateInfo GetCreateInfo() { return m_CreateInfo; }
 	private:
 		void CreateShaderModule();
 

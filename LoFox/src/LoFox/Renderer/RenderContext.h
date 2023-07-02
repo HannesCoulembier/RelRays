@@ -18,7 +18,7 @@ namespace LoFox {
 
 		void OnRender();
 
-		VkDevice GetLogicalDevice() { return m_LogicalDevice; }
+		inline VkDevice GetLogicalDevice() { return m_LogicalDevice; }
 
 		void WaitIdle() { vkDeviceWaitIdle(m_LogicalDevice); }
 
@@ -52,15 +52,17 @@ namespace LoFox {
 		VkPipeline m_GraphicsPipeline;
 
 		VkCommandPool m_CommandPool = nullptr;
-		VkCommandBuffer m_CommandBuffer = nullptr;
+		std::vector<VkCommandBuffer> m_CommandBuffers;
 
 		VkQueue m_GraphicsQueueHandle = nullptr;
 		VkQueue m_PresentQueueHandle = nullptr;
 
-		VkSemaphore m_ImageAvailableSemaphore;
-		VkSemaphore m_RenderFinishedSemaphore;
-		VkFence m_InFlightFence;
+		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
+		std::vector<VkFence> m_InFlightFences;
 
+		int m_CurrentFrame = 0;
+		const int m_MaxFramesInFlight = 2;
 		static const std::vector<const char*> s_ValidationLayers;
 	};
 }

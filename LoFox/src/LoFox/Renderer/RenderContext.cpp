@@ -387,31 +387,44 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateCommandPool(m_LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
 
 		// Create Commandbuffers
+		m_CommandBuffers.resize(m_MaxFramesInFlight);
+
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
 		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		commandBufferAllocInfo.commandPool = m_CommandPool;
 		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandBufferCount = 1;
+		commandBufferAllocInfo.commandBufferCount = (uint32_t)m_CommandBuffers.size();
 
-		LF_CORE_ASSERT(vkAllocateCommandBuffers(m_LogicalDevice, &commandBufferAllocInfo, &m_CommandBuffer) == VK_SUCCESS, "Failed to allocate command buffers!");
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(m_LogicalDevice, &commandBufferAllocInfo, m_CommandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
 
 		// Create sync objects
+		m_ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
+		m_RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
+		m_InFlightFences.resize(m_MaxFramesInFlight);
+
 		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		VkFenceCreateInfo fenceCreateInfo = {};
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-		LF_CORE_ASSERT(vkCreateSemaphore(m_LogicalDevice, &semaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphore) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
-		LF_CORE_ASSERT(vkCreateSemaphore(m_LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphore) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
-		LF_CORE_ASSERT(vkCreateFence(m_LogicalDevice, &fenceCreateInfo, nullptr, &m_InFlightFence) == VK_SUCCESS, "Failed to create inFlight fence!");
+		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+
+			LF_CORE_ASSERT(vkCreateSemaphore(m_LogicalDevice, &semaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
+			LF_CORE_ASSERT(vkCreateSemaphore(m_LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
+			LF_CORE_ASSERT(vkCreateFence(m_LogicalDevice, &fenceCreateInfo, nullptr, &m_InFlightFences[i]) == VK_SUCCESS, "Failed to create inFlight fence!");
+		}
+
 	}
 	
 	void RenderContext::Shutdown() {
 
-		vkDestroySemaphore(m_LogicalDevice, m_ImageAvailableSemaphore, nullptr);
-		vkDestroySemaphore(m_LogicalDevice, m_RenderFinishedSemaphore, nullptr);
-		vkDestroyFence(m_LogicalDevice, m_InFlightFence, nullptr);
+		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+
+			vkDestroySemaphore(m_LogicalDevice, m_ImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(m_LogicalDevice, m_RenderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(m_LogicalDevice, m_InFlightFences[i], nullptr);
+		}
 
 		for (auto framebuffer : m_SwapChainFramebuffers)
 			vkDestroyFramebuffer(m_LogicalDevice, framebuffer, nullptr);
@@ -438,17 +451,17 @@ namespace LoFox {
 
 	void RenderContext::OnRender() {
 
-		vkWaitForFences(m_LogicalDevice, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
-		vkResetFences(m_LogicalDevice, 1, &m_InFlightFence);
+		vkWaitForFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+		vkResetFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
 
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
 
-		vkResetCommandBuffer(m_CommandBuffer, 0);
-		RecordCommandBuffer(m_CommandBuffer, imageIndex);
+		vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
+		RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
 
-		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
-		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
+		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_CurrentFrame] };
+		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -456,11 +469,11 @@ namespace LoFox {
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_CommandBuffer;
+		submitInfo.pCommandBuffers = &m_CommandBuffers[m_CurrentFrame];
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		LF_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueueHandle, 1, &submitInfo, m_InFlightFence) == VK_SUCCESS, "Failed to submit draw command buffer!");
+		LF_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueueHandle, 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
 
 		VkSwapchainKHR swapChains[] = { m_SwapChain };
 		VkPresentInfoKHR presentInfo = {};
@@ -473,6 +486,8 @@ namespace LoFox {
 		presentInfo.pResults = nullptr;
 
 		vkQueuePresentKHR(m_PresentQueueHandle, &presentInfo);
+
+		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
 	}
 
 	void RenderContext::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
