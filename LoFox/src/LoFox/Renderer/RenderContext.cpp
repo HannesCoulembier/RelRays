@@ -2,52 +2,13 @@
 #include "LoFox/Renderer/RenderContext.h"
 
 #include "LoFox/Renderer/Shader.h"
+#include "LoFox/Renderer/DebugMessenger.h"
 
 #include "LoFox/Core/Settings.h"
 #include "LoFox/Utils/VulkanUtils.h"
 #include "LoFox/Utils/Utils.h"
 
 namespace LoFox {
-
-	VkResult CreateVulkanDebugMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-
-		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-		if (func == nullptr)
-			return VK_ERROR_EXTENSION_NOT_PRESENT;
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-	}
-
-	void DestroyVulkanDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-
-		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-		if (func != nullptr)
-			func(instance, debugMessenger, pAllocator);
-	}
-
-	const std::vector<const char*> RenderContext::s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
-
-	VKAPI_ATTR VkBool32 VKAPI_CALL RenderContext::VulkanMessageCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData) {
-
-		#ifndef LF_BE_OVERLYSPECIFIC
-		if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-			return VK_FALSE;
-		#endif
-
-		switch (messageSeverity) {
-
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: { LF_CORE_INFO("Vulkan [INFO]: " + (std::string)pCallbackData->pMessage); break; }
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: { LF_CORE_INFO("Vulkan [VERBOSE]: " + (std::string)pCallbackData->pMessage); break; }
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: { LF_CORE_WARN("Vulkan [WARNING]: " + (std::string)pCallbackData->pMessage); break; }
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: { LF_CORE_ERROR("Vulkan [ERROR]: " + (std::string)pCallbackData->pMessage); break; }
-		}
-
-		return VK_FALSE; // When VK_TRUE is returned, Vulkan will abort the call that made this callback
-	}
-
 
 	Ref<RenderContext> RenderContext::Create() {
 
@@ -66,18 +27,11 @@ namespace LoFox {
 		Utils::ListAvailableVulkanLayers();
 		#endif
 
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(s_ValidationLayers), "Validation layers requested, but not available!");
-		#endif
+		m_DebugMessenger = DebugMessenger::Create(m_Context);
 
 		InitInstance();
 
-		// Setting up m_DebugMessenger (for entire runtime of the application)
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo;
-		Utils::PopulateDebugMessageCreateInfo(messengerCreateInfo, VulkanMessageCallback);
-		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_Instance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
-		#endif
+		m_DebugMessenger->Init();
 
 		// Setting up m_Surface
 		m_Window->CreateVulkanSurface(m_Instance, &m_Surface);
@@ -117,14 +71,9 @@ namespace LoFox {
 		logicalDeviceCreateInfo.pEnabledFeatures = &logicalDeviceFeatures;
 		logicalDeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(Utils::requiredVulkanDeviceExtensions.size());
 		logicalDeviceCreateInfo.ppEnabledExtensionNames = Utils::requiredVulkanDeviceExtensions.data();
-
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		logicalDeviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
-		logicalDeviceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
-		#else
-		logicalDeviceCreateInfo.enabledLayerCount = 0;
+		logicalDeviceCreateInfo.enabledLayerCount = (uint32_t)(m_DebugMessenger->GetValidationLayers().size());
+		logicalDeviceCreateInfo.ppEnabledLayerNames = m_DebugMessenger->GetValidationLayers().data();
 		logicalDeviceCreateInfo.pNext = nullptr;
-		#endif
 
 		LF_CORE_ASSERT(vkCreateDevice(m_PhysicalDevice, &logicalDeviceCreateInfo, nullptr, &m_LogicalDevice) == VK_SUCCESS, "Failed to create logical device!");
 
@@ -437,9 +386,8 @@ namespace LoFox {
 		for (auto imageView : m_SwapChainImageViews)
 			vkDestroyImageView(m_LogicalDevice, imageView, nullptr);
 
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		DestroyVulkanDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
-		#endif
+		m_DebugMessenger->Shutdown();
+
 		vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
 
 		vkDestroyDevice(m_LogicalDevice, nullptr);
@@ -550,21 +498,15 @@ namespace LoFox {
 		instanceCreateInfo.pApplicationInfo = &appInfo;
 		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
-
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(s_ValidationLayers.size());
-		instanceCreateInfo.ppEnabledLayerNames = s_ValidationLayers.data();
+		instanceCreateInfo.enabledLayerCount = (uint32_t)(m_DebugMessenger->GetValidationLayers().size());
+		instanceCreateInfo.ppEnabledLayerNames = m_DebugMessenger->GetValidationLayers().data();
+		instanceCreateInfo.pNext = nullptr;
 
 		#ifdef LF_BE_OVERLYSPECIFIC
 		// Add debug messenger to instance creation and cleanup
 		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo;
-		Utils::PopulateDebugMessageCreateInfo(debugMessengerCreateInfo, VulkanMessageCallback);
+		Utils::PopulateDebugMessageCreateInfo(debugMessengerCreateInfo, m_DebugMessenger->GetMessageCallback());
 		instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreateInfo;
-		#endif
-
-		#else
-		instanceCreateInfo.enabledLayerCount = 0;
-		instanceCreateInfo.pNext = nullptr;
 		#endif
 
 		LF_CORE_ASSERT(vkCreateInstance(&instanceCreateInfo, nullptr, &m_Instance) == VK_SUCCESS, "Failed to create instance!");

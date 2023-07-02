@@ -54,9 +54,9 @@ namespace LoFox {
 		std::vector<const char*> GetRequiredVulkanExtensions() {
 
 			std::vector<const char*> extensions = GetRequiredGLFWExtensions();
-#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+			#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+			#endif
 			return extensions;
 		}
 
