@@ -5,6 +5,8 @@
 #include <vulkan/vulkan.h>
 
 #include "LoFox/Core/Window.h"
+#include "LoFox/Events/Event.h"
+#include "LoFox/Events/RenderEvent.h"
 
 namespace LoFox {
 
@@ -19,6 +21,7 @@ namespace LoFox {
 		void Shutdown();
 
 		void OnRender();
+		void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 
 		inline VkInstance GetInstance() { return m_Instance; }
 		inline VkDevice GetLogicalDevice() { return m_LogicalDevice; }
@@ -30,6 +33,8 @@ namespace LoFox {
 		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
+		void OnEvent(Event& event);
+		bool OnFramebufferResize(FramebufferResizeEvent& event);
 		
 		void InitInstance();
 		void RecreateSwapChain();
@@ -68,8 +73,6 @@ namespace LoFox {
 		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 		std::vector<VkFence> m_InFlightFences;
-
-		bool m_FramebufferResized = false;
 
 		int m_CurrentFrame = 0;
 		const int m_MaxFramesInFlight = 2;

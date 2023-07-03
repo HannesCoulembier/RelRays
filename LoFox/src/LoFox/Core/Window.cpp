@@ -4,6 +4,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "LoFox/Events/ApplicationEvent.h"
+#include "LoFox/Events/RenderEvent.h"
+
 namespace LoFox {
 
 	namespace Utils {
@@ -29,7 +32,11 @@ namespace LoFox {
 	Window::Window(const WindowSpec& spec) 
 		: m_Spec(spec) {
 
+		m_WindowData.Width = m_Spec.Width;
+		m_WindowData.Height = m_Spec.Height;
+
 		LF_OVERSPECIFY("Creating {0}x{1} window named \"{2}\"", m_Spec.Width, m_Spec.Height, m_Spec.Title);
+
 		Init();
 	}
 
@@ -46,10 +53,38 @@ namespace LoFox {
 			glfwInit();
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 		m_WindowHandle = glfwCreateWindow(m_Spec.Width, m_Spec.Height, m_Spec.Title.c_str(), nullptr, nullptr);
 		windowCount++;
+
+		glfwSetWindowUserPointer(m_WindowHandle, &m_WindowData);
+
+		// Set glfw callbacks
+		glfwSetWindowSizeCallback(m_WindowHandle, [](GLFWwindow* window, int width, int height) {
+
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+			data.Width = width;
+			data.Height = height;
+
+			WindowResizeEvent event(width, height);
+			data.WindowEventCallback(event);
+		});
+
+		glfwSetFramebufferSizeCallback(m_WindowHandle, [](GLFWwindow* window, int width, int height) {
+			
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+			FramebufferResizeEvent event(width, height);
+			data.RenderEventCallback(event);
+		});
+
+		glfwSetWindowCloseCallback(m_WindowHandle, [](GLFWwindow* window) {
+
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+			WindowCloseEvent event;
+			data.WindowEventCallback(event);
+		});
 	}
 
 	void Window::Shutdown() {
@@ -63,11 +98,6 @@ namespace LoFox {
 	void Window::OnUpdate() {
 
 		glfwPollEvents();
-	}
-
-	bool Window::ShouldClose() {
-
-		return glfwWindowShouldClose(m_WindowHandle);
 	}
 
 	void Window::CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface) {

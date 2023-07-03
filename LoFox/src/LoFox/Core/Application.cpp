@@ -17,6 +17,7 @@ namespace LoFox {
 		LF_OVERSPECIFY("Creating application named \"{0}\":\n", m_Spec.Name);
 
 		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
+		m_Window->SetWindowEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
 
 		m_RenderContext = RenderContext::Create();
 		m_RenderContext->Init(m_Window);
@@ -41,7 +42,8 @@ namespace LoFox {
 		LF_CRITICAL("TEST");
 		*/
 
-		while (!m_Window->ShouldClose()) {
+		m_IsRunning = true;
+		while (m_IsRunning) {
 
 			float time = Time::GetTime();
 			float timestep = time - m_LastFrameTime;
@@ -52,7 +54,8 @@ namespace LoFox {
 			for (auto& layer : m_LayerStack)
 				layer->OnUpdate(timestep);
 
-			m_RenderContext->OnRender();
+			if (!m_Window->IsMinimized())
+				m_RenderContext->OnRender();
 		}
 
 		m_RenderContext->WaitIdle();
@@ -68,5 +71,25 @@ namespace LoFox {
 		m_RenderContext->Shutdown();
 
 		LF_OVERSPECIFY("Finished destruction of application named \"{0}\"", m_Spec.Name);
+	}
+
+	void Application::OnEvent(Event& event) {
+
+		EventDispatcher dispatcher(event);
+		dispatcher.Dispatch<WindowCloseEvent>(LF_BIND_EVENT_FN(Application::OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(LF_BIND_EVENT_FN(Application::OnWindowResize));
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& event) {
+
+		m_RenderContext->OnResize(event.GetWidth(), event.GetHeight());
+		return true;
+	}
+
+	bool Application::OnWindowClose(WindowCloseEvent& event) {
+
+		LF_OVERSPECIFY("Closing application named \"{0}\"", m_Spec.Name);
+		m_IsRunning = false;
+		return true;
 	}
 }

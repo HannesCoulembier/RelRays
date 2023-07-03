@@ -8,6 +8,8 @@
 #include "LoFox/Utils/VulkanUtils.h"
 #include "LoFox/Utils/Utils.h"
 
+#include "LoFox/Events/RenderEvent.h"
+
 namespace LoFox {
 
 	Ref<RenderContext> RenderContext::Create() {
@@ -20,6 +22,7 @@ namespace LoFox {
 	void RenderContext::Init(Ref<Window> window) {
 
 		m_Window = window;
+		m_Window->SetRenderEventCallback(LF_BIND_EVENT_FN(RenderContext::OnEvent));
 
 		LF_OVERSPECIFY("Creating Vulkan instance");
 		#ifdef LF_BE_OVERLYSPECIFIC
@@ -355,11 +358,11 @@ namespace LoFox {
 		presentInfo.pResults = nullptr;
 
 		result = vkQueuePresentKHR(m_PresentQueueHandle, &presentInfo);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized) {
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
 			RecreateSwapChain();
-			m_FramebufferResized = false;
 		}
-		LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");
+		else
+			LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");
 
 		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
 	}
@@ -554,5 +557,19 @@ namespace LoFox {
 
 			LF_CORE_ASSERT(vkCreateFramebuffer(m_LogicalDevice, &framebufferCreateInfo, nullptr, &m_SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
 		}
+	}
+
+	void RenderContext::OnEvent(Event& event) {
+
+		EventDispatcher dispatcher(event);
+		dispatcher.Dispatch<FramebufferResizeEvent>(LF_BIND_EVENT_FN(RenderContext::OnFramebufferResize));
+	}
+
+	bool RenderContext::OnFramebufferResize(FramebufferResizeEvent& event) {
+
+		RecreateSwapChain();
+		if (!m_Window->IsMinimized())
+			OnRender();
+		return true;
 	}
 }

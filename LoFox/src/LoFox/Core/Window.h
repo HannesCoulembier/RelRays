@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "LoFox/Events/Event.h"
+
 struct GLFWwindow;
 
 namespace LoFox {
@@ -28,8 +30,11 @@ namespace LoFox {
 		void CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface);
 
 		void OnUpdate();
+		void SetWindowEventCallback(const std::function<void(Event&)>& callback) { m_WindowData.WindowEventCallback = callback; }
+		void SetRenderEventCallback(const std::function<void(Event&)>& callback) { m_WindowData.RenderEventCallback = callback; }
 
-		bool ShouldClose();
+		bool IsMinimized() { return m_WindowData.Width == 0 || m_WindowData.Height == 0; }
+
 		void GetFramebufferSize(int* width, int* height) const;
 		WindowSpec GetSpec() { return m_Spec; }
 
@@ -40,5 +45,15 @@ namespace LoFox {
 	private:
 		GLFWwindow* m_WindowHandle = nullptr;
 		WindowSpec m_Spec;
+
+		struct WindowData {
+
+			uint32_t Width, Height;
+
+			std::function<void(Event&)> WindowEventCallback;
+			std::function<void(Event&)> RenderEventCallback;
+		};
+
+		WindowData m_WindowData;
 	};
 }
