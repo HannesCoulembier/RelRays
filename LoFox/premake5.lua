@@ -27,6 +27,7 @@ project "LoFox"
 		"src",
 		"vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.glm}",
 		"%{IncludeDir.VulkanSDK}",
 	}
 

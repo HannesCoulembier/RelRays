@@ -18,6 +18,7 @@ project "Sandbox"
 		"%{wks.location}/LoFox/vendor/spdlog/include",
 		"%{wks.location}/LoFox/src",
 		"%{wks.location}/LoFox/vendor",
+		"%{IncludeDir.glm}",
 		"%{IncludeDir.VulkanSDK}",
 	}
 

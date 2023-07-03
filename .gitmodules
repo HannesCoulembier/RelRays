@@ -4,3 +4,6 @@
 [submodule "LoFox/vendor/GLFW"]
 	path = LoFox/vendor/GLFW
 	url = https://github.com/HannesCoulembier/glfw
+[submodule "LoFox/vendor/glm"]
+	path = LoFox/vendor/glm
+	url = https://github.com/g-truc/glm

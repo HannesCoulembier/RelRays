@@ -2,8 +2,6 @@
 
 #include "LoFox/Core/Core.h"
 
-#include "vulkan/vulkan.h"
-
 #include "LoFox/Core/Window.h"
 #include "LoFox/Core/Layer.h"
 #include "LoFox/Renderer/RenderContext.h"
