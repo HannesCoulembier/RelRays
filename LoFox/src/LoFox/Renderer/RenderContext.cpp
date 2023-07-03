@@ -82,71 +82,10 @@ namespace LoFox {
 		vkGetDeviceQueue(m_LogicalDevice, indices.PresentFamilyIndex, 0, &m_PresentQueueHandle);
 
 		// Create SwapChain
-		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(m_PhysicalDevice, m_Surface);
-
-		VkSurfaceFormatKHR surfaceFormat = Utils::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
-		m_SwapChainImageFormat = surfaceFormat.format;
-		VkPresentModeKHR presentMode = Utils::ChooseSwapPresentMode(swapChainSupport.PresentModes);
-		m_SwapChainExtent = Utils::ChooseSwapExtent(swapChainSupport.Capabilities, *m_Window);
-
-		uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
-		if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) // when maxImageCount = 0, there is no limit
-			imageCount = swapChainSupport.Capabilities.maxImageCount;
-
-		uint32_t queueFamilyIndices[] = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
-
-		VkSwapchainCreateInfoKHR swapChainCreateInfo{};
-		swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainCreateInfo.surface = m_Surface;
-		swapChainCreateInfo.minImageCount = imageCount;
-		swapChainCreateInfo.imageFormat = surfaceFormat.format;
-		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapChainCreateInfo.imageExtent = m_SwapChainExtent;
-		swapChainCreateInfo.imageArrayLayers = 1;
-		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
-
-			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			swapChainCreateInfo.queueFamilyIndexCount = 2; // Specifies there are 2 (graphics and present) families that will need to share the swapchain images
-			swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
-		}
-		else {
-			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		}
-		swapChainCreateInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
-		swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		swapChainCreateInfo.presentMode = presentMode;
-		swapChainCreateInfo.clipped = VK_TRUE; // Pixels obscured by another window are ignored
-		swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-
-		LF_CORE_ASSERT(vkCreateSwapchainKHR(m_LogicalDevice, &swapChainCreateInfo, nullptr, &m_SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
-
-		// Retrieving the images in the swap chain
-		vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
-		m_SwapChainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
+		CreateSwapChain();
 
 		// Create the image views
-		m_SwapChainImageViews.resize(m_SwapChainImages.size());
-		for (uint32_t i = 0; i < m_SwapChainImages.size(); i++) {
-
-			VkImageViewCreateInfo imageViewCreateInfo{};
-			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			imageViewCreateInfo.image = m_SwapChainImages[i];
-			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			imageViewCreateInfo.format = m_SwapChainImageFormat;
-			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-			imageViewCreateInfo.subresourceRange.levelCount = 1;
-			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-			imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-			LF_CORE_ASSERT(vkCreateImageView(m_LogicalDevice, &imageViewCreateInfo, nullptr, &m_SwapChainImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
-		}
+		CreateImageViews();
 
 		// Create Render pass
 		VkAttachmentDescription colorAttachmentDescription = {};
@@ -307,25 +246,7 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateGraphicsPipelines(m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_GraphicsPipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
 
 		// Create Framebuffers
-		m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
-
-		for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
-
-			VkImageView attachments[] = {
-				m_SwapChainImageViews[i]
-			};
-
-			VkFramebufferCreateInfo framebufferCreateInfo = {};
-			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferCreateInfo.renderPass = m_Renderpass;
-			framebufferCreateInfo.attachmentCount = 1;
-			framebufferCreateInfo.pAttachments = attachments;
-			framebufferCreateInfo.width = m_SwapChainExtent.width;
-			framebufferCreateInfo.height = m_SwapChainExtent.height;
-			framebufferCreateInfo.layers = 1;
-
-			LF_CORE_ASSERT(vkCreateFramebuffer(m_LogicalDevice, &framebufferCreateInfo, nullptr, &m_SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
-		}
+		CreateFramebuffers();
 
 		// Create Commandpool
 		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
@@ -375,20 +296,14 @@ namespace LoFox {
 			vkDestroyFence(m_LogicalDevice, m_InFlightFences[i], nullptr);
 		}
 
-		for (auto framebuffer : m_SwapChainFramebuffers)
-			vkDestroyFramebuffer(m_LogicalDevice, framebuffer, nullptr);
+		CleanupSwapChain();
 
 		vkDestroyCommandPool(m_LogicalDevice, m_CommandPool, nullptr);
 		vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(m_LogicalDevice, m_PipelineLayout, nullptr);
 		vkDestroyRenderPass(m_LogicalDevice, m_Renderpass, nullptr);
 
-		for (auto imageView : m_SwapChainImageViews)
-			vkDestroyImageView(m_LogicalDevice, imageView, nullptr);
-
 		m_DebugMessenger->Shutdown();
-
-		vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
 
 		vkDestroyDevice(m_LogicalDevice, nullptr);
 
@@ -400,10 +315,16 @@ namespace LoFox {
 	void RenderContext::OnRender() {
 
 		vkWaitForFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
-		vkResetFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
 
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			RecreateSwapChain();
+			return;
+		}
+		LF_CORE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swapchain image!");
+
+		vkResetFences(m_LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
 
 		vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 		RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
@@ -433,7 +354,12 @@ namespace LoFox {
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 
-		vkQueuePresentKHR(m_PresentQueueHandle, &presentInfo);
+		result = vkQueuePresentKHR(m_PresentQueueHandle, &presentInfo);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_FramebufferResized) {
+			RecreateSwapChain();
+			m_FramebufferResized = false;
+		}
+		LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");
 
 		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
 	}
@@ -510,5 +436,123 @@ namespace LoFox {
 		#endif
 
 		LF_CORE_ASSERT(vkCreateInstance(&instanceCreateInfo, nullptr, &m_Instance) == VK_SUCCESS, "Failed to create instance!");
+	}
+
+	void RenderContext::CleanupSwapChain() {
+
+		for (auto framebuffer : m_SwapChainFramebuffers)
+			vkDestroyFramebuffer(m_LogicalDevice, framebuffer, nullptr);
+
+		for (auto imageView : m_SwapChainImageViews)
+			vkDestroyImageView(m_LogicalDevice, imageView, nullptr);
+
+		vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
+	}
+
+	void RenderContext::RecreateSwapChain() {
+
+		WaitIdle();
+
+		CleanupSwapChain();
+
+		CreateSwapChain();
+		CreateImageViews();
+		CreateFramebuffers();
+	}
+
+	void RenderContext::CreateSwapChain() {
+
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(m_PhysicalDevice, m_Surface);
+
+		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(m_PhysicalDevice, m_Surface);
+
+		VkSurfaceFormatKHR surfaceFormat = Utils::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
+		m_SwapChainImageFormat = surfaceFormat.format;
+		VkPresentModeKHR presentMode = Utils::ChooseSwapPresentMode(swapChainSupport.PresentModes);
+		m_SwapChainExtent = Utils::ChooseSwapExtent(swapChainSupport.Capabilities, *m_Window);
+
+		uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
+		if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) // when maxImageCount = 0, there is no limit
+			imageCount = swapChainSupport.Capabilities.maxImageCount;
+
+		uint32_t queueFamilyIndices[] = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
+
+		VkSwapchainCreateInfoKHR swapChainCreateInfo{};
+		swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapChainCreateInfo.surface = m_Surface;
+		swapChainCreateInfo.minImageCount = imageCount;
+		swapChainCreateInfo.imageFormat = surfaceFormat.format;
+		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+		swapChainCreateInfo.imageExtent = m_SwapChainExtent;
+		swapChainCreateInfo.imageArrayLayers = 1;
+		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
+
+			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			swapChainCreateInfo.queueFamilyIndexCount = 2; // Specifies there are 2 (graphics and present) families that will need to share the swapchain images
+			swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+		else {
+			swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		}
+		swapChainCreateInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
+		swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapChainCreateInfo.presentMode = presentMode;
+		swapChainCreateInfo.clipped = VK_TRUE; // Pixels obscured by another window are ignored
+		swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+
+		LF_CORE_ASSERT(vkCreateSwapchainKHR(m_LogicalDevice, &swapChainCreateInfo, nullptr, &m_SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
+
+		// Retrieving the images in the swap chain
+		vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
+		m_SwapChainImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
+	}
+
+	void RenderContext::CreateImageViews() {
+
+		m_SwapChainImageViews.resize(m_SwapChainImages.size());
+		for (uint32_t i = 0; i < m_SwapChainImages.size(); i++) {
+
+			VkImageViewCreateInfo imageViewCreateInfo{};
+			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewCreateInfo.image = m_SwapChainImages[i];
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageViewCreateInfo.format = m_SwapChainImageFormat;
+			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+			imageViewCreateInfo.subresourceRange.levelCount = 1;
+			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+			imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+			LF_CORE_ASSERT(vkCreateImageView(m_LogicalDevice, &imageViewCreateInfo, nullptr, &m_SwapChainImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
+		}
+	}
+
+	void RenderContext::CreateFramebuffers() {
+
+		m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
+
+		for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
+
+			VkImageView attachments[] = {
+				m_SwapChainImageViews[i]
+			};
+
+			VkFramebufferCreateInfo framebufferCreateInfo = {};
+			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferCreateInfo.renderPass = m_Renderpass;
+			framebufferCreateInfo.attachmentCount = 1;
+			framebufferCreateInfo.pAttachments = attachments;
+			framebufferCreateInfo.width = m_SwapChainExtent.width;
+			framebufferCreateInfo.height = m_SwapChainExtent.height;
+			framebufferCreateInfo.layers = 1;
+
+			LF_CORE_ASSERT(vkCreateFramebuffer(m_LogicalDevice, &framebufferCreateInfo, nullptr, &m_SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+		}
 	}
 }

@@ -32,6 +32,12 @@ namespace LoFox {
 		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
 		
 		void InitInstance();
+		void RecreateSwapChain();
+
+		void CleanupSwapChain();
+		void CreateSwapChain();
+		void CreateImageViews();
+		void CreateFramebuffers();
 	private:
 		Ref<Window> m_Window = nullptr;
 		Ref<RenderContext> m_Context;
@@ -62,6 +68,8 @@ namespace LoFox {
 		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 		std::vector<VkFence> m_InFlightFences;
+
+		bool m_FramebufferResized = false;
 
 		int m_CurrentFrame = 0;
 		const int m_MaxFramesInFlight = 2;
