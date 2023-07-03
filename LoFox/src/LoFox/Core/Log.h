@@ -2,7 +2,13 @@
 
 #include "LoFox/Core/Core.h"
 
+#pragma warning(push, 0)
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+#pragma warning(pop)
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/string_cast.hpp"
 
 namespace LoFox {
 
@@ -39,3 +45,15 @@ namespace LoFox {
 #else
 #define LF_OVERSPECIFY(...)
 #endif
+
+template<typename OStream, glm::length_t L, typename T, glm::qualifier Q>
+inline OStream& operator<<(OStream& os, const glm::vec<L, T, Q>& matrix) {
+
+	return os << glm::to_string(matrix);
+}
+
+template<typename OStream, typename T, glm::qualifier Q>
+inline OStream& operator<<(OStream& os, const glm::qua<T, Q>& quaternion) {
+
+	return os << glm::to_string(quaternion);
+}

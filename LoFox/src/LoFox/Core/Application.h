@@ -5,6 +5,7 @@
 #include "LoFox/Core/Window.h"
 #include "LoFox/Core/Layer.h"
 #include "LoFox/Renderer/RenderContext.h"
+
 #include "LoFox/Events/Event.h"
 #include "LoFox/Events/ApplicationEvent.h"
 
@@ -30,7 +31,7 @@ namespace LoFox {
 
 		void Run();
 
-		inline Window& GetWindow() { return *m_Window; }
+		inline Ref<Window> GetActiveWindow() { return m_Window; }
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnWindowClose(WindowCloseEvent& event);

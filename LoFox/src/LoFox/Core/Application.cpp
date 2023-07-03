@@ -9,12 +9,16 @@
 #include "LoFox/Utils/Utils.h"
 #include "LoFox/Utils/Time.h"
 
+#include "LoFox/Core/Input.h"
+
 namespace LoFox {
 
 	Application::Application(const ApplicationSpec& spec)
 		: m_Spec(spec) {
 
 		LF_OVERSPECIFY("Creating application named \"{0}\":\n", m_Spec.Name);
+		Input::SetApplication(this);
+		Input::SetKeyboard(Keyboard::BelgianPeriod);
 
 		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
 		m_Window->SetWindowEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
@@ -26,21 +30,6 @@ namespace LoFox {
 	}
 
 	void Application::Run() {
-
-		// Logger test
-		/*
-		LF_CORE_TRACE("TEST");
-		LF_CORE_INFO("TEST");
-		LF_CORE_WARN("TEST");
-		LF_CORE_ERROR("TEST");
-		LF_CORE_CRITICAL("TEST");
-
-		LF_TRACE("TEST");
-		LF_INFO("TEST");
-		LF_WARN("TEST");
-		LF_ERROR("TEST");
-		LF_CRITICAL("TEST");
-		*/
 
 		m_IsRunning = true;
 		while (m_IsRunning) {
@@ -78,6 +67,13 @@ namespace LoFox {
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(LF_BIND_EVENT_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(LF_BIND_EVENT_FN(Application::OnWindowResize));
+
+		for (auto layer : m_LayerStack) {
+
+			if (event.Handled)
+				break;
+			layer->OnEvent(event);
+		}
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& event) {

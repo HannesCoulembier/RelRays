@@ -38,6 +38,8 @@ namespace LoFox {
 		void GetFramebufferSize(int* width, int* height) const;
 		WindowSpec GetSpec() { return m_Spec; }
 
+		inline void* GetWindowHandle() { return m_WindowHandle; }
+
 		static Ref<Window> Create(const WindowSpec& spec);
 	private:
 		void Init();

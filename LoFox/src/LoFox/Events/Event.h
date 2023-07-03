@@ -6,8 +6,8 @@ namespace LoFox {
 
 		None = 0,
 		WindowClose, WindowResize,
-		KeyPressed, KeyReleased, KeyTyped, // TODO: implement KeyPressedEvent, KeyReleasedEvent and KeyTypedEvent classes and add callbacks
-		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled, // TODO: implement MouseButtonPressedEvent, MouseButtonReleasedEvent, MouseMovedEvent and MouseScrolledEvent classes and add callbacks
+		KeyPressed, KeyReleased, KeyTyped,
+		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
 		FramebufferResize
 	};
 
