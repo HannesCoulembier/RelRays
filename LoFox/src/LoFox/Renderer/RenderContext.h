@@ -32,7 +32,6 @@ namespace LoFox {
 		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
 		
 		void InitInstance();
-		void InitDebugMessenger();
 	private:
 		Ref<Window> m_Window = nullptr;
 		Ref<RenderContext> m_Context;

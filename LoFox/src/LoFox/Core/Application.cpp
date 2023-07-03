@@ -7,6 +7,7 @@
 
 #include "LoFox/Utils/VulkanUtils.h"
 #include "LoFox/Utils/Utils.h"
+#include "LoFox/Utils/Time.h"
 
 namespace LoFox {
 
@@ -42,7 +43,15 @@ namespace LoFox {
 
 		while (!m_Window->ShouldClose()) {
 
+			float time = Time::GetTime();
+			float timestep = time - m_LastFrameTime;
+			m_LastFrameTime = time;
+
 			m_Window->OnUpdate();
+
+			for (auto& layer : m_LayerStack)
+				layer->OnUpdate(timestep);
+
 			m_RenderContext->OnRender();
 		}
 
@@ -51,9 +60,10 @@ namespace LoFox {
 
 	Application::~Application() {
 
-		LF_OVERSPECIFY("Destroying application named \"{0}\"", m_Spec.Name);
+		for (auto& layer : m_LayerStack)
+			layer->OnDetach();
 
-		LF_OVERSPECIFY("Destroying Vulkan instance");
+		LF_OVERSPECIFY("Destroying application named \"{0}\"", m_Spec.Name);
 
 		m_RenderContext->Shutdown();
 
