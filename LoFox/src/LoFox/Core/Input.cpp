@@ -10,11 +10,10 @@
 namespace LoFox {
 
 	Keyboard Input::m_Keyboard = Keyboard::BelgianPeriod;
-	Application* Input::m_Application = nullptr;
 
 	bool Input::IsKeyPressed(KeyCode key, bool exact) {
 
-		auto* window = static_cast<GLFWwindow*>(m_Application->GetActiveWindow()->GetWindowHandle());
+		auto* window = static_cast<GLFWwindow*>(Application::GetInstance().GetActiveWindow()->GetWindowHandle());
 		int glfwKey = KeyCodeToglfw(key);
 		auto state = glfwGetKey(window, (glfwKey));
 		if (exact) {
@@ -43,14 +42,14 @@ namespace LoFox {
 
 	bool Input::IsMouseButtonPressed(MouseCode button) {
 
-		auto* window = static_cast<GLFWwindow*>(m_Application->GetActiveWindow()->GetWindowHandle());
+		auto* window = static_cast<GLFWwindow*>(Application::GetInstance().GetActiveWindow()->GetWindowHandle());
 		auto state = glfwGetMouseButton(window, static_cast<int32_t>(button));
 		return state == GLFW_PRESS;
 	}
 
 	glm::vec2 Input::GetMousePosition() {
 
-		auto* window = static_cast<GLFWwindow*>(m_Application->GetActiveWindow()->GetWindowHandle());
+		auto* window = static_cast<GLFWwindow*>(Application::GetInstance().GetActiveWindow()->GetWindowHandle());
 		double xpos, ypos;
 		glfwGetCursorPos(window, &xpos, &ypos);
 

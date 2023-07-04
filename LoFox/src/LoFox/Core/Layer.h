@@ -9,7 +9,7 @@ namespace LoFox {
 	public:
 		virtual ~Layer() = default;
 
-		virtual void OnAttach(Application* application) {}
+		virtual void OnAttach() {}
 		virtual void OnDetach() {}
 
 		virtual void OnUpdate(float ts) {}

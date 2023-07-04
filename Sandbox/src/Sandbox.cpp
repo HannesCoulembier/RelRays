@@ -9,13 +9,14 @@ namespace LoFox {
 		ExampleLayer() {}
 		~ExampleLayer() {}
 
-		void OnAttach(Application* application) { m_Application = application; }
+		void OnAttach() {}
 		void OnDetach() {}
 
 		void OnUpdate(float ts) {
 
 			int FPS = int(1.0f / ts);
-			m_Application->GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS");
+			Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS");
+
 
 			// Logger test
 			/*
@@ -50,8 +51,6 @@ namespace LoFox {
 				LF_INFO("Pressed key {0}", static_cast<LoFox::KeyPressedEvent&>(event).GetKeyCode());
 			*/
 		}
-	private:
-		Application* m_Application = nullptr;
 	};
 
 	class SandboxApp : public Application {

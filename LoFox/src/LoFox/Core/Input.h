@@ -18,8 +18,6 @@ namespace LoFox {
 	class Input {
 
 	public:
-		static void SetApplication(Application* app) { m_Application = app; }
-
 		static bool IsKeyPressed(KeyCode key, bool exact = false);
 		static bool IsKeyEqualTo(KeyCode a, KeyCode b);
 		static bool IsKeyEquivalentTo(KeyCode a, KeyCode b);
@@ -39,7 +37,6 @@ namespace LoFox {
 		static bool KeyCodeRequiresRightAlt(KeyCode key);
 	private:
 		static Keyboard m_Keyboard;
-		static Application* m_Application;
 	};
 
 }

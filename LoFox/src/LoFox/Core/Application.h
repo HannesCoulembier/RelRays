@@ -27,11 +27,13 @@ namespace LoFox {
 
 		void OnEvent(Event& event);
 
-		void PushLayer(Ref<Layer> layer) { m_LayerStack.emplace_back(layer); layer->OnAttach(this); }
+		void PushLayer(Ref<Layer> layer) { m_LayerStack.emplace_back(layer); layer->OnAttach(); }
 
 		void Run();
 
 		inline Ref<Window> GetActiveWindow() { return m_Window; }
+
+		static Application& GetInstance() { return *s_Instance; }
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnWindowClose(WindowCloseEvent& event);
@@ -43,7 +45,7 @@ namespace LoFox {
 
 		float m_LastFrameTime = 0.0f;
 		bool m_IsRunning = false;
-
+	private:
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);
 	};

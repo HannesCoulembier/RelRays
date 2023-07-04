@@ -17,3 +17,5 @@
 #include "LoFox/Events/KeyEvent.h"
 #include "LoFox/Events/MouseEvent.h"
 #include "LoFox/Events/ApplicationEvent.h"
+
+#include "LoFox/Renderer/Renderer.h"

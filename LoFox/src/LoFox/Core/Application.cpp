@@ -13,12 +13,16 @@
 
 namespace LoFox {
 
+	Application* Application::s_Instance = nullptr;
+
 	Application::Application(const ApplicationSpec& spec)
 		: m_Spec(spec) {
 
+		LF_CORE_ASSERT(!s_Instance, "Application already exists!");
+		s_Instance = this;
+
 		LF_OVERSPECIFY("Creating application named \"{0}\":\n", m_Spec.Name);
 
-		Input::SetApplication(this);
 		Input::SetKeyboard(Keyboard::BelgianPeriod);
 
 		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
