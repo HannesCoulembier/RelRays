@@ -27,7 +27,7 @@ namespace LoFox {
 
 		void OnEvent(Event& event);
 
-		void PushLayer(Ref<Layer> layer) { m_LayerStack.emplace_back(layer); layer->OnAttach(); }
+		void PushLayer(Ref<Layer> layer) { m_LayerStack.emplace_back(layer); layer->OnAttach(this); }
 
 		void Run();
 

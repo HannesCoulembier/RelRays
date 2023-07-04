@@ -1,7 +1,10 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/RenderContext.h"
 
+#include <glm/glm.hpp>
+
 #include "LoFox/Renderer/Shader.h"
+#include "LoFox/Renderer/Buffer.h"
 #include "LoFox/Renderer/DebugMessenger.h"
 
 #include "LoFox/Core/Settings.h"
@@ -9,6 +12,49 @@
 #include "LoFox/Utils/Utils.h"
 
 #include "LoFox/Events/RenderEvent.h"
+
+
+struct Vertex {
+	glm::vec2 Position;
+	glm::vec3 Color;
+
+	static VkVertexInputBindingDescription GetBindingDescription() {
+
+		VkVertexInputBindingDescription bindingDescription = {};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() {
+
+		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, Position);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, Color);
+
+		return attributeDescriptions;
+	}
+};
+
+const std::vector<Vertex> vertices = {
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint32_t> vertexIndices = {
+	0, 1, 2, 2, 3, 0
+};
 
 namespace LoFox {
 
@@ -135,29 +181,20 @@ namespace LoFox {
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShader.GetCreateInfo(), fragmentShader.GetCreateInfo() };
 
+		auto bindingDescription = Vertex::GetBindingDescription();
+		auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+
 		VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
 		vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
-		vertexInputCreateInfo.pVertexBindingDescriptions = nullptr;
-		vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
-		vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;
+		vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+		vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputCreateInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescriptions.size();
+		vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
 		inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
-
-		VkViewport viewport = {};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (float)m_SwapChainExtent.width;
-		viewport.height = (float)m_SwapChainExtent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = m_SwapChainExtent;
 
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
@@ -169,12 +206,8 @@ namespace LoFox {
 		dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
-		VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+		VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {}; // Viewport and Scissors are dynamic states
 		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportStateCreateInfo.viewportCount = 1;
-		viewportStateCreateInfo.pViewports = &viewport;
-		viewportStateCreateInfo.scissorCount = 1;
-		viewportStateCreateInfo.pScissors = &scissor;
 
 		VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = {};
 		rasterizerCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -258,6 +291,27 @@ namespace LoFox {
 		commandPoolCreateInfo.queueFamilyIndex = indices.GraphicsFamilyIndex;
 
 		LF_CORE_ASSERT(vkCreateCommandPool(m_LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
+
+		// Create Vertex buffer
+		{ // This is a scope to ensure the destructor of vertexStagingBuffer is called
+			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+			Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(m_Context, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_VertexBuffer = CreateRef<Buffer>(m_Context, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+			vertexStagingBuffer->SetData(vertices.data());
+
+			CopyBuffer(vertexStagingBuffer, m_VertexBuffer);
+		}
+		// Create Index buffer
+		{
+			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
+			Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(m_Context, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_IndexBuffer = CreateRef<Buffer>(m_Context, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+			indexStagingBuffer->SetData(vertexIndices.data());
+
+			CopyBuffer(indexStagingBuffer, m_IndexBuffer);
+		}
 
 		// Create Commandbuffers
 		m_CommandBuffers.resize(m_MaxFramesInFlight);
@@ -389,6 +443,12 @@ namespace LoFox {
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
 
+		VkBuffer vertexBuffers[] = { m_VertexBuffer->GetBuffer() };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -403,7 +463,7 @@ namespace LoFox {
 		scissor.extent = m_SwapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -571,5 +631,41 @@ namespace LoFox {
 		if (!m_Window->IsMinimized())
 			OnRender();
 		return true;
+	}
+
+	void RenderContext::CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer) {
+
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.commandPool = m_CommandPool;
+		commandBufferAllocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer;
+		vkAllocateCommandBuffers(m_LogicalDevice, &commandBufferAllocInfo, &commandBuffer);
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+
+		VkBufferCopy copyRegion = {};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = dstBuffer->GetSize();
+		vkCmdCopyBuffer(commandBuffer, srcBuffer->GetBuffer(), dstBuffer->GetBuffer(), 1, &copyRegion);
+
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		vkQueueSubmit(m_GraphicsQueueHandle, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(m_GraphicsQueueHandle);
+
+		vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, 1, &commandBuffer);
 	}
 }

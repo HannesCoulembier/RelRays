@@ -184,4 +184,9 @@ namespace LoFox {
 	void Window::GetFramebufferSize(int* width, int* height) const {
 		return glfwGetFramebufferSize(m_WindowHandle, width, height);
 	}
+
+	void Window::SetTitle(const std::string& title) {
+
+		glfwSetWindowTitle(m_WindowHandle, title.c_str());
+	}
 }

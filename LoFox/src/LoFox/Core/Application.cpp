@@ -17,6 +17,7 @@ namespace LoFox {
 		: m_Spec(spec) {
 
 		LF_OVERSPECIFY("Creating application named \"{0}\":\n", m_Spec.Name);
+
 		Input::SetApplication(this);
 		Input::SetKeyboard(Keyboard::BelgianPeriod);
 

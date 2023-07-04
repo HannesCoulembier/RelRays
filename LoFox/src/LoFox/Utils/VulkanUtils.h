@@ -72,5 +72,8 @@ namespace LoFox {
 		bool IsVulkanPhysicalDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 		VkPhysicalDevice PickVulkanPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
+
+		// Memory ---------------------------------------------------------------------------------------
+		uint32_t FindMemoryType(VkPhysicalDevice device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	}
 }

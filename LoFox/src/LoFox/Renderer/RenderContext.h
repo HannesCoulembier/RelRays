@@ -12,6 +12,8 @@ namespace LoFox {
 
 	class DebugMessenger;
 
+	class Buffer;
+
 	class RenderContext {
 
 	public:
@@ -25,6 +27,7 @@ namespace LoFox {
 
 		inline VkInstance GetInstance() { return m_Instance; }
 		inline VkDevice GetLogicalDevice() { return m_LogicalDevice; }
+		inline VkPhysicalDevice GetPhysicalDevice() { return m_PhysicalDevice; }
 
 		void WaitIdle() { vkDeviceWaitIdle(m_LogicalDevice); }
 
@@ -43,6 +46,8 @@ namespace LoFox {
 		void CreateSwapChain();
 		void CreateImageViews();
 		void CreateFramebuffers();
+
+		void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
 	private:
 		Ref<Window> m_Window = nullptr;
 		Ref<RenderContext> m_Context;
@@ -63,6 +68,9 @@ namespace LoFox {
 		VkRenderPass m_Renderpass;
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;
+
+		Ref<Buffer> m_VertexBuffer;
+		Ref<Buffer> m_IndexBuffer;
 
 		VkCommandPool m_CommandPool = nullptr;
 		std::vector<VkCommandBuffer> m_CommandBuffers;
