@@ -41,20 +41,23 @@ namespace LoFox {
 		m_IsRunning = true;
 		while (m_IsRunning) {
 
-			float time = Time::GetTime();
-			float timestep = time - m_LastFrameTime;
-			m_LastFrameTime = time;
-
-			m_Window->OnUpdate();
-
-			for (auto& layer : m_LayerStack)
-				layer->OnUpdate(timestep);
-
 			if (!m_Window->IsMinimized())
-				m_RenderContext->OnRender();
+				OnUpdate();
 		}
 
 		Renderer::WaitIdle();
+	}
+
+	void Application::OnUpdate() {
+
+		float time = Time::GetTime();
+		float timestep = time - m_LastFrameTime;
+		m_LastFrameTime = time;
+
+		m_Window->OnUpdate();
+
+		for (auto& layer : m_LayerStack)
+			layer->OnUpdate(timestep);
 	}
 
 	Application::~Application() {

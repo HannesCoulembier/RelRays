@@ -17,6 +17,8 @@
 
 #include "LoFox/Renderer/Renderer.h"
 
+#include "LoFox/Core/Application.h"
+
 struct Vertex {
 
 	glm::vec2 Position;
@@ -96,18 +98,18 @@ namespace LoFox {
 		m_DebugMessenger->Init();
 
 		// Setting up m_Surface
-		m_Window->CreateVulkanSurface(Instance, &m_Surface);
+		m_Window->CreateVulkanSurface(Instance, &Surface);
 
 		// Pick physical device (= GPU to use)
 		#ifdef LF_BE_OVERLYSPECIFIC
 		Utils::ListVulkanPhysicalDevices(Instance);
 		#endif
 
-		PhysicalDevice = Utils::PickVulkanPhysicalDevice(Instance, m_Surface);
+		PhysicalDevice = Utils::PickVulkanPhysicalDevice(Instance, Surface);
 
 		// Create logical device
 		// Figuring out what queues we want
-		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, m_Surface);
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, Surface);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
@@ -140,8 +142,8 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateDevice(PhysicalDevice, &logicalDeviceCreateInfo, nullptr, &LogicalDevice) == VK_SUCCESS, "Failed to create logical device!");
 
 		// Retrieve queue handles
-		vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamilyIndex, 0, &m_GraphicsQueueHandle);
-		vkGetDeviceQueue(LogicalDevice, indices.PresentFamilyIndex, 0, &m_PresentQueueHandle);
+		vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamilyIndex, 0, &GraphicsQueueHandle);
+		vkGetDeviceQueue(LogicalDevice, indices.PresentFamilyIndex, 0, &PresentQueueHandle);
 
 		// Create SwapChain
 		CreateSwapChain();
@@ -186,7 +188,7 @@ namespace LoFox {
 		renderPassCreateInfo.dependencyCount = 1;
 		renderPassCreateInfo.pDependencies = &subpassDependency;
 
-		LF_CORE_ASSERT(vkCreateRenderPass(LogicalDevice, &renderPassCreateInfo, nullptr, &m_Renderpass) == VK_SUCCESS, "Failed to create render pass!");
+		LF_CORE_ASSERT(vkCreateRenderPass(LogicalDevice, &renderPassCreateInfo, nullptr, &Renderpass) == VK_SUCCESS, "Failed to create render pass!");
 
 		// Create descriptor set layout
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
@@ -287,7 +289,7 @@ namespace LoFox {
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
-		LF_CORE_ASSERT(vkCreatePipelineLayout(LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout) == VK_SUCCESS, "failed to create pipeline layout!");
+		LF_CORE_ASSERT(vkCreatePipelineLayout(LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &PipelineLayout) == VK_SUCCESS, "failed to create pipeline layout!");
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -301,13 +303,13 @@ namespace LoFox {
 		pipelineCreateInfo.pDepthStencilState = nullptr;
 		pipelineCreateInfo.pColorBlendState = &colorBlendingCreateInfo;
 		pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-		pipelineCreateInfo.layout = m_PipelineLayout;
-		pipelineCreateInfo.renderPass = m_Renderpass;
+		pipelineCreateInfo.layout = PipelineLayout;
+		pipelineCreateInfo.renderPass = Renderpass;
 		pipelineCreateInfo.subpass = 0;
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 		pipelineCreateInfo.basePipelineIndex = -1;
 
-		LF_CORE_ASSERT(vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_GraphicsPipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
+		LF_CORE_ASSERT(vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &GraphicsPipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
 
 		// Create Framebuffers
 		CreateFramebuffers();
@@ -324,21 +326,21 @@ namespace LoFox {
 		{ // This is a scope to ensure the destructor of vertexStagingBuffer is called
 			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 			Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			m_VertexBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			VertexBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			vertexStagingBuffer->SetData(vertices.data());
 
-			CopyBuffer(vertexStagingBuffer, m_VertexBuffer);
+			CopyBuffer(vertexStagingBuffer, VertexBuffer);
 		}
 		// Create Index buffer
 		{
 			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
 			Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			m_IndexBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			IndexBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			indexStagingBuffer->SetData(vertexIndices.data());
 
-			CopyBuffer(indexStagingBuffer, m_IndexBuffer);
+			CopyBuffer(indexStagingBuffer, IndexBuffer);
 		}
 		// Create UniformBuffers
 		{
@@ -375,8 +377,8 @@ namespace LoFox {
 		descriptorSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(m_MaxFramesInFlight);
 		descriptorSetAllocInfo.pSetLayouts = layouts.data();
 
-		m_DescriptorSets.resize(m_MaxFramesInFlight);
-		LF_CORE_ASSERT(vkAllocateDescriptorSets(LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+		DescriptorSets.resize(m_MaxFramesInFlight);
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(LogicalDevice, &descriptorSetAllocInfo, DescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
 		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
@@ -387,7 +389,7 @@ namespace LoFox {
 
 			VkWriteDescriptorSet descriptorWrite = {};
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite.dstSet = m_DescriptorSets[i];
+			descriptorWrite.dstSet = DescriptorSets[i];
 			descriptorWrite.dstBinding = 0;
 			descriptorWrite.dstArrayElement = 0;
 			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -400,20 +402,20 @@ namespace LoFox {
 		}
 
 		// Create Commandbuffers
-		m_CommandBuffers.resize(m_MaxFramesInFlight);
+		CommandBuffers.resize(m_MaxFramesInFlight);
 
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
 		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		commandBufferAllocInfo.commandPool = m_CommandPool;
 		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandBufferCount = (uint32_t)m_CommandBuffers.size();
+		commandBufferAllocInfo.commandBufferCount = (uint32_t)CommandBuffers.size();
 
-		LF_CORE_ASSERT(vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, m_CommandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, CommandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
 
 		// Create sync objects
-		m_ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
-		m_RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
-		m_InFlightFences.resize(m_MaxFramesInFlight);
+		ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
+		RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
+		InFlightFences.resize(m_MaxFramesInFlight);
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -423,9 +425,9 @@ namespace LoFox {
 
 		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
-			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
-			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
-			LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &m_InFlightFences[i]) == VK_SUCCESS, "Failed to create inFlight fence!");
+			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &ImageAvailableSemaphores[i]) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
+			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &RenderFinishedSemaphores[i]) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
+			LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &InFlightFences[i]) == VK_SUCCESS, "Failed to create inFlight fence!");
 		}
 
 	}
@@ -434,9 +436,9 @@ namespace LoFox {
 
 		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
-			vkDestroySemaphore(LogicalDevice, m_ImageAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(LogicalDevice, m_RenderFinishedSemaphores[i], nullptr);
-			vkDestroyFence(LogicalDevice, m_InFlightFences[i], nullptr);
+			vkDestroySemaphore(LogicalDevice, ImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(LogicalDevice, RenderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(LogicalDevice, InFlightFences[i], nullptr);
 		}
 
 		CleanupSwapChain();
@@ -445,122 +447,17 @@ namespace LoFox {
 		vkDestroyDescriptorSetLayout(LogicalDevice, m_DescriptorSetLayout, nullptr);
 
 		vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
-		vkDestroyPipeline(LogicalDevice, m_GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(LogicalDevice, m_PipelineLayout, nullptr);
-		vkDestroyRenderPass(LogicalDevice, m_Renderpass, nullptr);
+		vkDestroyPipeline(LogicalDevice, GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(LogicalDevice, PipelineLayout, nullptr);
+		vkDestroyRenderPass(LogicalDevice, Renderpass, nullptr);
 
 		m_DebugMessenger->Shutdown();
 
 		vkDestroyDevice(LogicalDevice, nullptr);
 
-		vkDestroySurfaceKHR(Instance, m_Surface, nullptr);
+		vkDestroySurfaceKHR(Instance, Surface, nullptr);
 
 		vkDestroyInstance(Instance, nullptr);
-	}
-
-	void RenderContext::OnRender() {
-
-		vkWaitForFences(LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
-
-		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			RecreateSwapChain();
-			return;
-		}
-		LF_CORE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swapchain image!");
-
-		vkResetFences(LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
-
-		vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
-		RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
-
-		UpdateUniformBuffer(m_CurrentFrame);
-
-		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_CurrentFrame] };
-		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_CommandBuffers[m_CurrentFrame];
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-
-		LF_CORE_ASSERT(vkQueueSubmit(m_GraphicsQueueHandle, 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
-
-		VkSwapchainKHR swapChains[] = { m_SwapChain };
-		VkPresentInfoKHR presentInfo = {};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-		presentInfo.pImageIndices = &imageIndex;
-		presentInfo.pResults = nullptr;
-
-		result = vkQueuePresentKHR(m_PresentQueueHandle, &presentInfo);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-			RecreateSwapChain();
-		}
-		else
-			LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");
-
-		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
-	}
-
-	void RenderContext::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-
-		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
-		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		commandBufferBeginInfo.flags = 0;
-		commandBufferBeginInfo.pInheritanceInfo = nullptr;
-
-		LF_CORE_ASSERT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
-
-		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.renderPass = m_Renderpass;
-		renderPassBeginInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
-		renderPassBeginInfo.renderArea.offset = { 0, 0 };
-		renderPassBeginInfo.renderArea.extent = m_SwapChainExtent;
-		renderPassBeginInfo.clearValueCount = 1;
-		renderPassBeginInfo.pClearValues = &clearColor;
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-
-		VkBuffer vertexBuffers[] = { m_VertexBuffer->GetBuffer() };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-		VkViewport viewport = {};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_SwapChainExtent.width);
-		viewport.height = static_cast<float>(m_SwapChainExtent.height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor = {};
-		scissor.offset = { 0, 0 };
-		scissor.extent = m_SwapChainExtent;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
-
-		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
-
-		vkCmdEndRenderPass(commandBuffer);
-
-		LF_CORE_ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
 	}
 
 	void RenderContext::InitInstance() {
@@ -596,13 +493,13 @@ namespace LoFox {
 
 	void RenderContext::CleanupSwapChain() {
 
-		for (auto framebuffer : m_SwapChainFramebuffers)
+		for (auto framebuffer : SwapChainFramebuffers)
 			vkDestroyFramebuffer(LogicalDevice, framebuffer, nullptr);
 
-		for (auto imageView : m_SwapChainImageViews)
+		for (auto imageView : SwapChainImageViews)
 			vkDestroyImageView(LogicalDevice, imageView, nullptr);
 
-		vkDestroySwapchainKHR(LogicalDevice, m_SwapChain, nullptr);
+		vkDestroySwapchainKHR(LogicalDevice, SwapChain, nullptr);
 	}
 
 	void RenderContext::RecreateSwapChain() {
@@ -618,14 +515,14 @@ namespace LoFox {
 
 	void RenderContext::CreateSwapChain() {
 
-		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, m_Surface);
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, Surface);
 
-		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(PhysicalDevice, m_Surface);
+		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(PhysicalDevice, Surface);
 
 		VkSurfaceFormatKHR surfaceFormat = Utils::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
 		m_SwapChainImageFormat = surfaceFormat.format;
 		VkPresentModeKHR presentMode = Utils::ChooseSwapPresentMode(swapChainSupport.PresentModes);
-		m_SwapChainExtent = Utils::ChooseSwapExtent(swapChainSupport.Capabilities, *m_Window);
+		SwapChainExtent = Utils::ChooseSwapExtent(swapChainSupport.Capabilities, *m_Window);
 
 		uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
 		if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) // when maxImageCount = 0, there is no limit
@@ -635,11 +532,11 @@ namespace LoFox {
 
 		VkSwapchainCreateInfoKHR swapChainCreateInfo{};
 		swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainCreateInfo.surface = m_Surface;
+		swapChainCreateInfo.surface = Surface;
 		swapChainCreateInfo.minImageCount = imageCount;
 		swapChainCreateInfo.imageFormat = surfaceFormat.format;
 		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapChainCreateInfo.imageExtent = m_SwapChainExtent;
+		swapChainCreateInfo.imageExtent = SwapChainExtent;
 		swapChainCreateInfo.imageArrayLayers = 1;
 		swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
@@ -657,22 +554,22 @@ namespace LoFox {
 		swapChainCreateInfo.clipped = VK_TRUE; // Pixels obscured by another window are ignored
 		swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-		LF_CORE_ASSERT(vkCreateSwapchainKHR(LogicalDevice, &swapChainCreateInfo, nullptr, &m_SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
+		LF_CORE_ASSERT(vkCreateSwapchainKHR(LogicalDevice, &swapChainCreateInfo, nullptr, &SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
 
 		// Retrieving the images in the swap chain
-		vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
-		m_SwapChainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
+		vkGetSwapchainImagesKHR(LogicalDevice, SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
+		SwapChainImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(LogicalDevice, SwapChain, &imageCount, SwapChainImages.data());
 	}
 
 	void RenderContext::CreateImageViews() {
 
-		m_SwapChainImageViews.resize(m_SwapChainImages.size());
-		for (uint32_t i = 0; i < m_SwapChainImages.size(); i++) {
+		SwapChainImageViews.resize(SwapChainImages.size());
+		for (uint32_t i = 0; i < SwapChainImages.size(); i++) {
 
 			VkImageViewCreateInfo imageViewCreateInfo{};
 			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			imageViewCreateInfo.image = m_SwapChainImages[i];
+			imageViewCreateInfo.image = SwapChainImages[i];
 			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			imageViewCreateInfo.format = m_SwapChainImageFormat;
 			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -685,30 +582,30 @@ namespace LoFox {
 			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 			imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-			LF_CORE_ASSERT(vkCreateImageView(LogicalDevice, &imageViewCreateInfo, nullptr, &m_SwapChainImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
+			LF_CORE_ASSERT(vkCreateImageView(LogicalDevice, &imageViewCreateInfo, nullptr, &SwapChainImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
 		}
 	}
 
 	void RenderContext::CreateFramebuffers() {
 
-		m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
+		SwapChainFramebuffers.resize(SwapChainImageViews.size());
 
-		for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
+		for (size_t i = 0; i < SwapChainImageViews.size(); i++) {
 
 			VkImageView attachments[] = {
-				m_SwapChainImageViews[i]
+				SwapChainImageViews[i]
 			};
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferCreateInfo.renderPass = m_Renderpass;
+			framebufferCreateInfo.renderPass = Renderpass;
 			framebufferCreateInfo.attachmentCount = 1;
 			framebufferCreateInfo.pAttachments = attachments;
-			framebufferCreateInfo.width = m_SwapChainExtent.width;
-			framebufferCreateInfo.height = m_SwapChainExtent.height;
+			framebufferCreateInfo.width = SwapChainExtent.width;
+			framebufferCreateInfo.height = SwapChainExtent.height;
 			framebufferCreateInfo.layers = 1;
 
-			LF_CORE_ASSERT(vkCreateFramebuffer(LogicalDevice, &framebufferCreateInfo, nullptr, &m_SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+			LF_CORE_ASSERT(vkCreateFramebuffer(LogicalDevice, &framebufferCreateInfo, nullptr, &SwapChainFramebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
 
@@ -722,7 +619,7 @@ namespace LoFox {
 
 		RecreateSwapChain();
 		if (!m_Window->IsMinimized())
-			OnRender();
+			Application::GetInstance().OnUpdate();
 		return true;
 	}
 
@@ -756,8 +653,8 @@ namespace LoFox {
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
 
-		vkQueueSubmit(m_GraphicsQueueHandle, 1, &submitInfo, VK_NULL_HANDLE);
-		vkQueueWaitIdle(m_GraphicsQueueHandle);
+		vkQueueSubmit(GraphicsQueueHandle, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(GraphicsQueueHandle);
 
 		vkFreeCommandBuffers(LogicalDevice, m_CommandPool, 1, &commandBuffer);
 	}
@@ -769,7 +666,7 @@ namespace LoFox {
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height, 0.1f, 10.0f);
+		ubo.proj = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float)SwapChainExtent.height, 0.1f, 10.0f); // TODO: Fix error when minimizing window (SwapChainExtent.height becomes 0)
 		ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
 
 		memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

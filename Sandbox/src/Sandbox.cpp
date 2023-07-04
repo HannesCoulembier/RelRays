@@ -17,6 +17,9 @@ namespace LoFox {
 			int FPS = int(1.0f / ts);
 			Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS");
 
+			Renderer::StartFrame();
+
+			Renderer::SubmitFrame();
 
 			// Logger test
 			/*

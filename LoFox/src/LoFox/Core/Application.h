@@ -30,6 +30,7 @@ namespace LoFox {
 		void PushLayer(Ref<Layer> layer) { m_LayerStack.emplace_back(layer); layer->OnAttach(); }
 
 		void Run();
+		void OnUpdate();
 
 		inline Ref<Window> GetActiveWindow() { return m_Window; }
 
