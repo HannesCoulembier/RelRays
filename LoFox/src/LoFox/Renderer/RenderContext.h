@@ -8,6 +8,8 @@
 #include "LoFox/Events/Event.h"
 #include "LoFox/Events/RenderEvent.h"
 
+#include "LoFox/Utils/Time.h"
+
 namespace LoFox {
 
 	class DebugMessenger;
@@ -34,6 +36,7 @@ namespace LoFox {
 		static Ref<RenderContext> Create();
 	private:
 		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+		void UpdateUniformBuffer(uint32_t currentImage);
 
 		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
 		void OnEvent(Event& event);
@@ -53,6 +56,8 @@ namespace LoFox {
 		Ref<RenderContext> m_Context;
 		Ref<DebugMessenger> m_DebugMessenger;
 
+		Timer m_Timer;
+
 		VkInstance m_Instance = nullptr;
 		VkPhysicalDevice m_PhysicalDevice = nullptr;
 		VkDevice m_LogicalDevice = nullptr;
@@ -65,12 +70,19 @@ namespace LoFox {
 		VkExtent2D m_SwapChainExtent;
 		std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
+		VkDescriptorPool m_DescriptorPool;
+		std::vector<VkDescriptorSet> m_DescriptorSets;
+
 		VkRenderPass m_Renderpass;
+		VkDescriptorSetLayout m_DescriptorSetLayout;
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;
 
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
+
+		std::vector<Ref<Buffer>> m_UniformBuffers;
+		std::vector<void*> m_UniformBuffersMapped;
 
 		VkCommandPool m_CommandPool = nullptr;
 		std::vector<VkCommandBuffer> m_CommandBuffers;

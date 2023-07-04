@@ -1,7 +1,9 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/RenderContext.h"
 
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "LoFox/Renderer/Shader.h"
 #include "LoFox/Renderer/Buffer.h"
@@ -15,6 +17,7 @@
 
 
 struct Vertex {
+
 	glm::vec2 Position;
 	glm::vec3 Color;
 
@@ -45,6 +48,13 @@ struct Vertex {
 	}
 };
 
+struct UniformBufferObject {
+
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
+};
+
 const std::vector<Vertex> vertices = {
 	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
@@ -66,6 +76,8 @@ namespace LoFox {
 	}
 
 	void RenderContext::Init(Ref<Window> window) {
+
+		m_Timer.Reset();
 
 		m_Window = window;
 		m_Window->SetRenderEventCallback(LF_BIND_EVENT_FN(RenderContext::OnEvent));
@@ -175,6 +187,21 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkCreateRenderPass(m_LogicalDevice, &renderPassCreateInfo, nullptr, &m_Renderpass) == VK_SUCCESS, "Failed to create render pass!");
 
+		// Create descriptor set layout
+		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutCreateInfo.bindingCount = 1;
+		layoutCreateInfo.pBindings = &uboLayoutBinding;
+
+		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(m_LogicalDevice, &layoutCreateInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
+
 		// Create Graphics pipeline
 		Shader vertexShader(m_Context, "Assets/Shaders/VertexShader.vert", ShaderType::Vertex);
 		Shader fragmentShader(m_Context, "Assets/Shaders/FragmentShader.frag", ShaderType::Fragment);
@@ -215,7 +242,7 @@ namespace LoFox {
 		rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 		rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizerCreateInfo.lineWidth = 1.0f;
-		rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizerCreateInfo.cullMode = VK_CULL_MODE_NONE;
 		rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
 		rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
@@ -254,8 +281,8 @@ namespace LoFox {
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 0;
-		pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
+		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -312,6 +339,64 @@ namespace LoFox {
 
 			CopyBuffer(indexStagingBuffer, m_IndexBuffer);
 		}
+		// Create UniformBuffers
+		{
+			uint32_t uniformBufferSize = sizeof(UniformBufferObject);
+			m_UniformBuffers.resize(m_MaxFramesInFlight);
+			m_UniformBuffersMapped.resize(m_MaxFramesInFlight);
+
+			for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+
+				m_UniformBuffers[i] = CreateRef<Buffer>(m_Context, uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+				vkMapMemory(m_LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
+			}
+		}
+
+		// Create Descriptor pool
+		VkDescriptorPoolSize descriptorPoolSize = {};
+		descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorPoolSize.descriptorCount = static_cast<uint32_t>(m_MaxFramesInFlight);
+
+		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
+		descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptorPoolCreateInfo.poolSizeCount = 1;
+		descriptorPoolCreateInfo.pPoolSizes = &descriptorPoolSize;
+		descriptorPoolCreateInfo.maxSets = static_cast<uint32_t>(m_MaxFramesInFlight);
+
+		LF_CORE_ASSERT(vkCreateDescriptorPool(m_LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
+
+		// Create Descriptor sets
+		std::vector<VkDescriptorSetLayout> layouts(m_MaxFramesInFlight, m_DescriptorSetLayout);
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {};
+		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descriptorSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(m_MaxFramesInFlight);
+		descriptorSetAllocInfo.pSetLayouts = layouts.data();
+
+		m_DescriptorSets.resize(m_MaxFramesInFlight);
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(m_LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+
+		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+
+			VkDescriptorBufferInfo bufferInfo = {};
+			bufferInfo.buffer = m_UniformBuffers[i]->GetBuffer();
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkWriteDescriptorSet descriptorWrite = {};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = m_DescriptorSets[i];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.pImageInfo = nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+
+			vkUpdateDescriptorSets(m_LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+		}
 
 		// Create Commandbuffers
 		m_CommandBuffers.resize(m_MaxFramesInFlight);
@@ -355,6 +440,9 @@ namespace LoFox {
 
 		CleanupSwapChain();
 
+		vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
+
 		vkDestroyCommandPool(m_LogicalDevice, m_CommandPool, nullptr);
 		vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(m_LogicalDevice, m_PipelineLayout, nullptr);
@@ -385,6 +473,8 @@ namespace LoFox {
 
 		vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 		RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
+
+		UpdateUniformBuffer(m_CurrentFrame);
 
 		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_CurrentFrame] };
 		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
@@ -462,6 +552,8 @@ namespace LoFox {
 		scissor.offset = { 0, 0 };
 		scissor.extent = m_SwapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
 
@@ -667,5 +759,18 @@ namespace LoFox {
 		vkQueueWaitIdle(m_GraphicsQueueHandle);
 
 		vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, 1, &commandBuffer);
+	}
+
+	void RenderContext::UpdateUniformBuffer(uint32_t currentImage) {
+
+		float time = m_Timer.Elapsed();
+
+		UniformBufferObject ubo = {};
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height, 0.1f, 10.0f);
+		ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
+
+		memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 	}
 }
