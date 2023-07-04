@@ -27,18 +27,18 @@ namespace LoFox {
 		void OnRender();
 		void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 
-		inline VkInstance GetInstance() { return m_Instance; }
-		inline VkDevice GetLogicalDevice() { return m_LogicalDevice; }
-		inline VkPhysicalDevice GetPhysicalDevice() { return m_PhysicalDevice; }
-
-		void WaitIdle() { vkDeviceWaitIdle(m_LogicalDevice); }
-
 		static Ref<RenderContext> Create();
+
+	public:
+		VkInstance Instance = nullptr;
+		VkPhysicalDevice PhysicalDevice = nullptr;
+		VkDevice LogicalDevice = nullptr;
+
 	private:
 		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 		void UpdateUniformBuffer(uint32_t currentImage);
 
-		void LinkReference(Ref<RenderContext> origin) { m_Context = origin; };
+		void LinkReference(Ref<RenderContext> origin) { m_ThisContext = origin; };
 		void OnEvent(Event& event);
 		bool OnFramebufferResize(FramebufferResizeEvent& event);
 		
@@ -53,14 +53,11 @@ namespace LoFox {
 		void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
 	private:
 		Ref<Window> m_Window = nullptr;
-		Ref<RenderContext> m_Context;
+		Ref<RenderContext> m_ThisContext;
 		Ref<DebugMessenger> m_DebugMessenger;
 
 		Timer m_Timer;
 
-		VkInstance m_Instance = nullptr;
-		VkPhysicalDevice m_PhysicalDevice = nullptr;
-		VkDevice m_LogicalDevice = nullptr;
 		VkSurfaceKHR m_Surface = nullptr;
 		VkSwapchainKHR m_SwapChain = nullptr;
 		std::vector<VkImage> m_SwapChainImages;

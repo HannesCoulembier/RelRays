@@ -11,6 +11,8 @@
 
 #include "LoFox/Core/Input.h"
 
+#include "LoFox/Renderer/Renderer.h"
+
 namespace LoFox {
 
 	Application* Application::s_Instance = nullptr;
@@ -28,8 +30,8 @@ namespace LoFox {
 		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
 		m_Window->SetWindowEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
 
-		m_RenderContext = RenderContext::Create();
-		m_RenderContext->Init(m_Window);
+		Renderer::Init(m_Window);
+		m_RenderContext = Renderer::GetContext();
 
 		LF_OVERSPECIFY("Creation of application \"{0}\" complete.\n", m_Spec.Name);
 	}
@@ -52,17 +54,17 @@ namespace LoFox {
 				m_RenderContext->OnRender();
 		}
 
-		m_RenderContext->WaitIdle();
+		Renderer::WaitIdle();
 	}
 
 	Application::~Application() {
 
+		LF_OVERSPECIFY("Destroying application named \"{0}\"", m_Spec.Name);
+
 		for (auto& layer : m_LayerStack)
 			layer->OnDetach();
 
-		LF_OVERSPECIFY("Destroying application named \"{0}\"", m_Spec.Name);
-
-		m_RenderContext->Shutdown();
+		Renderer::Shutdown();
 
 		LF_OVERSPECIFY("Finished destruction of application named \"{0}\"", m_Spec.Name);
 	}

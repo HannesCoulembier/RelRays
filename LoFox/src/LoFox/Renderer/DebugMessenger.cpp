@@ -71,7 +71,7 @@ namespace LoFox {
 		messengerCreateInfo.pfnUserCallback = MessageCallback;
 		messengerCreateInfo.pUserData = nullptr;
 
-		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_Context->GetInstance(), &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
+		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_Context->Instance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
 		
 		#endif
 	}
@@ -80,7 +80,7 @@ namespace LoFox {
 
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		
-		DestroyVulkanDebugUtilsMessengerEXT(m_Context->GetInstance(), m_DebugMessenger, nullptr);
+		DestroyVulkanDebugUtilsMessengerEXT(m_Context->Instance, m_DebugMessenger, nullptr);
 		
 		#endif
 	}
