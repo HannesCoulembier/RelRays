@@ -16,17 +16,16 @@ namespace LoFox {
 		void Init();
 		void Shutdown();
 
-		inline std::vector<const char*> GetValidationLayers() { return m_ValidationLayers; }
 		inline PFN_vkDebugUtilsMessengerCallbackEXT GetMessageCallback() { return MessageCallback; }
 
 		static Ref<DebugMessenger> Create(Ref<RenderContext> context);
+	public:
+		static const std::vector<const char*> ValidationLayers;
 	private:
 		static VKAPI_ATTR VkBool32 VKAPI_CALL MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 	private:
 		Ref<RenderContext> m_Context;
 
 		VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
-		
-		std::vector<const char*> m_ValidationLayers;
 	};
 }

@@ -37,7 +37,7 @@ namespace LoFox {
 		vkUnmapMemory(m_Context->LogicalDevice, m_Memory);
 	}
 
-	Buffer::~Buffer() {
+	void Buffer::Destroy() {
 
 		vkDestroyBuffer(m_Context->LogicalDevice, m_Buffer, nullptr);
 		vkFreeMemory(m_Context->LogicalDevice, m_Memory, nullptr);

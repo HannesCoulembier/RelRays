@@ -8,6 +8,7 @@
 #include "LoFox/Renderer/Shader.h"
 #include "LoFox/Renderer/Buffer.h"
 #include "LoFox/Renderer/SwapChain.h"
+#include "LoFox/Renderer/Image.h"
 #include "LoFox/Renderer/DebugMessenger.h"
 
 #include "LoFox/Core/Settings.h"
@@ -24,6 +25,7 @@ struct Vertex {
 
 	glm::vec2 Position;
 	glm::vec3 Color;
+	glm::vec2 TexCoord;
 
 	static VkVertexInputBindingDescription GetBindingDescription() {
 
@@ -35,9 +37,9 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() {
+	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
 
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -47,6 +49,11 @@ struct Vertex {
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[1].offset = offsetof(Vertex, Color);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
 
 		return attributeDescriptions;
 	}
@@ -60,10 +67,10 @@ struct UniformBufferObject {
 };
 
 const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
 const std::vector<uint32_t> vertexIndices = {
@@ -84,7 +91,6 @@ namespace LoFox {
 		m_Timer.Reset();
 
 		m_Window = window;
-		m_Window->SetRenderEventCallback(LF_BIND_EVENT_FN(RenderContext::OnEvent));
 
 		LF_OVERSPECIFY("Creating Vulkan instance");
 		#ifdef LF_BE_OVERLYSPECIFIC
@@ -128,6 +134,7 @@ namespace LoFox {
 
 		// Actually setting up the logical device info structs
 		VkPhysicalDeviceFeatures logicalDeviceFeatures = {}; // No features needed for now
+		logicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
 
 		VkDeviceCreateInfo logicalDeviceCreateInfo{};
 		logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -136,8 +143,8 @@ namespace LoFox {
 		logicalDeviceCreateInfo.pEnabledFeatures = &logicalDeviceFeatures;
 		logicalDeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(Utils::requiredVulkanDeviceExtensions.size());
 		logicalDeviceCreateInfo.ppEnabledExtensionNames = Utils::requiredVulkanDeviceExtensions.data();
-		logicalDeviceCreateInfo.enabledLayerCount = (uint32_t)(m_DebugMessenger->GetValidationLayers().size());
-		logicalDeviceCreateInfo.ppEnabledLayerNames = m_DebugMessenger->GetValidationLayers().data();
+		logicalDeviceCreateInfo.enabledLayerCount = (uint32_t)(DebugMessenger::ValidationLayers.size());
+		logicalDeviceCreateInfo.ppEnabledLayerNames = DebugMessenger::ValidationLayers.data();
 		logicalDeviceCreateInfo.pNext = nullptr;
 
 		LF_CORE_ASSERT(vkCreateDevice(PhysicalDevice, &logicalDeviceCreateInfo, nullptr, &LogicalDevice) == VK_SUCCESS, "Failed to create logical device!");
@@ -189,7 +196,7 @@ namespace LoFox {
 
 		m_SwapChain->CreateFramebuffers();
 
-		// Create descriptor set layout
+		// Create Descriptorset layouts
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
 		uboLayoutBinding.binding = 0;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -197,10 +204,18 @@ namespace LoFox {
 		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		uboLayoutBinding.pImmutableSamplers = nullptr;
 
+		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+		samplerLayoutBinding.binding = 1;
+		samplerLayoutBinding.descriptorCount = 1;
+		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerLayoutBinding.pImmutableSamplers = nullptr;
+		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 		VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutCreateInfo.bindingCount = 1;
-		layoutCreateInfo.pBindings = &uboLayoutBinding;
+		layoutCreateInfo.bindingCount = (uint32_t)bindings.size();
+		layoutCreateInfo.pBindings = bindings.data();
 
 		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(LogicalDevice, &layoutCreateInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
 
@@ -237,6 +252,8 @@ namespace LoFox {
 
 		VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {}; // Viewport and Scissors are dynamic states
 		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportStateCreateInfo.viewportCount = 1;
+		viewportStateCreateInfo.scissorCount = 1;
 
 		VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = {};
 		rasterizerCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -318,6 +335,11 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
 
+		// Create textures
+		Image1 = CreateRef<Image>(m_ThisContext, "Assets/Textures/Rick.png");
+
+		CreateImageSampler();
+
 		// Create Vertex buffer
 		{ // This is a scope to ensure the destructor of vertexStagingBuffer is called
 			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
@@ -353,14 +375,16 @@ namespace LoFox {
 		}
 
 		// Create Descriptor pool
-		VkDescriptorPoolSize descriptorPoolSize = {};
-		descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorPoolSize.descriptorCount = static_cast<uint32_t>(m_MaxFramesInFlight);
+		std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes = {};
+		descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorPoolSizes[0].descriptorCount = static_cast<uint32_t>(m_MaxFramesInFlight);
+		descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorPoolSizes[1].descriptorCount = static_cast<uint32_t>(m_MaxFramesInFlight);
 
 		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
 		descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolCreateInfo.poolSizeCount = 1;
-		descriptorPoolCreateInfo.pPoolSizes = &descriptorPoolSize;
+		descriptorPoolCreateInfo.poolSizeCount = 2;
+		descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
 		descriptorPoolCreateInfo.maxSets = static_cast<uint32_t>(m_MaxFramesInFlight);
 
 		LF_CORE_ASSERT(vkCreateDescriptorPool(LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
@@ -383,18 +407,33 @@ namespace LoFox {
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
-			VkWriteDescriptorSet descriptorWrite = {};
-			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite.dstSet = DescriptorSets[i];
-			descriptorWrite.dstBinding = 0;
-			descriptorWrite.dstArrayElement = 0;
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.pBufferInfo = &bufferInfo;
-			descriptorWrite.pImageInfo = nullptr;
-			descriptorWrite.pTexelBufferView = nullptr;
+			VkDescriptorImageInfo imageInfo = {};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = Image1->GetImageView();
+			imageInfo.sampler = m_Sampler;
 
-			vkUpdateDescriptorSets(LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = DescriptorSets[i];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+			descriptorWrites[0].pImageInfo = nullptr;
+			descriptorWrites[0].pTexelBufferView = nullptr;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = DescriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pBufferInfo = nullptr;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+			descriptorWrites[1].pTexelBufferView = nullptr;
+
+			vkUpdateDescriptorSets(LogicalDevice, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 		}
 
 		// Create Commandbuffers
@@ -430,12 +469,22 @@ namespace LoFox {
 	
 	void RenderContext::Shutdown() {
 
+		Image1->Destroy();
+		m_SwapChain->Destroy();
+		VertexBuffer->Destroy();
+		IndexBuffer->Destroy();
+
+		for (auto buffer : m_UniformBuffers)
+			buffer->Destroy();
+
 		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
 			vkDestroySemaphore(LogicalDevice, ImageAvailableSemaphores[i], nullptr);
 			vkDestroySemaphore(LogicalDevice, RenderFinishedSemaphores[i], nullptr);
 			vkDestroyFence(LogicalDevice, InFlightFences[i], nullptr);
 		}
+
+		vkDestroySampler(LogicalDevice, m_Sampler, nullptr);
 
 		vkDestroyDescriptorPool(LogicalDevice, m_DescriptorPool, nullptr);
 		vkDestroyDescriptorSetLayout(LogicalDevice, m_DescriptorSetLayout, nullptr);
@@ -471,8 +520,8 @@ namespace LoFox {
 		instanceCreateInfo.pApplicationInfo = &appInfo;
 		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
-		instanceCreateInfo.enabledLayerCount = (uint32_t)(m_DebugMessenger->GetValidationLayers().size());
-		instanceCreateInfo.ppEnabledLayerNames = m_DebugMessenger->GetValidationLayers().data();
+		instanceCreateInfo.enabledLayerCount = (uint32_t)(DebugMessenger::ValidationLayers.size());
+		instanceCreateInfo.ppEnabledLayerNames = DebugMessenger::ValidationLayers.data();
 		instanceCreateInfo.pNext = nullptr;
 
 		#ifdef LF_BE_OVERLYSPECIFIC
@@ -485,21 +534,14 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateInstance(&instanceCreateInfo, nullptr, &Instance) == VK_SUCCESS, "Failed to create instance!");
 	}
 
-	void RenderContext::OnEvent(Event& event) {
-
-		EventDispatcher dispatcher(event);
-		dispatcher.Dispatch<FramebufferResizeEvent>(LF_BIND_EVENT_FN(RenderContext::OnFramebufferResize));
-	}
-
 	bool RenderContext::OnFramebufferResize(FramebufferResizeEvent& event) {
 
 		m_SwapChain->Recreate();
-		if (!m_Window->IsMinimized())
-			Application::GetInstance().OnUpdate();
+		Application::GetInstance().OnUpdate();
 		return true;
 	}
 
-	void RenderContext::CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer) {
+	VkCommandBuffer RenderContext::BeginSingleTimeCommandBuffer() {
 
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
 		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -516,11 +558,10 @@ namespace LoFox {
 
 		vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
 
-		VkBufferCopy copyRegion = {};
-		copyRegion.srcOffset = 0;
-		copyRegion.dstOffset = 0;
-		copyRegion.size = dstBuffer->GetSize();
-		vkCmdCopyBuffer(commandBuffer, srcBuffer->GetBuffer(), dstBuffer->GetBuffer(), 1, &copyRegion);
+		return commandBuffer;
+	}
+
+	void RenderContext::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
 
 		vkEndCommandBuffer(commandBuffer);
 
@@ -535,6 +576,19 @@ namespace LoFox {
 		vkFreeCommandBuffers(LogicalDevice, m_CommandPool, 1, &commandBuffer);
 	}
 
+	void RenderContext::CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer) {
+
+		VkCommandBuffer commandBuffer = BeginSingleTimeCommandBuffer();
+
+		VkBufferCopy copyRegion = {};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = dstBuffer->GetSize();
+		vkCmdCopyBuffer(commandBuffer, srcBuffer->GetBuffer(), dstBuffer->GetBuffer(), 1, &copyRegion);
+
+		EndSingleTimeCommandBuffer(commandBuffer);
+	}
+
 	void RenderContext::UpdateUniformBuffer(uint32_t currentImage) {
 
 		float time = m_Timer.Elapsed();
@@ -546,5 +600,32 @@ namespace LoFox {
 		ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
 
 		memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+	}
+
+	void RenderContext::CreateImageSampler() {
+
+		VkPhysicalDeviceProperties properties = {};
+		vkGetPhysicalDeviceProperties(PhysicalDevice, &properties);
+
+		VkSamplerCreateInfo samplerCreateInfo = {};
+		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.anisotropyEnable = VK_TRUE;
+		samplerCreateInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+		samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK; // Unused: see addressModes
+		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerCreateInfo.compareEnable = VK_FALSE;
+		samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerCreateInfo.mipLodBias = 0.0f;
+		samplerCreateInfo.minLod = 0.0f;
+		samplerCreateInfo.maxLod = 0.0f;
+
+		LF_CORE_ASSERT(vkCreateSampler(LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
+
 	}
 }

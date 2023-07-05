@@ -11,7 +11,9 @@ namespace LoFox {
 
 	public:
 		SwapChain(Ref<RenderContext> context, Ref<Window> window);
-		~SwapChain();
+		~SwapChain() { Destroy(); }
+
+		void Destroy();
 
 		void Recreate();
 

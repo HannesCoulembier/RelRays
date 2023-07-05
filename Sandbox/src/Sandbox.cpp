@@ -15,11 +15,15 @@ namespace LoFox {
 		void OnUpdate(float ts) {
 
 			int FPS = int(1.0f / ts);
+
 			Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS");
 
-			Renderer::StartFrame();
+			if (!Application::GetInstance().GetActiveWindow()->IsMinimized()) {
 
-			Renderer::SubmitFrame();
+				Renderer::StartFrame();
+
+				Renderer::SubmitFrame();
+			}
 
 			// Logger test
 			/*

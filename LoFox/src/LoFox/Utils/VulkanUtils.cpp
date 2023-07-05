@@ -232,9 +232,9 @@ namespace LoFox {
 			/* Don't need this yet
 			VkPhysicalDeviceProperties deviceProps;
 			vkGetPhysicalDeviceProperties(device, &deviceProps);
+			*/
 			VkPhysicalDeviceFeatures deviceFeatures;
 			vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-			*/
 
 			QueueFamilyIndices indices = IdentifyVulkanQueueFamilies(device, surface);
 
@@ -252,7 +252,7 @@ namespace LoFox {
 				swapChainIsAdequate = !(supportDetails.Formats.empty()) && !(supportDetails.PresentModes.empty());
 			}
 
-			return indices.IsComplete() && supportsRequiredExtensions && swapChainIsAdequate;
+			return indices.IsComplete() && supportsRequiredExtensions && swapChainIsAdequate && deviceFeatures.samplerAnisotropy;
 		}
 
 		VkPhysicalDevice PickVulkanPhysicalDevice(VkInstance instance, VkSurfaceKHR surface) {

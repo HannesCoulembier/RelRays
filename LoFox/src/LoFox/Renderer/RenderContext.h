@@ -16,6 +16,7 @@ namespace LoFox {
 
 	class Buffer;
 	class SwapChain;
+	class Image;
 
 	class RenderContext {
 
@@ -32,6 +33,11 @@ namespace LoFox {
 		static Ref<RenderContext> Create();
 
 		void UpdateUniformBuffer(uint32_t currentImage);
+
+		VkCommandBuffer BeginSingleTimeCommandBuffer();
+		void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
+
+		void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
 	public:
 		VkInstance Instance = nullptr;
 		VkPhysicalDevice PhysicalDevice = nullptr;
@@ -44,6 +50,8 @@ namespace LoFox {
 		std::vector<VkDescriptorSet> DescriptorSets;
 
 		VkSurfaceKHR Surface = nullptr;
+
+		Ref<Image> Image1;
 
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
@@ -58,12 +66,10 @@ namespace LoFox {
 		std::vector<VkFence> InFlightFences;
 	private:
 		void LinkReference(Ref<RenderContext> origin) { m_ThisContext = origin; };
-		void OnEvent(Event& event);
 		bool OnFramebufferResize(FramebufferResizeEvent& event);
-		
-		void InitInstance();
 
-		void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
+		void InitInstance();
+		void CreateImageSampler();
 	private:
 		Ref<Window> m_Window = nullptr;
 		Ref<RenderContext> m_ThisContext;
@@ -72,6 +78,8 @@ namespace LoFox {
 		Timer m_Timer;
 
 		Ref<SwapChain> m_SwapChain;
+
+		VkSampler m_Sampler;
 
 		VkDescriptorSetLayout m_DescriptorSetLayout;
 

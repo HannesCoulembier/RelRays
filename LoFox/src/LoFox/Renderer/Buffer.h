@@ -10,7 +10,9 @@ namespace LoFox {
 
 	public:
 		Buffer(Ref<RenderContext> context, uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-		~Buffer();
+		~Buffer() { Destroy(); }
+
+		void Destroy();
 
 		void SetData(const void* src);
 

@@ -74,14 +74,6 @@ namespace LoFox {
 			data.WindowEventCallback(event);
 		});
 
-		glfwSetFramebufferSizeCallback(m_WindowHandle, [](GLFWwindow* window, int width, int height) {
-			
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			FramebufferResizeEvent event(width, height);
-			data.RenderEventCallback(event);
-		});
-
 		glfwSetWindowCloseCallback(m_WindowHandle, [](GLFWwindow* window) {
 
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -96,26 +88,26 @@ namespace LoFox {
 
 			switch (action) {
 
-			case GLFW_PRESS: {
+				case GLFW_PRESS: {
 
-				KeyPressedEvent event(Input::glfwToKeyCode(key), false);
-				data.WindowEventCallback(event);
-				break;
-			}
-			case GLFW_RELEASE: {
+					KeyPressedEvent event(Input::glfwToKeyCode(key), false);
+					data.WindowEventCallback(event);
+					break;
+				}
+				case GLFW_RELEASE: {
 
-				KeyReleasedEvent event(Input::glfwToKeyCode(key));
-				data.WindowEventCallback(event);
-				break;
-			}
-			case GLFW_REPEAT: {
+					KeyReleasedEvent event(Input::glfwToKeyCode(key));
+					data.WindowEventCallback(event);
+					break;
+				}
+				case GLFW_REPEAT: {
 
-				KeyPressedEvent event(Input::glfwToKeyCode(key), true);
-				data.WindowEventCallback(event);
-				break;
+					KeyPressedEvent event(Input::glfwToKeyCode(key), true);
+					data.WindowEventCallback(event);
+					break;
+				}
 			}
-			}
-			});
+		});
 
 		glfwSetCharCallback(m_WindowHandle, [](GLFWwindow* window, unsigned int keycode) {
 
@@ -123,7 +115,7 @@ namespace LoFox {
 
 			KeyTypedEvent event(Input::glfwToKeyCode(keycode));
 			data.WindowEventCallback(event);
-			});
+		});
 
 		glfwSetMouseButtonCallback(m_WindowHandle, [](GLFWwindow* window, int button, int action, int mods) {
 
@@ -131,20 +123,20 @@ namespace LoFox {
 
 			switch (action) {
 
-			case GLFW_PRESS: {
+				case GLFW_PRESS: {
 
-				MouseButtonPressedEvent event(static_cast<MouseCode>(button));
-				data.WindowEventCallback(event);
-				break;
-			}
-			case GLFW_RELEASE: {
+					MouseButtonPressedEvent event(static_cast<MouseCode>(button));
+					data.WindowEventCallback(event);
+					break;
+				}
+				case GLFW_RELEASE: {
 
-				MouseButtonReleasedEvent event(static_cast<MouseCode>(button));
-				data.WindowEventCallback(event);
-				break;
+					MouseButtonReleasedEvent event(static_cast<MouseCode>(button));
+					data.WindowEventCallback(event);
+					break;
+				}
 			}
-			}
-			});
+		});
 
 		glfwSetScrollCallback(m_WindowHandle, [](GLFWwindow* window, double xOffset, double yOffset) {
 
@@ -152,7 +144,7 @@ namespace LoFox {
 
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.WindowEventCallback(event);
-			});
+		});
 
 		glfwSetCursorPosCallback(m_WindowHandle, [](GLFWwindow* window, double xPos, double yPos) {
 
@@ -160,7 +152,7 @@ namespace LoFox {
 
 			MouseMovedEvent event((float)xPos, (float)yPos);
 			data.WindowEventCallback(event);
-			});
+		});
 	}
 
 	void Window::Shutdown() {

@@ -28,7 +28,7 @@ namespace LoFox {
 		Input::SetKeyboard(Keyboard::BelgianPeriod);
 
 		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
-		m_Window->SetWindowEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
+		m_Window->SetEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init(m_Window);
 		m_RenderContext = Renderer::GetContext();
@@ -40,6 +40,8 @@ namespace LoFox {
 
 		m_IsRunning = true;
 		while (m_IsRunning) {
+
+			m_Window->OnUpdate();
 
 			if (!m_Window->IsMinimized())
 				OnUpdate();
@@ -53,8 +55,6 @@ namespace LoFox {
 		float time = Time::GetTime();
 		float timestep = time - m_LastFrameTime;
 		m_LastFrameTime = time;
-
-		m_Window->OnUpdate();
 
 		for (auto& layer : m_LayerStack)
 			layer->OnUpdate(timestep);

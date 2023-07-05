@@ -30,8 +30,7 @@ namespace LoFox {
 		void CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface);
 
 		void OnUpdate();
-		void SetWindowEventCallback(const std::function<void(Event&)>& callback) { m_WindowData.WindowEventCallback = callback; }
-		void SetRenderEventCallback(const std::function<void(Event&)>& callback) { m_WindowData.RenderEventCallback = callback; }
+		void SetEventCallback(const std::function<void(Event&)>& callback) { m_WindowData.WindowEventCallback = callback; }
 
 		bool IsMinimized() { return m_WindowData.Width == 0 || m_WindowData.Height == 0; }
 		void SetTitle(const std::string& title);
@@ -54,7 +53,6 @@ namespace LoFox {
 			uint32_t Width, Height;
 
 			std::function<void(Event&)> WindowEventCallback;
-			std::function<void(Event&)> RenderEventCallback;
 		};
 
 		WindowData m_WindowData;

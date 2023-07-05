@@ -13,10 +13,7 @@ namespace LoFox {
 		CreateImageViews();
 	}
 
-	SwapChain::~SwapChain() {
-
-		CleanupSwapChain();
-	}
+	void SwapChain::Destroy() { CleanupSwapChain(); }
 
 	void SwapChain::Recreate() {
 

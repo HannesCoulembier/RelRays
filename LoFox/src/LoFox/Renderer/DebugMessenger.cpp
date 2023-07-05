@@ -38,20 +38,16 @@ namespace LoFox {
 		return VK_FALSE; // When VK_TRUE is returned, Vulkan will abort the call that made this callback
 	}
 
+	#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+	const std::vector<const char*> DebugMessenger::ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+	#else
+	const std::vector<const char*> DebugMessenger::ValidationLayers = {};
+	#endif
+
 	DebugMessenger::DebugMessenger(Ref<RenderContext> context)
 		: m_Context(context) {
 
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-
-		std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
-
-		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(m_ValidationLayers), "Validation layers requested, but not available!");
-		
-		#else
-
-		std::vector<const char*> m_ValidationLayers = {};
-
-		#endif
+		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(ValidationLayers), "Validation layers requested, but not available!");
 	}
 
 	void DebugMessenger::Init() {
