@@ -15,6 +15,7 @@ namespace LoFox {
 	class DebugMessenger;
 
 	class Buffer;
+	class SwapChain;
 
 	class RenderContext {
 
@@ -26,9 +27,10 @@ namespace LoFox {
 		
 		void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 
+		inline Ref<SwapChain> GetSwapChain() { return m_SwapChain; }
+
 		static Ref<RenderContext> Create();
 
-		void RecreateSwapChain();
 		void UpdateUniformBuffer(uint32_t currentImage);
 	public:
 		VkInstance Instance = nullptr;
@@ -42,12 +44,6 @@ namespace LoFox {
 		std::vector<VkDescriptorSet> DescriptorSets;
 
 		VkSurfaceKHR Surface = nullptr;
-		VkSwapchainKHR SwapChain = nullptr;
-		std::vector<VkImage> SwapChainImages;
-		std::vector<VkImageView> SwapChainImageViews;
-
-		VkExtent2D SwapChainExtent;
-		std::vector<VkFramebuffer> SwapChainFramebuffers;
 
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
@@ -67,11 +63,6 @@ namespace LoFox {
 		
 		void InitInstance();
 
-		void CleanupSwapChain();
-		void CreateSwapChain();
-		void CreateImageViews();
-		void CreateFramebuffers();
-
 		void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
 	private:
 		Ref<Window> m_Window = nullptr;
@@ -80,8 +71,7 @@ namespace LoFox {
 
 		Timer m_Timer;
 
-		VkFormat m_SwapChainImageFormat;
-
+		Ref<SwapChain> m_SwapChain;
 
 		VkDescriptorSetLayout m_DescriptorSetLayout;
 

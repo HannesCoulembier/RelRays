@@ -19,8 +19,7 @@ namespace LoFox {
 
 		static inline Ref<RenderContext> GetContext() { return m_Context; }
 	private:
-		static void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-		static void PresentSwapChainImage(uint32_t imageIndex);
+		static void RecordCommandBuffer(VkCommandBuffer commandBuffer);
 	private:
 		static Ref<Window> m_Window;
 		static Ref<RenderContext> m_Context;

@@ -1,6 +1,7 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/Renderer.h"
 
+#include "LoFox/Renderer/SwapChain.h"
 #include "LoFox/Renderer/Buffer.h"
 
 namespace LoFox {
@@ -32,12 +33,9 @@ namespace LoFox {
 
 		vkWaitForFences(m_Context->LogicalDevice, 1, &m_Context->InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
-		VkResult result = vkAcquireNextImageKHR(m_Context->LogicalDevice, m_Context->SwapChain, UINT64_MAX, m_Context->ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &m_ThisFramesImageIndex);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			m_Context->RecreateSwapChain();
+		m_ThisFramesImageIndex = m_Context->GetSwapChain()->AcquireNextImageIndex(m_CurrentFrame);
+		if (m_ThisFramesImageIndex < 0)
 			return;
-		}
-		LF_CORE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swapchain image!");
 
 		vkResetFences(m_Context->LogicalDevice, 1, &m_Context->InFlightFences[m_CurrentFrame]);
 
@@ -46,7 +44,10 @@ namespace LoFox {
 
 	void Renderer::SubmitFrame() {
 
-		RecordCommandBuffer(m_Context->CommandBuffers[m_CurrentFrame], m_ThisFramesImageIndex);
+		if (m_ThisFramesImageIndex < 0)
+			return;
+
+		RecordCommandBuffer(m_Context->CommandBuffers[m_CurrentFrame]);
 		m_Context->UpdateUniformBuffer(m_CurrentFrame);
 
 		VkSemaphore waitSemaphores[] = { m_Context->ImageAvailableSemaphores[m_CurrentFrame] };
@@ -64,12 +65,12 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkQueueSubmit(m_Context->GraphicsQueueHandle, 1, &submitInfo, m_Context->InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
 
-		PresentSwapChainImage(m_ThisFramesImageIndex);
+		m_Context->GetSwapChain()->PresentImage(m_ThisFramesImageIndex, signalSemaphores);
 
 		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
 	}
 
-	void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+	void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer) {
 
 		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -82,9 +83,9 @@ namespace LoFox {
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = m_Context->Renderpass;
-		renderPassBeginInfo.framebuffer = m_Context->SwapChainFramebuffers[imageIndex];
+		renderPassBeginInfo.framebuffer = m_Context->GetSwapChain()->GetFramebuffer(m_ThisFramesImageIndex);
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
-		renderPassBeginInfo.renderArea.extent = m_Context->SwapChainExtent;
+		renderPassBeginInfo.renderArea.extent = m_Context->GetSwapChain()->GetExtent();
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues = &clearColor;
 
@@ -100,15 +101,15 @@ namespace LoFox {
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_Context->SwapChainExtent.width);
-		viewport.height = static_cast<float>(m_Context->SwapChainExtent.height);
+		viewport.width = static_cast<float>(m_Context->GetSwapChain()->GetExtent().width);
+		viewport.height = static_cast<float>(m_Context->GetSwapChain()->GetExtent().height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		VkRect2D scissor = {};
 		scissor.offset = { 0, 0 };
-		scissor.extent = m_Context->SwapChainExtent;
+		scissor.extent = m_Context->GetSwapChain()->GetExtent();
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->PipelineLayout, 0, 1, &m_Context->DescriptorSets[m_CurrentFrame], 0, nullptr);
@@ -118,27 +119,5 @@ namespace LoFox {
 		vkCmdEndRenderPass(commandBuffer);
 
 		LF_CORE_ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
-	}
-
-	void Renderer::PresentSwapChainImage(uint32_t imageIndex) {
-
-		VkSemaphore signalSemaphores[] = { m_Context->RenderFinishedSemaphores[m_CurrentFrame] };
-
-		VkSwapchainKHR swapChains[] = { m_Context->SwapChain };
-		VkPresentInfoKHR presentInfo = {};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-		presentInfo.pImageIndices = &imageIndex;
-		presentInfo.pResults = nullptr;
-
-		VkResult result = vkQueuePresentKHR(m_Context->PresentQueueHandle, &presentInfo);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-			m_Context->RecreateSwapChain();
-		}
-		else
-			LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");
 	}
 }
