@@ -13,7 +13,8 @@ namespace LoFox {
 	uint32_t Renderer::m_ThisFramesImageIndex;
 
 	const std::vector<uint32_t> vertexIndices = {
-		0, 1, 2, 2, 3, 0
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4,
 	};
 
 	void Renderer::Init(Ref<Window> window) {

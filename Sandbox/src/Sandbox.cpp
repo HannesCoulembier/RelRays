@@ -14,9 +14,14 @@ namespace LoFox {
 
 		void OnUpdate(float ts) {
 
-			int FPS = int(1.0f / ts);
-
-			Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS");
+			static float avgFPS = 0;
+			static uint32_t frames = 0;
+			frames++;
+			float FPS = 1.0f / ts;
+			avgFPS += (FPS - avgFPS) / (float)frames;
+			static float maxFPS = 0;
+			maxFPS = std::max(maxFPS, FPS);
+			Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS (avg: " + std::to_string(avgFPS) + ", max: " + std::to_string(maxFPS) + ")");
 
 			if (!Application::GetInstance().GetActiveWindow()->IsMinimized()) {
 
