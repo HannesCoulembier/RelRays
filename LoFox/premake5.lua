@@ -14,6 +14,10 @@ project "LoFox"
 
 		"src/**.h",
 		"src/**.cpp",
+		"vendor/stb_image/**.h",
+		"vendor/stb_image/**.cpp",
+		"vendor/glm/glm/**.inl",
+		"vendor/glm/glm/**.hpp",
 	}
 
 	defines {
@@ -28,6 +32,7 @@ project "LoFox"
 		"vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.glm}",
+		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.VulkanSDK}",
 	}
 
