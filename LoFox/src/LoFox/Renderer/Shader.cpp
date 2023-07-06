@@ -32,10 +32,6 @@ namespace LoFox {
 
 	void Shader::CreateShaderModule() {
 
-		m_SourceCode = Utils::ReadFileAsString(m_Path);
-
-		CompileVulkanBinaries();
-
 		VkShaderModuleCreateInfo shaderModuleCreateInfo{};
 		shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		shaderModuleCreateInfo.codeSize = m_ByteCode.size() * sizeof(uint32_t);
@@ -46,6 +42,30 @@ namespace LoFox {
 
 	Shader::Shader(Ref<RenderContext> context, const std::string& path, ShaderType type)
 		: m_Context(context), m_Path(path), m_Type(type) {
+
+		m_SourceCode = Utils::ReadFileAsString(m_Path);
+
+		std::string cacheBytesFilePath = Utils::GetCacheDirectory() + "/" + Utils::GetFileNameFromPath(path) + ".bytes.cache";
+		std::string cacheSourceFilePath = Utils::GetCacheDirectory() + "/" + Utils::GetFileNameFromPath(path) + ".source.cache";
+
+		if (Utils::PathExists(cacheBytesFilePath) && Utils::PathExists(cacheSourceFilePath)) {
+
+			std::string newSourceCode = Utils::ReadFileAsString(cacheSourceFilePath);
+			if (newSourceCode == m_SourceCode)
+				m_ByteCode = Utils::ReadFileAsBytes(cacheBytesFilePath);
+			else {
+				CompileVulkanBinaries();
+				Utils::CreatePathIfNeeded(Utils::GetCacheDirectory());
+				Utils::WriteFileInString(cacheSourceFilePath, m_SourceCode);
+				Utils::WriteFileInBytes(cacheBytesFilePath, m_ByteCode);
+			}
+		}
+		else {
+			CompileVulkanBinaries();
+			Utils::CreatePathIfNeeded(Utils::GetCacheDirectory());
+			Utils::WriteFileInString(cacheSourceFilePath, m_SourceCode);
+			Utils::WriteFileInBytes(cacheBytesFilePath, m_ByteCode);
+		}
 
 		CreateShaderModule();
 

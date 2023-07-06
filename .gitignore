@@ -11,3 +11,6 @@ bin-int/
 
 # Python scripts
 scripts/__pycache__
+
+# Cache
+Sandbox/Assets/cache
