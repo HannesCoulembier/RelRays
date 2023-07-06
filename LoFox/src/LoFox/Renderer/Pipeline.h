@@ -18,7 +18,7 @@ namespace LoFox {
 		std::vector<VkAttachmentDescription> Attachments;
 
 		VkVertexInputBindingDescription VertexBindingDescription;
-		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescription;
+		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions;
 
 		VkDescriptorSetLayout DescriptorSetLayout;
 	};

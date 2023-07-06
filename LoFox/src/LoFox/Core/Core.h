@@ -10,9 +10,7 @@ Lists as much information as possible (all available Vulkan extensions, layers, 
 */
 #ifdef LF_DEBUG
 	// #define LF_BE_OVERLYSPECIFIC
-#endif
 
-#ifdef LF_DEBUG
 	#define LF_USE_VULKAN_VALIDATION_LAYERS
 #endif
 

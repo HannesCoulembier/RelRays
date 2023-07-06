@@ -149,8 +149,8 @@ namespace LoFox {
 		vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputState.vertexBindingDescriptionCount = 1;
 		vertexInputState.pVertexBindingDescriptions = &CreateInfo.VertexBindingDescription;
-		vertexInputState.vertexAttributeDescriptionCount = (uint32_t)CreateInfo.VertexAttributeDescription.size();
-		vertexInputState.pVertexAttributeDescriptions = CreateInfo.VertexAttributeDescription.data();
+		vertexInputState.vertexAttributeDescriptionCount = (uint32_t)CreateInfo.VertexAttributeDescriptions.size();
+		vertexInputState.pVertexAttributeDescriptions = CreateInfo.VertexAttributeDescriptions.data();
 
 		VkPipelineViewportStateCreateInfo viewportState = {}; // Viewport and Scissors are dynamic states
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
