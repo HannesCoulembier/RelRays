@@ -2,7 +2,7 @@
 
 #include "LoFox/Core/Core.h"
 
-#include "LoFox/Renderer/RenderContext.h"
+#include <vulkan/vulkan.h>
 
 namespace LoFox {
 
@@ -15,7 +15,7 @@ namespace LoFox {
 	class Shader {
 
 	public:
-		Shader(Ref<RenderContext> context, const std::string& path, ShaderType type);
+		Shader(const std::string& path, ShaderType type);
 		~Shader();
 
 		inline VkPipelineShaderStageCreateInfo GetCreateInfo() { return m_CreateInfo; }
@@ -24,8 +24,6 @@ namespace LoFox {
 
 		void CompileVulkanBinaries();
 	private:
-		Ref<RenderContext> m_Context;
-
 		const std::string& m_Path;
 		ShaderType m_Type;
 

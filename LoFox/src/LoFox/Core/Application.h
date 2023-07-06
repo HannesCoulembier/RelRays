@@ -4,7 +4,6 @@
 
 #include "LoFox/Core/Window.h"
 #include "LoFox/Core/Layer.h"
-#include "LoFox/Renderer/RenderContext.h"
 
 #include "LoFox/Events/Event.h"
 #include "LoFox/Events/ApplicationEvent.h"
@@ -41,7 +40,6 @@ namespace LoFox {
 	private:
 		ApplicationSpec m_Spec;
 		Ref<Window> m_Window;
-		Ref<RenderContext> m_RenderContext;
 		std::vector<Ref<Layer>> m_LayerStack;
 
 		float m_LastFrameTime = 0.0f;

@@ -2,14 +2,12 @@
 
 #include <vulkan/vulkan.h>
 
-#include "LoFox/Renderer/RenderContext.h"
-
 namespace LoFox {
 
 	class Buffer {
 
 	public:
-		Buffer(Ref<RenderContext> context, uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+		Buffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 
 		void Destroy();
 
@@ -19,8 +17,6 @@ namespace LoFox {
 		inline VkDeviceMemory GetMemory() { return m_Memory; }
 		inline uint32_t GetSize() { return m_Size; }
 	private:
-		Ref<RenderContext> m_Context;
-
 		VkBuffer m_Buffer;
 		VkDeviceMemory m_Memory;
 		uint32_t m_Size;

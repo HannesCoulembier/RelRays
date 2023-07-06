@@ -1,13 +1,16 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/Renderer.h"
 
+#include "LoFox/Core/Application.h"
+
 #include "LoFox/Renderer/SwapChain.h"
 #include "LoFox/Renderer/Buffer.h"
+
+#include "LoFox/Renderer/RenderContext.h"
 
 namespace LoFox {
 
 	Ref<Window> Renderer::m_Window;
-	Ref<RenderContext> Renderer::m_Context;
 
 	int Renderer::m_CurrentFrame = 0;
 	uint32_t Renderer::m_ThisFramesImageIndex;
@@ -21,26 +24,25 @@ namespace LoFox {
 
 		m_Window = window;
 
-		m_Context = RenderContext::Create();
-		m_Context->Init(m_Window);
+		RenderContext::Init(m_Window);
 	}
 
 	void Renderer::Shutdown() {
 
-		m_Context->Shutdown();
+		RenderContext::Shutdown();
 	}
 
 	void Renderer::StartFrame() {
 
-		vkWaitForFences(m_Context->LogicalDevice, 1, &m_Context->InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+		vkWaitForFences(RenderContext::LogicalDevice, 1, &RenderContext::InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
-		m_ThisFramesImageIndex = m_Context->GetSwapChain()->AcquireNextImageIndex(m_CurrentFrame);
+		m_ThisFramesImageIndex = RenderContext::GetSwapChain()->AcquireNextImageIndex(m_CurrentFrame);
 		if (m_ThisFramesImageIndex < 0)
 			return;
 
-		vkResetFences(m_Context->LogicalDevice, 1, &m_Context->InFlightFences[m_CurrentFrame]);
+		vkResetFences(RenderContext::LogicalDevice, 1, &RenderContext::InFlightFences[m_CurrentFrame]);
 
-		vkResetCommandBuffer(m_Context->CommandBuffers[m_CurrentFrame], 0);
+		vkResetCommandBuffer(RenderContext::CommandBuffers[m_CurrentFrame], 0);
 	}
 
 	void Renderer::SubmitFrame() {
@@ -48,11 +50,11 @@ namespace LoFox {
 		if (m_ThisFramesImageIndex < 0)
 			return;
 
-		RecordCommandBuffer(m_Context->CommandBuffers[m_CurrentFrame]);
-		m_Context->UpdateUniformBuffer(m_CurrentFrame);
+		RecordCommandBuffer(RenderContext::CommandBuffers[m_CurrentFrame]);
+		RenderContext::UpdateUniformBuffer(m_CurrentFrame);
 
-		VkSemaphore waitSemaphores[] = { m_Context->ImageAvailableSemaphores[m_CurrentFrame] };
-		VkSemaphore signalSemaphores[] = { m_Context->RenderFinishedSemaphores[m_CurrentFrame] };
+		VkSemaphore waitSemaphores[] = { RenderContext::ImageAvailableSemaphores[m_CurrentFrame] };
+		VkSemaphore signalSemaphores[] = { RenderContext::RenderFinishedSemaphores[m_CurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -60,16 +62,18 @@ namespace LoFox {
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_Context->CommandBuffers[m_CurrentFrame];
+		submitInfo.pCommandBuffers = &RenderContext::CommandBuffers[m_CurrentFrame];
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		LF_CORE_ASSERT(vkQueueSubmit(m_Context->GraphicsQueueHandle, 1, &submitInfo, m_Context->InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
+		LF_CORE_ASSERT(vkQueueSubmit(RenderContext::GraphicsQueueHandle, 1, &submitInfo, RenderContext::InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
 
-		m_Context->GetSwapChain()->PresentImage(m_ThisFramesImageIndex, signalSemaphores);
+		RenderContext::GetSwapChain()->PresentImage(m_ThisFramesImageIndex, signalSemaphores);
 
 		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
 	}
+
+	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
 
 	void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer) {
 
@@ -85,42 +89,49 @@ namespace LoFox {
 		clearColors[1] = { 1.0f, 0 };
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.renderPass = m_Context->GetGraphicsPipeline().RenderPass;
-		renderPassBeginInfo.framebuffer = m_Context->GetSwapChain()->GetFramebuffer(m_ThisFramesImageIndex);
+		renderPassBeginInfo.renderPass = RenderContext::GetGraphicsPipeline().RenderPass;
+		renderPassBeginInfo.framebuffer = RenderContext::GetSwapChain()->GetFramebuffer(m_ThisFramesImageIndex);
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
-		renderPassBeginInfo.renderArea.extent = m_Context->GetSwapChain()->GetExtent();
+		renderPassBeginInfo.renderArea.extent = RenderContext::GetSwapChain()->GetExtent();
 		renderPassBeginInfo.clearValueCount = (uint32_t)clearColors.size();
 		renderPassBeginInfo.pClearValues = clearColors.data();
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->GetGraphicsPipeline().Pipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderContext::GetGraphicsPipeline().Pipeline);
 
-		VkBuffer vertexBuffers[] = { m_Context->VertexBuffer->GetBuffer() };
+		VkBuffer vertexBuffers[] = { RenderContext::VertexBuffer->GetBuffer() };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, m_Context->IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, RenderContext::IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_Context->GetSwapChain()->GetExtent().width);
-		viewport.height = static_cast<float>(m_Context->GetSwapChain()->GetExtent().height);
+		viewport.width = static_cast<float>(RenderContext::GetSwapChain()->GetExtent().width);
+		viewport.height = static_cast<float>(RenderContext::GetSwapChain()->GetExtent().height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		VkRect2D scissor = {};
 		scissor.offset = { 0, 0 };
-		scissor.extent = m_Context->GetSwapChain()->GetExtent();
+		scissor.extent = RenderContext::GetSwapChain()->GetExtent();
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->GetGraphicsPipeline().Layout, 0, 1, &m_Context->DescriptorSets[m_CurrentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, RenderContext::GetGraphicsPipeline().Layout, 0, 1, &RenderContext::DescriptorSets[m_CurrentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
 		LF_CORE_ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
+	}
+
+	bool Renderer::OnFramebufferResize(FramebufferResizeEvent& event) {
+
+		RenderContext::GetSwapChain()->Recreate();
+		Application::GetInstance().OnUpdate();
+		return true;
 	}
 }

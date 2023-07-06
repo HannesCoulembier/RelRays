@@ -2,7 +2,9 @@
 
 #include <vulkan/vulkan.h>
 
-#include "LoFox/Renderer/RenderContext.h"
+#include "LoFox/Core/Window.h"
+
+#include "LoFox/Events/RenderEvent.h"
 
 namespace LoFox {
 
@@ -15,14 +17,15 @@ namespace LoFox {
 		static void StartFrame();
 		static void SubmitFrame();
 
-		static void WaitIdle() { vkDeviceWaitIdle(m_Context->LogicalDevice); }
+		static void WaitIdle();
 
-		static inline Ref<RenderContext> GetContext() { return m_Context; }
+		static void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 	private:
 		static void RecordCommandBuffer(VkCommandBuffer commandBuffer);
+
+		static bool OnFramebufferResize(FramebufferResizeEvent& event);
 	private:
 		static Ref<Window> m_Window;
-		static Ref<RenderContext> m_Context;
 
 		static uint32_t m_ThisFramesImageIndex;
 

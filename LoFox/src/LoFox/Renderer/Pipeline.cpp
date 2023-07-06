@@ -1,9 +1,9 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/Pipeline.h"
 
-#include "LoFox/Renderer/RenderContext.h"
-
 #include "LoFox/Renderer/Shader.h"
+
+#include "LoFox/Renderer/RenderContext.h"
 
 namespace LoFox {
 
@@ -31,7 +31,7 @@ namespace LoFox {
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-		LF_CORE_ASSERT(vkCreatePipelineLayout(CreateInfo.Context->LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+		LF_CORE_ASSERT(vkCreatePipelineLayout(RenderContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
 	}
 
 	void GraphicsPipeline::InitRenderPass() {
@@ -68,7 +68,7 @@ namespace LoFox {
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassCreateInfo.subpassCount = 1;
 
-		LF_CORE_ASSERT(vkCreateRenderPass(CreateInfo.Context->LogicalDevice, &renderPassCreateInfo, nullptr, &RenderPass) == VK_SUCCESS, "Failed to create render pass!");
+		LF_CORE_ASSERT(vkCreateRenderPass(RenderContext::LogicalDevice, &renderPassCreateInfo, nullptr, &RenderPass) == VK_SUCCESS, "Failed to create render pass!");
 
 	}
 
@@ -140,8 +140,8 @@ namespace LoFox {
 		rasterizerState.depthBiasClamp = 0.0f;
 		rasterizerState.depthBiasSlopeFactor = 0.0f;
 
-		Shader vertexShader(CreateInfo.Context, CreateInfo.VertexShaderPath, ShaderType::Vertex);
-		Shader fragmentShader(CreateInfo.Context, CreateInfo.FragmentShaderPath, ShaderType::Fragment);
+		Shader vertexShader(CreateInfo.VertexShaderPath, ShaderType::Vertex);
+		Shader fragmentShader(CreateInfo.FragmentShaderPath, ShaderType::Fragment);
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader.GetCreateInfo(), fragmentShader.GetCreateInfo() };
 
@@ -179,13 +179,13 @@ namespace LoFox {
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineCreateInfo.subpass = 0;
 
-		LF_CORE_ASSERT(vkCreateGraphicsPipelines(CreateInfo.Context->LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
+		LF_CORE_ASSERT(vkCreateGraphicsPipelines(RenderContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
 	}
 
 	void GraphicsPipeline::Destroy() {
 
-		vkDestroyPipeline(CreateInfo.Context->LogicalDevice, Pipeline, nullptr);
-		vkDestroyPipelineLayout(CreateInfo.Context->LogicalDevice, Layout, nullptr);
-		vkDestroyRenderPass(CreateInfo.Context->LogicalDevice, RenderPass, nullptr);
+		vkDestroyPipeline(RenderContext::LogicalDevice, Pipeline, nullptr);
+		vkDestroyPipelineLayout(RenderContext::LogicalDevice, Layout, nullptr);
+		vkDestroyRenderPass(RenderContext::LogicalDevice, RenderPass, nullptr);
 	}
 }

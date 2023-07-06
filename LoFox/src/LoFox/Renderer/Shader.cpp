@@ -7,6 +7,8 @@
 
 #include "LoFox/Utils/Utils.h"
 
+#include "LoFox/Renderer/RenderContext.h"
+
 namespace LoFox {
 
 	static VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type) {
@@ -37,11 +39,11 @@ namespace LoFox {
 		shaderModuleCreateInfo.codeSize = m_ByteCode.size() * sizeof(uint32_t);
 		shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(m_ByteCode.data());
 		
-		LF_CORE_ASSERT(vkCreateShaderModule(m_Context->LogicalDevice, &shaderModuleCreateInfo, nullptr, &m_ShaderModule) == VK_SUCCESS, "Failed to create shader module!");
+		LF_CORE_ASSERT(vkCreateShaderModule(RenderContext::LogicalDevice, &shaderModuleCreateInfo, nullptr, &m_ShaderModule) == VK_SUCCESS, "Failed to create shader module!");
 	}
 
-	Shader::Shader(Ref<RenderContext> context, const std::string& path, ShaderType type)
-		: m_Context(context), m_Path(path), m_Type(type) {
+	Shader::Shader(const std::string& path, ShaderType type)
+		: m_Path(path), m_Type(type) {
 
 		m_SourceCode = Utils::ReadFileAsString(m_Path);
 
@@ -77,7 +79,7 @@ namespace LoFox {
 
 	Shader::~Shader() {
 
-		vkDestroyShaderModule(m_Context->LogicalDevice, m_ShaderModule, nullptr);
+		vkDestroyShaderModule(RenderContext::LogicalDevice, m_ShaderModule, nullptr);
 	}
 
 	void Shader::CompileVulkanBinaries() {

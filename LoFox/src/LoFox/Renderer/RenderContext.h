@@ -25,72 +25,64 @@ namespace LoFox {
 	public:
 		RenderContext() = default;
 
-		void Init(Ref<Window> window);
-		void Shutdown();
-		
-		void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
+		static void Init(Ref<Window> window);
+		static void Shutdown();
 
-		inline Ref<SwapChain> GetSwapChain() { return m_SwapChain; }
-		inline GraphicsPipeline GetGraphicsPipeline() { return m_GraphicsPipeline; }
+		static inline Ref<SwapChain> GetSwapChain() { return m_SwapChain; }
+		static inline GraphicsPipeline GetGraphicsPipeline() { return m_GraphicsPipeline; }
 
-		static Ref<RenderContext> Create();
+		static void UpdateUniformBuffer(uint32_t currentImage);
 
-		void UpdateUniformBuffer(uint32_t currentImage);
+		static VkCommandBuffer BeginSingleTimeCommandBuffer();
+		static void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
 
-		VkCommandBuffer BeginSingleTimeCommandBuffer();
-		void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
-
-		void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
+		static void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
 	public:
-		VkInstance Instance = nullptr;
-		VkPhysicalDevice PhysicalDevice = nullptr;
-		VkDevice LogicalDevice = nullptr;
+		static VkInstance Instance;
+		static VkPhysicalDevice PhysicalDevice;
+		static VkDevice LogicalDevice;
 
-		std::vector<VkDescriptorSet> DescriptorSets;
+		static std::vector<VkDescriptorSet> DescriptorSets;
 
-		VkSurfaceKHR Surface = nullptr;
+		static VkSurfaceKHR Surface;
 
-		Ref<Image> Texture1;
+		static Ref<Image> Texture1;
 
-		Ref<Buffer> VertexBuffer;
-		Ref<Buffer> IndexBuffer;
+		static Ref<Buffer> VertexBuffer;
+		static Ref<Buffer> IndexBuffer;
 
-		std::vector<VkCommandBuffer> CommandBuffers;
+		static std::vector<VkCommandBuffer> CommandBuffers;
 
-		VkQueue GraphicsQueueHandle = nullptr;
-		VkQueue PresentQueueHandle = nullptr;
+		static VkQueue GraphicsQueueHandle;
+		static VkQueue PresentQueueHandle;
 
-		std::vector<VkSemaphore> ImageAvailableSemaphores;
-		std::vector<VkSemaphore> RenderFinishedSemaphores;
-		std::vector<VkFence> InFlightFences;
+		static std::vector<VkSemaphore> ImageAvailableSemaphores;
+		static std::vector<VkSemaphore> RenderFinishedSemaphores;
+		static std::vector<VkFence> InFlightFences;
 	private:
-		void LinkReference(Ref<RenderContext> origin) { m_ThisContext = origin; };
-		bool OnFramebufferResize(FramebufferResizeEvent& event);
-
-		void InitInstance();
-		void CreateImageSampler();
+		static void InitInstance();
+		static void CreateImageSampler();
 	private:
-		Ref<Window> m_Window = nullptr;
-		Ref<RenderContext> m_ThisContext;
-		Ref<DebugMessenger> m_DebugMessenger;
+		static Ref<Window> m_Window;
+		static Ref<DebugMessenger> m_DebugMessenger;
 
-		Timer m_Timer;
+		static Timer m_Timer;
 
-		Ref<SwapChain> m_SwapChain;
+		static Ref<SwapChain> m_SwapChain;
 
-		VkSampler m_Sampler;
+		static VkSampler m_Sampler;
 
-		VkDescriptorSetLayout m_DescriptorSetLayout;
+		static VkDescriptorSetLayout m_DescriptorSetLayout;
 
-		GraphicsPipeline m_GraphicsPipeline;
+		static GraphicsPipeline m_GraphicsPipeline;
 
-		std::vector<Ref<Buffer>> m_UniformBuffers;
-		std::vector<void*> m_UniformBuffersMapped;
+		static std::vector<Ref<Buffer>> m_UniformBuffers;
+		static std::vector<void*> m_UniformBuffersMapped;
 
-		VkDescriptorPool m_DescriptorPool;
-		VkCommandPool m_CommandPool = nullptr;
+		static VkDescriptorPool m_DescriptorPool;
+		static VkCommandPool m_CommandPool;
 
-		int m_CurrentFrame = 0;
-		const int m_MaxFramesInFlight = 2;
+		static int m_CurrentFrame;
+		static const int m_MaxFramesInFlight = 2;
 	};
 }

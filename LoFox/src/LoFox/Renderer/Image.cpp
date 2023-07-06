@@ -5,16 +5,18 @@
 
 #include "LoFox/Utils/VulkanUtils.h"
 
+#include "LoFox/Renderer/RenderContext.h"
+
 namespace LoFox {
 
-	Image::Image(Ref<RenderContext> context, const std::string& path)
-		: m_Context(context), m_Path(path) {
+	Image::Image(const std::string& path)
+		: m_Path(path) {
 
 		m_Format = VK_FORMAT_R8G8B8A8_SRGB;
 		stbi_uc* pixels = stbi_load(m_Path.c_str(), &m_Width, &m_Height, nullptr, STBI_rgb_alpha);
 		LF_CORE_ASSERT(pixels, "Failed to load image at: " + m_Path);
 
-		Ref<Buffer> stagingBuffer = CreateRef<Buffer>(m_Context, GetSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		Ref<Buffer> stagingBuffer = CreateRef<Buffer>(GetSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		stagingBuffer->SetData(pixels);
 
 		stbi_image_free(pixels);
@@ -35,24 +37,24 @@ namespace LoFox {
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.flags = 0;
 
-		LF_CORE_ASSERT(vkCreateImage(m_Context->LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
+		LF_CORE_ASSERT(vkCreateImage(RenderContext::LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(m_Context->LogicalDevice, m_Image, &memRequirements);
+		vkGetImageMemoryRequirements(RenderContext::LogicalDevice, m_Image, &memRequirements);
 
 		VkMemoryAllocateInfo memoryAllocInfo = {};
 		memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memoryAllocInfo.allocationSize = memRequirements.size;
-		memoryAllocInfo.memoryTypeIndex = Utils::FindMemoryType(m_Context->PhysicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		memoryAllocInfo.memoryTypeIndex = Utils::FindMemoryType(RenderContext::PhysicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		LF_CORE_ASSERT(vkAllocateMemory(m_Context->LogicalDevice, &memoryAllocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
+		LF_CORE_ASSERT(vkAllocateMemory(RenderContext::LogicalDevice, &memoryAllocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
 
-		vkBindImageMemory(m_Context->LogicalDevice, m_Image, m_Memory, 0);
+		vkBindImageMemory(RenderContext::LogicalDevice, m_Image, m_Memory, 0);
 
 		TransitionLayout(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 		// Copy stagingbuffer to image
-		VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommandBuffer();
+		VkCommandBuffer commandBuffer = RenderContext::BeginSingleTimeCommandBuffer();
 
 		VkBufferImageCopy region = {};
 		region.bufferOffset = 0;
@@ -67,7 +69,7 @@ namespace LoFox {
 
 		vkCmdCopyBufferToImage(commandBuffer, stagingBuffer->GetBuffer(), m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-		m_Context->EndSingleTimeCommandBuffer(commandBuffer);
+		RenderContext::EndSingleTimeCommandBuffer(commandBuffer);
 
 		TransitionLayout(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -75,8 +77,8 @@ namespace LoFox {
 		stagingBuffer->Destroy();
 	}
 
-	Image::Image(Ref<RenderContext> context, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
-		: m_Context(context), m_Format(format), m_Width(width), m_Height(height) {
+	Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+		: m_Format(format), m_Width(width), m_Height(height) {
 
 		VkImageCreateInfo imageCreateInfo = {};
 		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -93,28 +95,28 @@ namespace LoFox {
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		LF_CORE_ASSERT(vkCreateImage(m_Context->LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
+		LF_CORE_ASSERT(vkCreateImage(RenderContext::LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(m_Context->LogicalDevice, m_Image, &memRequirements);
+		vkGetImageMemoryRequirements(RenderContext::LogicalDevice, m_Image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = Utils::FindMemoryType(m_Context->PhysicalDevice, memRequirements.memoryTypeBits, properties);
+		allocInfo.memoryTypeIndex = Utils::FindMemoryType(RenderContext::PhysicalDevice, memRequirements.memoryTypeBits, properties);
 
-		LF_CORE_ASSERT(vkAllocateMemory(m_Context->LogicalDevice, &allocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
+		LF_CORE_ASSERT(vkAllocateMemory(RenderContext::LogicalDevice, &allocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
 
-		vkBindImageMemory(m_Context->LogicalDevice, m_Image, m_Memory, 0);
+		vkBindImageMemory(RenderContext::LogicalDevice, m_Image, m_Memory, 0);
 
 		CreateImageView(VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 
 	void Image::Destroy() {
 
-		vkDestroyImageView(m_Context->LogicalDevice, m_ImageView, nullptr);
-		vkDestroyImage(m_Context->LogicalDevice, m_Image, nullptr);
-		vkFreeMemory(m_Context->LogicalDevice, m_Memory, nullptr);
+		vkDestroyImageView(RenderContext::LogicalDevice, m_ImageView, nullptr);
+		vkDestroyImage(RenderContext::LogicalDevice, m_Image, nullptr);
+		vkFreeMemory(RenderContext::LogicalDevice, m_Memory, nullptr);
 	}
 
 	void Image::TransitionLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -122,7 +124,7 @@ namespace LoFox {
 		VkPipelineStageFlags sourceStage;
 		VkPipelineStageFlags destinationStage;
 
-		VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommandBuffer();
+		VkCommandBuffer commandBuffer = RenderContext::BeginSingleTimeCommandBuffer();
 
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -154,7 +156,7 @@ namespace LoFox {
 
 		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-		m_Context->EndSingleTimeCommandBuffer(commandBuffer);
+		RenderContext::EndSingleTimeCommandBuffer(commandBuffer);
 	}
 
 	void Image::CreateImageView(VkImageAspectFlags aspectFlags) {
@@ -170,6 +172,6 @@ namespace LoFox {
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-		LF_CORE_ASSERT(vkCreateImageView(m_Context->LogicalDevice, &imageViewCreateInfo, nullptr, &m_ImageView) == VK_SUCCESS, "Failed to create image view!");
+		LF_CORE_ASSERT(vkCreateImageView(RenderContext::LogicalDevice, &imageViewCreateInfo, nullptr, &m_ImageView) == VK_SUCCESS, "Failed to create image view!");
 	}
 }

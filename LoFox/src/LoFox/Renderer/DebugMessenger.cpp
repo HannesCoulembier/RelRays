@@ -1,6 +1,8 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/DebugMessenger.h"
 
+#include "LoFox/Renderer/RenderContext.h"
+
 #include "LoFox/Utils/VulkanUtils.h"
 
 namespace LoFox {
@@ -44,8 +46,7 @@ namespace LoFox {
 	const std::vector<const char*> DebugMessenger::ValidationLayers = {};
 	#endif
 
-	DebugMessenger::DebugMessenger(Ref<RenderContext> context)
-		: m_Context(context) {
+	DebugMessenger::DebugMessenger() {
 
 		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(ValidationLayers), "Validation layers requested, but not available!");
 		Init();
@@ -68,7 +69,7 @@ namespace LoFox {
 		messengerCreateInfo.pfnUserCallback = MessageCallback;
 		messengerCreateInfo.pUserData = nullptr;
 
-		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(m_Context->Instance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
+		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(RenderContext::Instance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
 		
 		#endif
 	}
@@ -77,13 +78,13 @@ namespace LoFox {
 
 		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 		
-		DestroyVulkanDebugUtilsMessengerEXT(m_Context->Instance, m_DebugMessenger, nullptr);
+		DestroyVulkanDebugUtilsMessengerEXT(RenderContext::Instance, m_DebugMessenger, nullptr);
 		
 		#endif
 	}
 
-	Ref<DebugMessenger> DebugMessenger::Create(Ref<RenderContext> context) {
+	Ref<DebugMessenger> DebugMessenger::Create() {
 
-		return CreateRef<DebugMessenger>(context);
+		return CreateRef<DebugMessenger>();
 	}
 }

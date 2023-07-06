@@ -31,7 +31,6 @@ namespace LoFox {
 		m_Window->SetEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init(m_Window);
-		m_RenderContext = Renderer::GetContext();
 
 		LF_OVERSPECIFY("Creation of application \"{0}\" complete.\n", m_Spec.Name);
 	}
@@ -88,7 +87,7 @@ namespace LoFox {
 
 	bool Application::OnWindowResize(WindowResizeEvent& event) {
 
-		m_RenderContext->OnResize(event.GetWidth(), event.GetHeight());
+		Renderer::OnResize(event.GetWidth(), event.GetHeight());
 		return true;
 	}
 

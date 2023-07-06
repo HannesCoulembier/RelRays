@@ -89,12 +89,39 @@ const std::vector<uint32_t> vertexIndices = {
 
 namespace LoFox {
 
-	Ref<RenderContext> RenderContext::Create() {
+	VkInstance RenderContext::Instance;
+	VkPhysicalDevice RenderContext::PhysicalDevice;
+	VkDevice RenderContext::LogicalDevice;
+	VkSurfaceKHR RenderContext::Surface;
 
-		Ref<RenderContext> context = CreateRef<RenderContext>();
-		context->LinkReference(context);
-		return context;
-	}
+	Ref<Buffer> RenderContext::IndexBuffer;
+	Ref<Buffer> RenderContext::VertexBuffer;
+	Ref<Image> RenderContext::Texture1;
+	std::vector<VkCommandBuffer> RenderContext::CommandBuffers;
+
+	std::vector<VkDescriptorSet> RenderContext::DescriptorSets;
+
+	VkQueue RenderContext::GraphicsQueueHandle;
+	VkQueue RenderContext::PresentQueueHandle;
+
+	std::vector<VkSemaphore> RenderContext::ImageAvailableSemaphores;
+	std::vector<VkSemaphore> RenderContext::RenderFinishedSemaphores;
+	std::vector<VkFence> RenderContext::InFlightFences;
+
+	Ref<DebugMessenger> RenderContext::m_DebugMessenger;
+	Ref<Window> RenderContext::m_Window;
+	Timer RenderContext::m_Timer;
+
+	Ref<SwapChain> RenderContext::m_SwapChain;
+	GraphicsPipeline RenderContext::m_GraphicsPipeline;
+	VkSampler RenderContext::m_Sampler;
+
+	std::vector<Ref<Buffer>> RenderContext::m_UniformBuffers;
+	std::vector<void*> RenderContext::m_UniformBuffersMapped;
+
+	VkDescriptorPool RenderContext::m_DescriptorPool;
+	VkCommandPool RenderContext::m_CommandPool;
+	VkDescriptorSetLayout RenderContext::m_DescriptorSetLayout;
 
 	void RenderContext::Init(Ref<Window> window) {
 
@@ -108,7 +135,7 @@ namespace LoFox {
 		#endif
 
 		InitInstance();
-		m_DebugMessenger = DebugMessenger::Create(m_ThisContext);
+		m_DebugMessenger = DebugMessenger::Create();
 
 		// Setting up Surface
 		m_Window->CreateVulkanSurface(Instance, &Surface);
@@ -160,7 +187,7 @@ namespace LoFox {
 		vkGetDeviceQueue(LogicalDevice, indices.PresentFamilyIndex, 0, &PresentQueueHandle);
 
 		// Create SwapChain
-		m_SwapChain = CreateRef<SwapChain>(m_ThisContext, m_Window);
+		m_SwapChain = CreateRef<SwapChain>(m_Window);
 
 		// Create Descriptorset layouts
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
@@ -207,7 +234,6 @@ namespace LoFox {
 		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
-		graphicsPipelineCreateInfo.Context = m_ThisContext;
 		graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
 		graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
 		graphicsPipelineCreateInfo.Attachments = { colorAttachmentDescription, depthAttachmentDescription };
@@ -228,14 +254,14 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
 
 		// Create textures
-		Texture1 = CreateRef<Image>(m_ThisContext, "Assets/Textures/Rick.png");
+		Texture1 = CreateRef<Image>("Assets/Textures/Rick.png");
 
 		CreateImageSampler();
 
 		// Create Vertex buffer
 		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-		Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		VertexBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		VertexBuffer = CreateRef<Buffer>(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		vertexStagingBuffer->SetData(vertices.data());
 
@@ -244,8 +270,8 @@ namespace LoFox {
 		
 		// Create Index buffer
 		uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
-		Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		IndexBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		IndexBuffer = CreateRef<Buffer>(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		indexStagingBuffer->SetData(vertexIndices.data());
 
@@ -259,7 +285,7 @@ namespace LoFox {
 
 		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
-			m_UniformBuffers[i] = CreateRef<Buffer>(m_ThisContext, uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_UniformBuffers[i] = CreateRef<Buffer>(uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 			vkMapMemory(LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
 		}
@@ -421,13 +447,6 @@ namespace LoFox {
 		#endif
 
 		LF_CORE_ASSERT(vkCreateInstance(&instanceCreateInfo, nullptr, &Instance) == VK_SUCCESS, "Failed to create instance!");
-	}
-
-	bool RenderContext::OnFramebufferResize(FramebufferResizeEvent& event) {
-
-		m_SwapChain->Recreate();
-		Application::GetInstance().OnUpdate();
-		return true;
 	}
 
 	VkCommandBuffer RenderContext::BeginSingleTimeCommandBuffer() {

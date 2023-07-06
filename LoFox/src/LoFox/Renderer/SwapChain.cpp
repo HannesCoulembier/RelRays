@@ -6,10 +6,12 @@
 
 #include "LoFox/Renderer/Image.h"
 
+#include "LoFox/Renderer/RenderContext.h"
+
 namespace LoFox {
 
-	SwapChain::SwapChain(Ref<RenderContext> context, Ref<Window> window)
-		: m_Context(context), m_Window(window) {
+	SwapChain::SwapChain(Ref<Window> window)
+		: m_Window(window) {
 
 		CreateSwapChainAndImages();
 		CreateImageViews();
@@ -32,9 +34,9 @@ namespace LoFox {
 
 	void SwapChain::CreateSwapChainAndImages() {
 
-		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(m_Context->PhysicalDevice, m_Context->Surface);
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(RenderContext::PhysicalDevice, RenderContext::Surface);
 
-		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(m_Context->PhysicalDevice, m_Context->Surface);
+		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapChainSupportDetails(RenderContext::PhysicalDevice, RenderContext::Surface);
 
 		VkSurfaceFormatKHR surfaceFormat = Utils::ChooseSwapSurfaceFormat(swapChainSupport.Formats);
 		m_ImageFormat = surfaceFormat.format;
@@ -49,7 +51,7 @@ namespace LoFox {
 
 		VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
 		swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainCreateInfo.surface = m_Context->Surface;
+		swapChainCreateInfo.surface = RenderContext::Surface;
 		swapChainCreateInfo.minImageCount = imageCount;
 		swapChainCreateInfo.imageFormat = surfaceFormat.format;
 		swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -71,12 +73,12 @@ namespace LoFox {
 		swapChainCreateInfo.clipped = VK_TRUE; // Pixels obscured by another window are ignored
 		swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-		LF_CORE_ASSERT(vkCreateSwapchainKHR(m_Context->LogicalDevice, &swapChainCreateInfo, nullptr, &m_SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
+		LF_CORE_ASSERT(vkCreateSwapchainKHR(RenderContext::LogicalDevice, &swapChainCreateInfo, nullptr, &m_SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
 
 		// Retrieving the images in the swap chain
-		vkGetSwapchainImagesKHR(m_Context->LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
+		vkGetSwapchainImagesKHR(RenderContext::LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
 		m_Images.resize(imageCount);
-		vkGetSwapchainImagesKHR(m_Context->LogicalDevice, m_SwapChain, &imageCount, m_Images.data());
+		vkGetSwapchainImagesKHR(RenderContext::LogicalDevice, m_SwapChain, &imageCount, m_Images.data());
 	}
 
 	void SwapChain::CreateImageViews() {
@@ -99,15 +101,15 @@ namespace LoFox {
 			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 			imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-			LF_CORE_ASSERT(vkCreateImageView(m_Context->LogicalDevice, &imageViewCreateInfo, nullptr, &m_ImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
+			LF_CORE_ASSERT(vkCreateImageView(RenderContext::LogicalDevice, &imageViewCreateInfo, nullptr, &m_ImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
 		}
 	}
 
 	void SwapChain::CreateDepthResources() {
 
 		// Create depth resources
-		VkFormat depthFormat = Utils::FindDepthFormat(m_Context->PhysicalDevice);
-		m_DepthImage = CreateRef<Image>(m_Context, GetExtent().width, GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VkFormat depthFormat = Utils::FindDepthFormat(RenderContext::PhysicalDevice);
+		m_DepthImage = CreateRef<Image>(GetExtent().width, GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	}
 
@@ -124,34 +126,34 @@ namespace LoFox {
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferCreateInfo.renderPass = m_Context->GetGraphicsPipeline().RenderPass;
+			framebufferCreateInfo.renderPass = RenderContext::GetGraphicsPipeline().RenderPass;
 			framebufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
 			framebufferCreateInfo.pAttachments = attachments.data();
 			framebufferCreateInfo.width = m_Extent.width;
 			framebufferCreateInfo.height = m_Extent.height;
 			framebufferCreateInfo.layers = 1;
 
-			LF_CORE_ASSERT(vkCreateFramebuffer(m_Context->LogicalDevice, &framebufferCreateInfo, nullptr, &m_Framebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+			LF_CORE_ASSERT(vkCreateFramebuffer(RenderContext::LogicalDevice, &framebufferCreateInfo, nullptr, &m_Framebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
 
 	void SwapChain::CleanupSwapChain() {
 
 		for (auto framebuffer : m_Framebuffers)
-			vkDestroyFramebuffer(m_Context->LogicalDevice, framebuffer, nullptr);
+			vkDestroyFramebuffer(RenderContext::LogicalDevice, framebuffer, nullptr);
 
 		for (auto imageView : m_ImageViews)
-			vkDestroyImageView(m_Context->LogicalDevice, imageView, nullptr);
+			vkDestroyImageView(RenderContext::LogicalDevice, imageView, nullptr);
 
 		m_DepthImage->Destroy();
 
-		vkDestroySwapchainKHR(m_Context->LogicalDevice, m_SwapChain, nullptr);
+		vkDestroySwapchainKHR(RenderContext::LogicalDevice, m_SwapChain, nullptr);
 	}
 
 	int SwapChain::AcquireNextImageIndex(uint32_t currentFrame) {
 
 		uint32_t nextImageIndex;
-		VkResult result = vkAcquireNextImageKHR(m_Context->LogicalDevice, m_SwapChain, UINT64_MAX, m_Context->ImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &nextImageIndex);
+		VkResult result = vkAcquireNextImageKHR(RenderContext::LogicalDevice, m_SwapChain, UINT64_MAX, RenderContext::ImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &nextImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			Recreate();
 			return -1;
@@ -162,7 +164,7 @@ namespace LoFox {
 
 	void SwapChain::PresentImage(uint32_t imageIndex, VkSemaphore* waitSemaphores) {
 
-		VkSwapchainKHR swapChains[] = { m_Context->GetSwapChain()->GetSwapChain() };
+		VkSwapchainKHR swapChains[] = { RenderContext::GetSwapChain()->GetSwapChain() };
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
@@ -172,9 +174,9 @@ namespace LoFox {
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 
-		VkResult result = vkQueuePresentKHR(m_Context->PresentQueueHandle, &presentInfo);
+		VkResult result = vkQueuePresentKHR(RenderContext::PresentQueueHandle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-			m_Context->GetSwapChain()->Recreate();
+			RenderContext::GetSwapChain()->Recreate();
 		}
 		else
 			LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");

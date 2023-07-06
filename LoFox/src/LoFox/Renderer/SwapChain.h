@@ -2,15 +2,16 @@
 
 #include <vulkan/vulkan.h>
 
-#include "LoFox/Renderer/RenderContext.h"
 #include "LoFox/Core/Window.h"
+
+#include "LoFox/Renderer/Image.h"
 
 namespace LoFox {
 
 	class SwapChain {
 
 	public:
-		SwapChain(Ref<RenderContext> context, Ref<Window> window);
+		SwapChain(Ref<Window> window);
 
 		void Destroy();
 
@@ -33,7 +34,6 @@ namespace LoFox {
 		void CreateImageViews();
 		void CreateDepthResources();
 	private:
-		Ref<RenderContext> m_Context;
 		Ref<Window> m_Window;
 
 		VkSwapchainKHR m_SwapChain;

@@ -6,15 +6,11 @@
 
 namespace LoFox {
 
-	class RenderContext;
-
 	enum PipelineType {
 		Graphics,
 	};
 
 	struct GraphicsPipelineCreateInfo {
-
-		Ref<RenderContext> Context;
 
 		std::string VertexShaderPath = "";
 		std::string FragmentShaderPath = "";

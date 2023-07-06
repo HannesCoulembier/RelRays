@@ -2,14 +2,14 @@
 
 #include "LoFox/Core/Core.h"
 
-#include "LoFox/Renderer/RenderContext.h"
+#include <vulkan/vulkan.h>
 
 namespace LoFox {
 
 	class DebugMessenger {
 
 	public:
-		DebugMessenger(Ref<RenderContext> context);
+		DebugMessenger();
 
 		inline VkDebugUtilsMessengerEXT GetDebugMessenger() { return m_DebugMessenger; }
 
@@ -17,7 +17,7 @@ namespace LoFox {
 
 		inline PFN_vkDebugUtilsMessengerCallbackEXT GetMessageCallback() { return MessageCallback; }
 
-		static Ref<DebugMessenger> Create(Ref<RenderContext> context);
+		static Ref<DebugMessenger> Create();
 	public:
 		static const std::vector<const char*> ValidationLayers;
 	private:
@@ -25,8 +25,6 @@ namespace LoFox {
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 	private:
-		Ref<RenderContext> m_Context;
-
 		VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
 	};
 }

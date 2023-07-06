@@ -2,7 +2,6 @@
 
 #include "LoFox/Core/Core.h"
 
-#include "LoFox/Renderer/RenderContext.h"
 #include "LoFox/Renderer/Buffer.h"
 
 namespace LoFox {
@@ -10,8 +9,8 @@ namespace LoFox {
 	class Image {
 
 	public:
-		Image(Ref<RenderContext> context, const std::string& path);
-		Image(Ref<RenderContext> context, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
+		Image(const std::string& path);
+		Image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 
 		void Destroy();
 
@@ -25,7 +24,6 @@ namespace LoFox {
 	private:
 		void CreateImageView(VkImageAspectFlags aspectFlags);
 	private:
-		Ref<RenderContext> m_Context;
 		const std::string& m_Path = "";
 
 		VkImage m_Image;
