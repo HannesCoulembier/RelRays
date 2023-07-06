@@ -114,7 +114,7 @@ namespace LoFox {
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferCreateInfo.renderPass = m_Context->Renderpass;
+			framebufferCreateInfo.renderPass = m_Context->GetGraphicsPipeline().RenderPass;
 			framebufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
 			framebufferCreateInfo.pAttachments = attachments.data();
 			framebufferCreateInfo.width = m_Extent.width;

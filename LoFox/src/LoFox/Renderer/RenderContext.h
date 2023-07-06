@@ -8,6 +8,8 @@
 #include "LoFox/Events/Event.h"
 #include "LoFox/Events/RenderEvent.h"
 
+#include "LoFox/Renderer/Pipeline.h"
+
 #include "LoFox/Utils/Time.h"
 
 namespace LoFox {
@@ -30,6 +32,7 @@ namespace LoFox {
 
 		inline Ref<SwapChain> GetSwapChain() { return m_SwapChain; }
 		inline Ref<Image> GetDepthImage() { return DepthImage; }
+		inline GraphicsPipeline GetGraphicsPipeline() { return m_GraphicsPipeline; }
 
 		static Ref<RenderContext> Create();
 
@@ -44,15 +47,11 @@ namespace LoFox {
 		VkPhysicalDevice PhysicalDevice = nullptr;
 		VkDevice LogicalDevice = nullptr;
 
-		VkRenderPass Renderpass;
-		VkPipelineLayout PipelineLayout;
-		VkPipeline GraphicsPipeline;
-
 		std::vector<VkDescriptorSet> DescriptorSets;
 
 		VkSurfaceKHR Surface = nullptr;
 
-		Ref<Image> Image1;
+		Ref<Image> Texture1;
 		Ref<Image> DepthImage;
 
 		Ref<Buffer> VertexBuffer;
@@ -84,6 +83,8 @@ namespace LoFox {
 		VkSampler m_Sampler;
 
 		VkDescriptorSetLayout m_DescriptorSetLayout;
+
+		GraphicsPipeline m_GraphicsPipeline;
 
 		std::vector<Ref<Buffer>> m_UniformBuffers;
 		std::vector<void*> m_UniformBuffersMapped;

@@ -13,7 +13,6 @@ namespace LoFox {
 
 		inline VkDebugUtilsMessengerEXT GetDebugMessenger() { return m_DebugMessenger; }
 
-		void Init();
 		void Shutdown();
 
 		inline PFN_vkDebugUtilsMessengerCallbackEXT GetMessageCallback() { return MessageCallback; }
@@ -22,6 +21,8 @@ namespace LoFox {
 	public:
 		static const std::vector<const char*> ValidationLayers;
 	private:
+		void Init();
+
 		static VKAPI_ATTR VkBool32 VKAPI_CALL MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 	private:
 		Ref<RenderContext> m_Context;

@@ -85,7 +85,7 @@ namespace LoFox {
 		clearColors[1] = { 1.0f, 0 };
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.renderPass = m_Context->Renderpass;
+		renderPassBeginInfo.renderPass = m_Context->GetGraphicsPipeline().RenderPass;
 		renderPassBeginInfo.framebuffer = m_Context->GetSwapChain()->GetFramebuffer(m_ThisFramesImageIndex);
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = m_Context->GetSwapChain()->GetExtent();
@@ -93,7 +93,7 @@ namespace LoFox {
 		renderPassBeginInfo.pClearValues = clearColors.data();
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->GraphicsPipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->GetGraphicsPipeline().Pipeline);
 
 		VkBuffer vertexBuffers[] = { m_Context->VertexBuffer->GetBuffer() };
 		VkDeviceSize offsets[] = { 0 };
@@ -115,7 +115,7 @@ namespace LoFox {
 		scissor.extent = m_Context->GetSwapChain()->GetExtent();
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->PipelineLayout, 0, 1, &m_Context->DescriptorSets[m_CurrentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->GetGraphicsPipeline().Layout, 0, 1, &m_Context->DescriptorSets[m_CurrentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
 

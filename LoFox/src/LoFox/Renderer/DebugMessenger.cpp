@@ -48,6 +48,7 @@ namespace LoFox {
 		: m_Context(context) {
 
 		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(ValidationLayers), "Validation layers requested, but not available!");
+		Init();
 	}
 
 	void DebugMessenger::Init() {

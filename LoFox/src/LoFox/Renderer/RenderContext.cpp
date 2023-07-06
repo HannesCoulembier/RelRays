@@ -10,6 +10,8 @@
 #include "LoFox/Renderer/Buffer.h"
 #include "LoFox/Renderer/SwapChain.h"
 #include "LoFox/Renderer/Image.h"
+#include "LoFox/Renderer/Pipeline.h"
+
 #include "LoFox/Renderer/DebugMessenger.h"
 
 #include "LoFox/Core/Settings.h"
@@ -38,9 +40,10 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
+	static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions() {
 
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
+
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -96,7 +99,6 @@ namespace LoFox {
 	void RenderContext::Init(Ref<Window> window) {
 
 		m_Timer.Reset();
-
 		m_Window = window;
 
 		LF_OVERSPECIFY("Creating Vulkan instance");
@@ -105,11 +107,8 @@ namespace LoFox {
 		Utils::ListAvailableVulkanLayers();
 		#endif
 
-		m_DebugMessenger = DebugMessenger::Create(m_ThisContext);
-
 		InitInstance();
-
-		m_DebugMessenger->Init();
+		m_DebugMessenger = DebugMessenger::Create(m_ThisContext);
 
 		// Setting up Surface
 		m_Window->CreateVulkanSurface(Instance, &Surface);
@@ -160,67 +159,12 @@ namespace LoFox {
 		vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamilyIndex, 0, &GraphicsQueueHandle);
 		vkGetDeviceQueue(LogicalDevice, indices.PresentFamilyIndex, 0, &PresentQueueHandle);
 
+		// Create SwapChain
 		m_SwapChain = CreateRef<SwapChain>(m_ThisContext, m_Window);
 
 		// Create depth resources
 		VkFormat depthFormat = Utils::FindDepthFormat(PhysicalDevice);
 		DepthImage = CreateRef<Image>(m_ThisContext, m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		// Create Render pass
-		VkAttachmentDescription colorAttachmentDescription = {};
-		colorAttachmentDescription.format = m_SwapChain->GetImageFormat();
-		colorAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		VkAttachmentDescription depthAttachmentDescription = {};
-		depthAttachmentDescription.format = DepthImage->GetFormat();
-		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference colorAttachmentRef = {};
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthAttachmentRef = {};
-		depthAttachmentRef.attachment = 1;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpassDescription = {};
-		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDescription.colorAttachmentCount = 1;
-		subpassDescription.pColorAttachments = &colorAttachmentRef;
-		subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
-
-		VkSubpassDependency subpassDependency = {};
-		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		subpassDependency.dstSubpass = 0;
-		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		std::array<VkAttachmentDescription, 2> attachments = { colorAttachmentDescription, depthAttachmentDescription };
-		VkRenderPassCreateInfo renderPassCreateInfo = {};
-		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassCreateInfo.attachmentCount = (uint32_t)attachments.size();
-		renderPassCreateInfo.pAttachments = attachments.data();
-		renderPassCreateInfo.subpassCount = 1;
-		renderPassCreateInfo.pSubpasses = &subpassDescription;
-		renderPassCreateInfo.dependencyCount = 1;
-		renderPassCreateInfo.pDependencies = &subpassDependency;
-
-		LF_CORE_ASSERT(vkCreateRenderPass(LogicalDevice, &renderPassCreateInfo, nullptr, &Renderpass) == VK_SUCCESS, "Failed to create render pass!");
-
-		m_SwapChain->CreateFramebuffers();
 
 		// Create Descriptorset layouts
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
@@ -237,7 +181,7 @@ namespace LoFox {
 		samplerLayoutBinding.pImmutableSamplers = nullptr;
 		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+		std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
 		VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		layoutCreateInfo.bindingCount = (uint32_t)bindings.size();
@@ -246,124 +190,38 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(LogicalDevice, &layoutCreateInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
 
 		// Create Graphics pipeline
-		Shader vertexShader(m_ThisContext, "Assets/Shaders/VertexShader.vert", ShaderType::Vertex);
-		Shader fragmentShader(m_ThisContext, "Assets/Shaders/FragmentShader.frag", ShaderType::Fragment);
+		VkAttachmentDescription colorAttachmentDescription = {};
+		colorAttachmentDescription.format = m_SwapChain->GetImageFormat();
+		colorAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		
+		VkAttachmentDescription depthAttachmentDescription = {};
+		depthAttachmentDescription.format = DepthImage->GetFormat();
+		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShader.GetCreateInfo(), fragmentShader.GetCreateInfo() };
+		GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
+		graphicsPipelineCreateInfo.Context = m_ThisContext;
+		graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
+		graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
+		graphicsPipelineCreateInfo.Attachments = { colorAttachmentDescription, depthAttachmentDescription };
+		graphicsPipelineCreateInfo.VertexAttributeDescription = Vertex::GetAttributeDescriptions();
+		graphicsPipelineCreateInfo.VertexBindingDescription = Vertex::GetBindingDescription();
+		graphicsPipelineCreateInfo.DescriptorSetLayout = m_DescriptorSetLayout;
 
-		auto bindingDescription = Vertex::GetBindingDescription();
-		auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+		m_GraphicsPipeline = Pipeline::CreateGraphicsPipeline(graphicsPipelineCreateInfo);
 
-		VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
-		vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
-		vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputCreateInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescriptions.size();
-		vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo = {};
-		inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
-		depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilCreateInfo.depthTestEnable = VK_TRUE;
-		depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
-		depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-		depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
-		depthStencilCreateInfo.minDepthBounds = 0.0f;
-		depthStencilCreateInfo.maxDepthBounds = 1.0f;
-		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
-		depthStencilCreateInfo.front = {};
-		depthStencilCreateInfo.back = {};
-
-		std::vector<VkDynamicState> dynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
-		dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-		dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
-
-		VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {}; // Viewport and Scissors are dynamic states
-		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportStateCreateInfo.viewportCount = 1;
-		viewportStateCreateInfo.scissorCount = 1;
-
-		VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo = {};
-		rasterizerCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizerCreateInfo.depthClampEnable = VK_FALSE;
-		rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
-		rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizerCreateInfo.lineWidth = 1.0f;
-		rasterizerCreateInfo.cullMode = VK_CULL_MODE_NONE;
-		rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
-		rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
-		rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
-		rasterizerCreateInfo.depthBiasClamp = 0.0f;
-		rasterizerCreateInfo.depthBiasSlopeFactor = 0.0f;
-
-		VkPipelineMultisampleStateCreateInfo multisamplingCreateInfo = {};
-		multisamplingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisamplingCreateInfo.sampleShadingEnable = VK_FALSE;
-		multisamplingCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisamplingCreateInfo.minSampleShading = 1.0f;
-		multisamplingCreateInfo.pSampleMask = nullptr;
-		multisamplingCreateInfo.alphaToCoverageEnable = VK_FALSE;
-		multisamplingCreateInfo.alphaToOneEnable = VK_FALSE;
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachmentCreateInfo = {};
-		colorBlendAttachmentCreateInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;		
-		colorBlendAttachmentCreateInfo.blendEnable = VK_TRUE;
-		colorBlendAttachmentCreateInfo.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		colorBlendAttachmentCreateInfo.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		colorBlendAttachmentCreateInfo.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachmentCreateInfo.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendAttachmentCreateInfo.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendAttachmentCreateInfo.alphaBlendOp = VK_BLEND_OP_ADD;
-
-		VkPipelineColorBlendStateCreateInfo colorBlendingCreateInfo = {};
-		colorBlendingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendingCreateInfo.logicOpEnable = VK_FALSE;
-		colorBlendingCreateInfo.logicOp = VK_LOGIC_OP_COPY;
-		colorBlendingCreateInfo.attachmentCount = 1;
-		colorBlendingCreateInfo.pAttachments = &colorBlendAttachmentCreateInfo;
-		colorBlendingCreateInfo.blendConstants[0] = 0.0f;
-		colorBlendingCreateInfo.blendConstants[1] = 0.0f;
-		colorBlendingCreateInfo.blendConstants[2] = 0.0f;
-		colorBlendingCreateInfo.blendConstants[3] = 0.0f;
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
-		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
-
-		LF_CORE_ASSERT(vkCreatePipelineLayout(LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &PipelineLayout) == VK_SUCCESS, "failed to create pipeline layout!");
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
-		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCreateInfo.stageCount = 2;
-		pipelineCreateInfo.pStages = shaderStages;
-		pipelineCreateInfo.pVertexInputState = &vertexInputCreateInfo;
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
-		pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-		pipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
-		pipelineCreateInfo.pMultisampleState = &multisamplingCreateInfo;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilCreateInfo;
-		pipelineCreateInfo.pColorBlendState = &colorBlendingCreateInfo;
-		pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-		pipelineCreateInfo.layout = PipelineLayout;
-		pipelineCreateInfo.renderPass = Renderpass;
-		pipelineCreateInfo.subpass = 0;
-		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineCreateInfo.basePipelineIndex = -1;
-
-		LF_CORE_ASSERT(vkCreateGraphicsPipelines(LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &GraphicsPipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
+		m_SwapChain->CreateFramebuffers();
 
 		// Create Commandpool
 		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
@@ -374,7 +232,7 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
 
 		// Create textures
-		Image1 = CreateRef<Image>(m_ThisContext, "Assets/Textures/Rick.png");
+		Texture1 = CreateRef<Image>(m_ThisContext, "Assets/Textures/Rick.png");
 
 		CreateImageSampler();
 
@@ -447,7 +305,7 @@ namespace LoFox {
 
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = Image1->GetImageView();
+			imageInfo.imageView = Texture1->GetImageView();
 			imageInfo.sampler = m_Sampler;
 
 			std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
@@ -507,7 +365,7 @@ namespace LoFox {
 	
 	void RenderContext::Shutdown() {
 
-		Image1->Destroy();
+		Texture1->Destroy();
 		DepthImage->Destroy();
 		m_SwapChain->Destroy();
 		VertexBuffer->Destroy();
@@ -529,9 +387,8 @@ namespace LoFox {
 		vkDestroyDescriptorSetLayout(LogicalDevice, m_DescriptorSetLayout, nullptr);
 
 		vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
-		vkDestroyPipeline(LogicalDevice, GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(LogicalDevice, PipelineLayout, nullptr);
-		vkDestroyRenderPass(LogicalDevice, Renderpass, nullptr);
+
+		m_GraphicsPipeline.Destroy();
 
 		m_DebugMessenger->Shutdown();
 
