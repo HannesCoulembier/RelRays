@@ -16,6 +16,8 @@ namespace LoFox {
 		inline VkBuffer GetBuffer() { return m_Buffer; }
 		inline VkDeviceMemory GetMemory() { return m_Memory; }
 		inline uint32_t GetSize() { return m_Size; }
+
+		static void CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer);
 	private:
 		VkBuffer m_Buffer;
 		VkDeviceMemory m_Memory;

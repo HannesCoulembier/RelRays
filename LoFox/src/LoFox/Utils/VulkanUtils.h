@@ -17,8 +17,9 @@ namespace LoFox {
 			uint32_t GraphicsFamilyIndex = 0;
 			bool HasPresentFamily = false;
 			uint32_t PresentFamilyIndex = 0;
+			bool GraphicsIsAlsoComputeFamily = false;
 
-			bool IsComplete() { return HasGraphicsFamily && HasPresentFamily; }
+			bool IsComplete() { return HasGraphicsFamily && HasPresentFamily && GraphicsIsAlsoComputeFamily; }
 		};
 
 		struct SwapChainSupportDetails {

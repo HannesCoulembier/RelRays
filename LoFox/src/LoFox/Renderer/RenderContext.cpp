@@ -43,9 +43,6 @@ namespace LoFox {
 	Ref<DebugMessenger> RenderContext::m_DebugMessenger;
 	Ref<Window> RenderContext::m_Window;
 
-	Ref<SwapChain> RenderContext::m_SwapChain;
-	GraphicsPipeline RenderContext::m_GraphicsPipeline;
-
 	VkCommandPool RenderContext::m_CommandPool;
 
 	void RenderContext::Init(Ref<Window> window) {
@@ -65,7 +62,6 @@ namespace LoFox {
 		m_Window->CreateVulkanSurface(Instance, &Surface);
 
 		InitDevices();
-		m_SwapChain = CreateRef<SwapChain>(m_Window);
 		
 		CreateSyncObjects();
 
@@ -83,8 +79,6 @@ namespace LoFox {
 	
 	void RenderContext::Shutdown() {
 
-		m_SwapChain->Destroy();
-
 		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
 			vkDestroySemaphore(LogicalDevice, ImageAvailableSemaphores[i], nullptr);
@@ -93,8 +87,6 @@ namespace LoFox {
 		}
 
 		vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
-
-		m_GraphicsPipeline.Destroy();
 
 		m_DebugMessenger->Shutdown();
 
@@ -228,19 +220,6 @@ namespace LoFox {
 		vkFreeCommandBuffers(LogicalDevice, m_CommandPool, 1, &commandBuffer);
 	}
 
-	void RenderContext::CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer) {
-
-		VkCommandBuffer commandBuffer = BeginSingleTimeCommandBuffer();
-
-		VkBufferCopy copyRegion = {};
-		copyRegion.srcOffset = 0;
-		copyRegion.dstOffset = 0;
-		copyRegion.size = dstBuffer->GetSize();
-		vkCmdCopyBuffer(commandBuffer, srcBuffer->GetBuffer(), dstBuffer->GetBuffer(), 1, &copyRegion);
-
-		EndSingleTimeCommandBuffer(commandBuffer);
-	}
-
 	void RenderContext::CreateSyncObjects() {
 
 		// Create sync objects
@@ -260,42 +239,5 @@ namespace LoFox {
 			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &RenderFinishedSemaphores[i]) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
 			LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &InFlightFences[i]) == VK_SUCCESS, "Failed to create inFlight fence!");
 		}
-	}
-
-	void RenderContext::InitPipelines(VkDescriptorSetLayout descriptorSetLayout, VkVertexInputBindingDescription vertexBindingDescription, std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions) {
-
-		// Create Graphics pipeline
-		VkAttachmentDescription colorAttachmentDescription = {};
-		colorAttachmentDescription.format = m_SwapChain->GetImageFormat();
-		colorAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		VkAttachmentDescription depthAttachmentDescription = {};
-		depthAttachmentDescription.format = m_SwapChain->GetDepthImage()->GetFormat();
-		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
-		graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
-		graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
-		graphicsPipelineCreateInfo.Attachments = { colorAttachmentDescription, depthAttachmentDescription };
-		graphicsPipelineCreateInfo.VertexAttributeDescriptions = vertexAttributeDescriptions;
-		graphicsPipelineCreateInfo.VertexBindingDescription = vertexBindingDescription;
-		graphicsPipelineCreateInfo.DescriptorSetLayout = descriptorSetLayout;
-
-		m_GraphicsPipeline = Pipeline::CreateGraphicsPipeline(graphicsPipelineCreateInfo);
-
-		// Important! The swapchain framebuffers need to be created after the pipeline is created.
-		m_SwapChain->CreateFramebuffers();
 	}
 }

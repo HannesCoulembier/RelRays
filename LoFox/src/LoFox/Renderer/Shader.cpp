@@ -16,6 +16,7 @@ namespace LoFox {
 		switch (type) {
 			case ShaderType::Vertex:	return VK_SHADER_STAGE_VERTEX_BIT;
 			case ShaderType::Fragment:	return VK_SHADER_STAGE_FRAGMENT_BIT;
+			case ShaderType::Compute:	return VK_SHADER_STAGE_COMPUTE_BIT;
 		}
 		LF_CORE_ASSERT(false);
 		return (VkShaderStageFlagBits)0;
@@ -24,9 +25,9 @@ namespace LoFox {
 	static shaderc_shader_kind ShaderTypeToShaderC(ShaderType stage) {
 
 		switch (stage) {
-
 			case ShaderType::Vertex:	return shaderc_glsl_vertex_shader;
 			case ShaderType::Fragment:	return shaderc_glsl_fragment_shader;
+			case ShaderType::Compute:	return shaderc_glsl_compute_shader;
 		}
 		LF_CORE_ASSERT(false);
 		return (shaderc_shader_kind)0;

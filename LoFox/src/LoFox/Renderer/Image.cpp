@@ -77,7 +77,7 @@ namespace LoFox {
 		stagingBuffer->Destroy();
 	}
 
-	Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+	Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
 		: m_Format(format), m_Width(width), m_Height(height) {
 
 		VkImageCreateInfo imageCreateInfo = {};
@@ -109,7 +109,7 @@ namespace LoFox {
 
 		vkBindImageMemory(RenderContext::LogicalDevice, m_Image, m_Memory, 0);
 
-		CreateImageView(VK_IMAGE_ASPECT_DEPTH_BIT);
+		CreateImageView(aspectFlags);
 	}
 
 	void Image::Destroy() {

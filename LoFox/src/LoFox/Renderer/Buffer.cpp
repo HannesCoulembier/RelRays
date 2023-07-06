@@ -44,4 +44,17 @@ namespace LoFox {
 		vkDestroyBuffer(RenderContext::LogicalDevice, m_Buffer, nullptr);
 		vkFreeMemory(RenderContext::LogicalDevice, m_Memory, nullptr);
 	}
+
+	void Buffer::CopyBuffer(Ref<Buffer> srcBuffer, Ref<Buffer> dstBuffer) {
+
+		VkCommandBuffer commandBuffer = RenderContext::BeginSingleTimeCommandBuffer();
+
+		VkBufferCopy copyRegion = {};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = dstBuffer->GetSize();
+		vkCmdCopyBuffer(commandBuffer, srcBuffer->GetBuffer(), dstBuffer->GetBuffer(), 1, &copyRegion);
+
+		RenderContext::EndSingleTimeCommandBuffer(commandBuffer);
+	}
 }

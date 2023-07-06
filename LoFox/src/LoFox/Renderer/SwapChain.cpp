@@ -109,7 +109,7 @@ namespace LoFox {
 
 		// Create depth resources
 		VkFormat depthFormat = Utils::FindDepthFormat(RenderContext::PhysicalDevice);
-		m_DepthImage = CreateRef<Image>(GetExtent().width, GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_DepthImage = CreateRef<Image>(GetExtent().width, GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	}
 
@@ -126,7 +126,7 @@ namespace LoFox {
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferCreateInfo.renderPass = RenderContext::GetGraphicsPipeline().RenderPass;
+			framebufferCreateInfo.renderPass = Renderer::GetGraphicsPipeline().RenderPass;
 			framebufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
 			framebufferCreateInfo.pAttachments = attachments.data();
 			framebufferCreateInfo.width = m_Extent.width;
@@ -164,7 +164,7 @@ namespace LoFox {
 
 	void SwapChain::PresentImage(uint32_t imageIndex, VkSemaphore* waitSemaphores) {
 
-		VkSwapchainKHR swapChains[] = { RenderContext::GetSwapChain()->GetSwapChain() };
+		VkSwapchainKHR swapChains[] = { m_SwapChain };
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
@@ -176,7 +176,7 @@ namespace LoFox {
 
 		VkResult result = vkQueuePresentKHR(RenderContext::PresentQueueHandle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-			RenderContext::GetSwapChain()->Recreate();
+			Recreate();
 		}
 		else
 			LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");

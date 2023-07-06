@@ -125,12 +125,15 @@ namespace LoFox {
 				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 					indices.HasGraphicsFamily = true;
 					indices.GraphicsFamilyIndex = i;
+
+					if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+						indices.GraphicsIsAlsoComputeFamily = true;
 				}
 				VkBool32 presentSupport;
 				vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 				if (presentSupport) {
 					indices.HasPresentFamily = true;
-					indices.GraphicsFamilyIndex = i;
+					indices.PresentFamilyIndex = i;
 				}
 				if (indices.IsComplete()) break;
 			}

@@ -10,6 +10,7 @@ namespace LoFox {
 
 		Vertex,
 		Fragment,
+		Compute,
 	};
 
 	class Shader {
