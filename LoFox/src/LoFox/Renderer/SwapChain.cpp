@@ -4,6 +4,8 @@
 #include "LoFox/Renderer/Renderer.h"
 #include "LoFox/Utils/VulkanUtils.h"
 
+#include "LoFox/Renderer/Image.h"
+
 namespace LoFox {
 
 	SwapChain::SwapChain(Ref<RenderContext> context, Ref<Window> window)
@@ -105,15 +107,16 @@ namespace LoFox {
 
 		for (size_t i = 0; i < m_ImageViews.size(); i++) {
 
-			VkImageView attachments[] = {
-				m_ImageViews[i]
+			std::array<VkImageView, 2> attachments = {
+				m_ImageViews[i],
+				m_Context->GetDepthImage()->GetImageView(),
 			};
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferCreateInfo.renderPass = m_Context->Renderpass;
-			framebufferCreateInfo.attachmentCount = 1;
-			framebufferCreateInfo.pAttachments = attachments;
+			framebufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
+			framebufferCreateInfo.pAttachments = attachments.data();
 			framebufferCreateInfo.width = m_Extent.width;
 			framebufferCreateInfo.height = m_Extent.height;
 			framebufferCreateInfo.layers = 1;

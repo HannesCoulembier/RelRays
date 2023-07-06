@@ -27,6 +27,6 @@ namespace LoFox {
 		static uint32_t m_ThisFramesImageIndex;
 
 		static int m_CurrentFrame;
-		static const int m_MaxFramesInFlight = 2;
+		static const int m_MaxFramesInFlight = 1;
 	};
 }

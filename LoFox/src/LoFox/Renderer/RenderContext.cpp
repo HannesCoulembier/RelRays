@@ -162,6 +162,10 @@ namespace LoFox {
 
 		m_SwapChain = CreateRef<SwapChain>(m_ThisContext, m_Window);
 
+		// Create depth resources
+		VkFormat depthFormat = Utils::FindDepthFormat(PhysicalDevice);
+		DepthImage = CreateRef<Image>(m_ThisContext, m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
 		// Create Render pass
 		VkAttachmentDescription colorAttachmentDescription = {};
 		colorAttachmentDescription.format = m_SwapChain->GetImageFormat();
@@ -173,27 +177,42 @@ namespace LoFox {
 		colorAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+		VkAttachmentDescription depthAttachmentDescription = {};
+		depthAttachmentDescription.format = DepthImage->GetFormat();
+		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		VkAttachmentReference colorAttachmentRef = {};
 		colorAttachmentRef.attachment = 0;
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthAttachmentRef = {};
+		depthAttachmentRef.attachment = 1;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkSubpassDescription subpassDescription = {};
 		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpassDescription.colorAttachmentCount = 1;
 		subpassDescription.pColorAttachments = &colorAttachmentRef;
+		subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
 
 		VkSubpassDependency subpassDependency = {};
 		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		subpassDependency.dstSubpass = 0;
-		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpassDependency.srcAccessMask = 0;
-		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+		std::array<VkAttachmentDescription, 2> attachments = { colorAttachmentDescription, depthAttachmentDescription };
 		VkRenderPassCreateInfo renderPassCreateInfo = {};
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassCreateInfo.attachmentCount = 1;
-		renderPassCreateInfo.pAttachments = &colorAttachmentDescription;
+		renderPassCreateInfo.attachmentCount = (uint32_t)attachments.size();
+		renderPassCreateInfo.pAttachments = attachments.data();
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpassDescription;
 		renderPassCreateInfo.dependencyCount = 1;
@@ -247,6 +266,18 @@ namespace LoFox {
 		inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
 
+		VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
+		depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilCreateInfo.depthTestEnable = VK_TRUE;
+		depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
+		depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+		depthStencilCreateInfo.minDepthBounds = 0.0f;
+		depthStencilCreateInfo.maxDepthBounds = 1.0f;
+		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
+		depthStencilCreateInfo.front = {};
+		depthStencilCreateInfo.back = {};
+
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR
@@ -285,7 +316,7 @@ namespace LoFox {
 		multisamplingCreateInfo.alphaToOneEnable = VK_FALSE;
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachmentCreateInfo = {};
-		colorBlendAttachmentCreateInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachmentCreateInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;		
 		colorBlendAttachmentCreateInfo.blendEnable = VK_TRUE;
 		colorBlendAttachmentCreateInfo.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachmentCreateInfo.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -323,7 +354,7 @@ namespace LoFox {
 		pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
 		pipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
 		pipelineCreateInfo.pMultisampleState = &multisamplingCreateInfo;
-		pipelineCreateInfo.pDepthStencilState = nullptr;
+		pipelineCreateInfo.pDepthStencilState = &depthStencilCreateInfo;
 		pipelineCreateInfo.pColorBlendState = &colorBlendingCreateInfo;
 		pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 		pipelineCreateInfo.layout = PipelineLayout;
@@ -477,6 +508,7 @@ namespace LoFox {
 	void RenderContext::Shutdown() {
 
 		Image1->Destroy();
+		DepthImage->Destroy();
 		m_SwapChain->Destroy();
 		VertexBuffer->Destroy();
 		IndexBuffer->Destroy();

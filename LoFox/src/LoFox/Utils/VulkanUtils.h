@@ -75,5 +75,10 @@ namespace LoFox {
 
 		// Memory ---------------------------------------------------------------------------------------
 		uint32_t FindMemoryType(VkPhysicalDevice device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+		// Formats --------------------------------------------------------------------------------------
+		VkFormat FindSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+		VkFormat FindDepthFormat(VkPhysicalDevice device);
+	
 	}
 }

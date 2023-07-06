@@ -80,15 +80,17 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
 
-		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+		std::array<VkClearValue, 2> clearColors = {};
+		clearColors[0] = { {0.0f, 0.0f, 0.0f, 1.0f} };
+		clearColors[1] = { 1.0f, 0 };
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = m_Context->Renderpass;
 		renderPassBeginInfo.framebuffer = m_Context->GetSwapChain()->GetFramebuffer(m_ThisFramesImageIndex);
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = m_Context->GetSwapChain()->GetExtent();
-		renderPassBeginInfo.clearValueCount = 1;
-		renderPassBeginInfo.pClearValues = &clearColor;
+		renderPassBeginInfo.clearValueCount = (uint32_t)clearColors.size();
+		renderPassBeginInfo.pClearValues = clearColors.data();
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Context->GraphicsPipeline);
