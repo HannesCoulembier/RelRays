@@ -72,6 +72,7 @@ namespace LoFox {
 		TransitionLayout(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		CreateImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+		stagingBuffer->Destroy();
 	}
 
 	Image::Image(Ref<RenderContext> context, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)

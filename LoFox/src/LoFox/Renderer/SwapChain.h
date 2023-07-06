@@ -11,7 +11,6 @@ namespace LoFox {
 
 	public:
 		SwapChain(Ref<RenderContext> context, Ref<Window> window);
-		~SwapChain() { Destroy(); }
 
 		void Destroy();
 
@@ -25,12 +24,14 @@ namespace LoFox {
 		inline VkSwapchainKHR GetSwapChain() { return m_SwapChain; }
 		inline VkFramebuffer GetFramebuffer(uint32_t index) { return m_Framebuffers[index]; }
 
+		inline Ref<Image> GetDepthImage() { return m_DepthImage; }
 		inline VkFormat GetImageFormat() { return m_ImageFormat; }
 		inline VkExtent2D GetExtent() { return m_Extent; }
 	private:
 		void CleanupSwapChain();
 		void CreateSwapChainAndImages();
 		void CreateImageViews();
+		void CreateDepthResources();
 	private:
 		Ref<RenderContext> m_Context;
 		Ref<Window> m_Window;
@@ -39,6 +40,8 @@ namespace LoFox {
 		std::vector<VkImage> m_Images;
 		std::vector<VkImageView> m_ImageViews;
 		std::vector<VkFramebuffer> m_Framebuffers;
+
+		Ref<Image> m_DepthImage;
 
 		VkFormat m_ImageFormat;
 		VkExtent2D m_Extent;

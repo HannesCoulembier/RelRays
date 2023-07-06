@@ -13,6 +13,7 @@ namespace LoFox {
 
 		CreateSwapChainAndImages();
 		CreateImageViews();
+		CreateDepthResources();
 	}
 
 	void SwapChain::Destroy() { CleanupSwapChain(); }
@@ -25,6 +26,7 @@ namespace LoFox {
 
 		CreateSwapChainAndImages();
 		CreateImageViews();
+		CreateDepthResources();
 		CreateFramebuffers();
 	}
 
@@ -101,6 +103,14 @@ namespace LoFox {
 		}
 	}
 
+	void SwapChain::CreateDepthResources() {
+
+		// Create depth resources
+		VkFormat depthFormat = Utils::FindDepthFormat(m_Context->PhysicalDevice);
+		m_DepthImage = CreateRef<Image>(m_Context, GetExtent().width, GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	}
+
 	void SwapChain::CreateFramebuffers() {
 
 		m_Framebuffers.resize(m_ImageViews.size());
@@ -109,7 +119,7 @@ namespace LoFox {
 
 			std::array<VkImageView, 2> attachments = {
 				m_ImageViews[i],
-				m_Context->GetDepthImage()->GetImageView(),
+				m_DepthImage->GetImageView(),
 			};
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
@@ -132,6 +142,8 @@ namespace LoFox {
 
 		for (auto imageView : m_ImageViews)
 			vkDestroyImageView(m_Context->LogicalDevice, imageView, nullptr);
+
+		m_DepthImage->Destroy();
 
 		vkDestroySwapchainKHR(m_Context->LogicalDevice, m_SwapChain, nullptr);
 	}

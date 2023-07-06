@@ -12,7 +12,6 @@ namespace LoFox {
 	public:
 		Image(Ref<RenderContext> context, const std::string& path);
 		Image(Ref<RenderContext> context, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
-		~Image() { Destroy(); }
 
 		void Destroy();
 

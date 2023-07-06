@@ -140,8 +140,8 @@ namespace LoFox {
 		rasterizerState.depthBiasClamp = 0.0f;
 		rasterizerState.depthBiasSlopeFactor = 0.0f;
 
-		Shader vertexShader(CreateInfo.Context, "Assets/Shaders/VertexShader.vert", ShaderType::Vertex);
-		Shader fragmentShader(CreateInfo.Context, "Assets/Shaders/FragmentShader.frag", ShaderType::Fragment);
+		Shader vertexShader(CreateInfo.Context, CreateInfo.VertexShaderPath, ShaderType::Vertex);
+		Shader fragmentShader(CreateInfo.Context, CreateInfo.FragmentShaderPath, ShaderType::Fragment);
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader.GetCreateInfo(), fragmentShader.GetCreateInfo() };
 

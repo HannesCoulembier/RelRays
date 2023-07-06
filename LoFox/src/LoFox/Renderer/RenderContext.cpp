@@ -162,10 +162,6 @@ namespace LoFox {
 		// Create SwapChain
 		m_SwapChain = CreateRef<SwapChain>(m_ThisContext, m_Window);
 
-		// Create depth resources
-		VkFormat depthFormat = Utils::FindDepthFormat(PhysicalDevice);
-		DepthImage = CreateRef<Image>(m_ThisContext, m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
 		// Create Descriptorset layouts
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
 		uboLayoutBinding.binding = 0;
@@ -201,7 +197,7 @@ namespace LoFox {
 		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		
 		VkAttachmentDescription depthAttachmentDescription = {};
-		depthAttachmentDescription.format = DepthImage->GetFormat();
+		depthAttachmentDescription.format = m_SwapChain->GetDepthImage()->GetFormat();
 		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -237,37 +233,35 @@ namespace LoFox {
 		CreateImageSampler();
 
 		// Create Vertex buffer
-		{ // This is a scope to ensure the destructor of vertexStagingBuffer is called
-			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-			Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			VertexBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+		Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		VertexBuffer = CreateRef<Buffer>(m_ThisContext, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-			vertexStagingBuffer->SetData(vertices.data());
+		vertexStagingBuffer->SetData(vertices.data());
 
-			CopyBuffer(vertexStagingBuffer, VertexBuffer);
-		}
+		CopyBuffer(vertexStagingBuffer, VertexBuffer);
+		vertexStagingBuffer->Destroy();
+		
 		// Create Index buffer
-		{
-			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
-			Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			IndexBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
+		Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		IndexBuffer = CreateRef<Buffer>(m_ThisContext, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-			indexStagingBuffer->SetData(vertexIndices.data());
+		indexStagingBuffer->SetData(vertexIndices.data());
 
-			CopyBuffer(indexStagingBuffer, IndexBuffer);
-		}
+		CopyBuffer(indexStagingBuffer, IndexBuffer);
+		indexStagingBuffer->Destroy();
+		
 		// Create UniformBuffers
-		{
-			uint32_t uniformBufferSize = sizeof(UniformBufferObject);
-			m_UniformBuffers.resize(m_MaxFramesInFlight);
-			m_UniformBuffersMapped.resize(m_MaxFramesInFlight);
+		uint32_t uniformBufferSize = sizeof(UniformBufferObject);
+		m_UniformBuffers.resize(m_MaxFramesInFlight);
+		m_UniformBuffersMapped.resize(m_MaxFramesInFlight);
 
-			for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
 
-				m_UniformBuffers[i] = CreateRef<Buffer>(m_ThisContext, uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			m_UniformBuffers[i] = CreateRef<Buffer>(m_ThisContext, uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-				vkMapMemory(LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
-			}
+			vkMapMemory(LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
 		}
 
 		// Create Descriptor pool
@@ -366,7 +360,6 @@ namespace LoFox {
 	void RenderContext::Shutdown() {
 
 		Texture1->Destroy();
-		DepthImage->Destroy();
 		m_SwapChain->Destroy();
 		VertexBuffer->Destroy();
 		IndexBuffer->Destroy();

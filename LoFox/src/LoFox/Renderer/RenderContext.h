@@ -31,7 +31,6 @@ namespace LoFox {
 		void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 
 		inline Ref<SwapChain> GetSwapChain() { return m_SwapChain; }
-		inline Ref<Image> GetDepthImage() { return DepthImage; }
 		inline GraphicsPipeline GetGraphicsPipeline() { return m_GraphicsPipeline; }
 
 		static Ref<RenderContext> Create();
@@ -52,7 +51,6 @@ namespace LoFox {
 		VkSurfaceKHR Surface = nullptr;
 
 		Ref<Image> Texture1;
-		Ref<Image> DepthImage;
 
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
