@@ -73,7 +73,7 @@ namespace LoFox {
 
 		TransitionLayout(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		CreateImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+		m_ImageView = CreateImageView(m_Image, m_Format, VK_IMAGE_ASPECT_COLOR_BIT);
 		stagingBuffer->Destroy();
 	}
 
@@ -109,7 +109,8 @@ namespace LoFox {
 
 		vkBindImageMemory(RenderContext::LogicalDevice, m_Image, m_Memory, 0);
 
-		CreateImageView(aspectFlags);
+
+		m_ImageView = CreateImageView(m_Image, m_Format, aspectFlags);
 	}
 
 	void Image::Destroy() {
@@ -159,19 +160,25 @@ namespace LoFox {
 		RenderContext::EndSingleTimeCommandBuffer(commandBuffer);
 	}
 
-	void Image::CreateImageView(VkImageAspectFlags aspectFlags) {
+	VkImageView Image::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 
 		VkImageViewCreateInfo imageViewCreateInfo = {};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.image = m_Image;
+		imageViewCreateInfo.image = image;
 		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = m_Format;
+		imageViewCreateInfo.format = format;
+		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 		imageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
 		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
 		imageViewCreateInfo.subresourceRange.levelCount = 1;
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-		LF_CORE_ASSERT(vkCreateImageView(RenderContext::LogicalDevice, &imageViewCreateInfo, nullptr, &m_ImageView) == VK_SUCCESS, "Failed to create image view!");
+		VkImageView imageView;
+		LF_CORE_ASSERT(vkCreateImageView(RenderContext::LogicalDevice, &imageViewCreateInfo, nullptr, &imageView) == VK_SUCCESS, "Failed to create image view!");
+		return imageView;
 	}
 }

@@ -31,19 +31,14 @@ namespace LoFox {
 	VkDevice RenderContext::LogicalDevice;
 	VkSurfaceKHR RenderContext::Surface;
 
-	std::vector<VkCommandBuffer> RenderContext::CommandBuffers;
-
 	VkQueue RenderContext::GraphicsQueueHandle;
 	VkQueue RenderContext::PresentQueueHandle;
-
-	std::vector<VkSemaphore> RenderContext::ImageAvailableSemaphores;
-	std::vector<VkSemaphore> RenderContext::RenderFinishedSemaphores;
-	std::vector<VkFence> RenderContext::InFlightFences;
 
 	Ref<DebugMessenger> RenderContext::m_DebugMessenger;
 	Ref<Window> RenderContext::m_Window;
 
-	VkCommandPool RenderContext::m_CommandPool;
+	VkCommandPool RenderContext::CommandPool;
+	VkCommandBuffer RenderContext::MainCommandBuffer;
 
 	void RenderContext::Init(Ref<Window> window) {
 
@@ -62,31 +57,12 @@ namespace LoFox {
 		m_Window->CreateVulkanSurface(Instance, &Surface);
 
 		InitDevices();
-		
-		CreateSyncObjects();
 
-		// Create Commandbuffers
-		CommandBuffers.resize(m_MaxFramesInFlight);
-
-		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
-		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		commandBufferAllocInfo.commandPool = m_CommandPool;
-		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandBufferCount = (uint32_t)CommandBuffers.size();
-
-		LF_CORE_ASSERT(vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, CommandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
 	}
 	
 	void RenderContext::Shutdown() {
 
-		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
-
-			vkDestroySemaphore(LogicalDevice, ImageAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(LogicalDevice, RenderFinishedSemaphores[i], nullptr);
-			vkDestroyFence(LogicalDevice, InFlightFences[i], nullptr);
-		}
-
-		vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
+		vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
 
 		m_DebugMessenger->Shutdown();
 
@@ -182,7 +158,16 @@ namespace LoFox {
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		commandPoolCreateInfo.queueFamilyIndex = indices.GraphicsFamilyIndex;
 
-		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool) == VK_SUCCESS, "Failed to create command pool!");
+		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &CommandPool) == VK_SUCCESS, "Failed to create command pool!");
+	
+		// Create MainCommandBuffer
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandBufferCount = 1;
+		commandBufferAllocInfo.commandPool = CommandPool;
+		// commandBufferAllocInfo.level = 
+		// commandBufferAllocInfo.pNext = 
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, &MainCommandBuffer) == VK_SUCCESS, "Failed to allocate main command buffer!");
 	}
 
 	VkCommandBuffer RenderContext::BeginSingleTimeCommandBuffer() {
@@ -190,7 +175,7 @@ namespace LoFox {
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
 		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandPool = m_CommandPool;
+		commandBufferAllocInfo.commandPool = CommandPool;
 		commandBufferAllocInfo.commandBufferCount = 1;
 
 		VkCommandBuffer commandBuffer;
@@ -217,27 +202,6 @@ namespace LoFox {
 		vkQueueSubmit(GraphicsQueueHandle, 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(GraphicsQueueHandle);
 
-		vkFreeCommandBuffers(LogicalDevice, m_CommandPool, 1, &commandBuffer);
-	}
-
-	void RenderContext::CreateSyncObjects() {
-
-		// Create sync objects
-		ImageAvailableSemaphores.resize(m_MaxFramesInFlight);
-		RenderFinishedSemaphores.resize(m_MaxFramesInFlight);
-		InFlightFences.resize(m_MaxFramesInFlight);
-
-		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		VkFenceCreateInfo fenceCreateInfo = {};
-		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
-
-			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &ImageAvailableSemaphores[i]) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
-			LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &RenderFinishedSemaphores[i]) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
-			LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &InFlightFences[i]) == VK_SUCCESS, "Failed to create inFlight fence!");
-		}
+		vkFreeCommandBuffers(LogicalDevice, CommandPool, 1, &commandBuffer);
 	}
 }

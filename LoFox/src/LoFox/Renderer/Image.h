@@ -21,8 +21,7 @@ namespace LoFox {
 		inline VkFormat GetFormat() { return m_Format; }
 
 		void TransitionLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-	private:
-		void CreateImageView(VkImageAspectFlags aspectFlags);
+		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	private:
 		const std::string& m_Path = "";
 

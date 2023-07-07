@@ -7,17 +7,20 @@
 
 namespace LoFox {
 
-	GraphicsPipeline Pipeline::CreateGraphicsPipeline(GraphicsPipelineCreateInfo createInfo) {
+	GraphicsPipelineBuilder::GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo)
+		: m_CreateInfo(createInfo) {
 
-		GraphicsPipeline pipeline = {};
+		m_Pipeline = {};
+		m_Pipeline.CreateInfo = m_CreateInfo;
+	}
 
-		pipeline.CreateInfo = createInfo;
+	GraphicsPipeline GraphicsPipelineBuilder::CreateGraphicsPipeline() {
 
-		pipeline.InitLayout();
-		pipeline.InitRenderPass();
-		pipeline.InitPipeline();
+		m_Pipeline.InitLayout();
+		m_Pipeline.InitRenderPass();
+		m_Pipeline.InitPipeline();
 
-		return pipeline;
+		return m_Pipeline;
 	}
 
 	void GraphicsPipeline::InitLayout() {
@@ -36,6 +39,36 @@ namespace LoFox {
 
 	void GraphicsPipeline::InitRenderPass() {
 
+		// The image of the SwapChain
+		VkAttachmentDescription colorAttachmentDescription = {};
+		colorAttachmentDescription.format = CreateInfo.SwapChainFormat;
+		colorAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorAttachmentRef = {};
+		colorAttachmentRef.attachment = 0;
+		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		// The image of the depth buffer
+		VkAttachmentDescription depthAttachmentDescription = {};
+		depthAttachmentDescription.format = CreateInfo.DepthImageFormat;
+		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthAttachmentRef = {};
+		depthAttachmentRef.attachment = 1;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		VkSubpassDependency subpassDependency = {};
 		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		subpassDependency.dstSubpass = 0;
@@ -43,25 +76,18 @@ namespace LoFox {
 		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-		VkAttachmentReference colorAttachmentRef = {};
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthAttachmentRef = {};
-		depthAttachmentRef.attachment = 1;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
 		VkSubpassDescription subpassDescription = {};
 		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpassDescription.colorAttachmentCount = 1;
 		subpassDescription.pColorAttachments = &colorAttachmentRef;
 		subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
 
+		std::vector<VkAttachmentDescription> attachments = { colorAttachmentDescription, depthAttachmentDescription };
 		VkRenderPassCreateInfo renderPassCreateInfo = {};
-		renderPassCreateInfo.attachmentCount = CreateInfo.Attachments.size();
+		renderPassCreateInfo.attachmentCount = attachments.size();
 		renderPassCreateInfo.dependencyCount = 1;
 		// renderPassCreateInfo.flags = 
-		renderPassCreateInfo.pAttachments = CreateInfo.Attachments.data();
+		renderPassCreateInfo.pAttachments = attachments.data();
 		renderPassCreateInfo.pDependencies = &subpassDependency;
 		// renderPassCreateInfo.pNext = 
 		renderPassCreateInfo.pSubpasses = &subpassDescription;
@@ -180,6 +206,28 @@ namespace LoFox {
 		pipelineCreateInfo.subpass = 0;
 
 		LF_CORE_ASSERT(vkCreateGraphicsPipelines(RenderContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
+	}
+
+	void GraphicsPipeline::SetViewport(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size) {
+
+		VkViewport viewport = {};
+		viewport.x = pos.x;
+		viewport.y = pos.y;
+		viewport.width = size.x;
+		viewport.height = size.y;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+	}
+	
+	void GraphicsPipeline::SetScissor(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size) {
+
+		VkRect2D scissor = {};
+		scissor.offset.x = pos.x;
+		scissor.offset.y = pos.y;
+		scissor.extent.width = size.x;
+		scissor.extent.height = size.y;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
 
 	void GraphicsPipeline::Destroy() {

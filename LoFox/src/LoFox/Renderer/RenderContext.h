@@ -30,25 +30,16 @@ namespace LoFox {
 		static VkDevice LogicalDevice;
 		static VkSurfaceKHR Surface;
 
-		static std::vector<VkCommandBuffer> CommandBuffers;
-
 		static VkQueue GraphicsQueueHandle;
 		static VkQueue PresentQueueHandle;
 
-		static std::vector<VkSemaphore> ImageAvailableSemaphores;
-		static std::vector<VkSemaphore> RenderFinishedSemaphores;
-		static std::vector<VkFence> InFlightFences;
+		static VkCommandPool CommandPool;
+		static VkCommandBuffer MainCommandBuffer;
 	private:
 		static void InitInstance();
 		static void InitDevices();
-		static void CreateSyncObjects();
 	private:
 		static Ref<Window> m_Window;
 		static Ref<DebugMessenger> m_DebugMessenger;
-
-		static VkCommandPool m_CommandPool;
-
-		static int m_CurrentFrame;
-		static const int m_MaxFramesInFlight = 2;
 	};
 }

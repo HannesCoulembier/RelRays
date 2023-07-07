@@ -91,9 +91,6 @@ namespace LoFox {
 	VkDescriptorSetLayout Renderer::m_GraphicsDescriptorSetLayout;
 	std::vector<VkDescriptorSet> Renderer::m_GraphicsDescriptorSets;
 
-	int Renderer::m_CurrentFrame = 0;
-	uint32_t Renderer::m_ThisFramesImageIndex;
-
 	void Renderer::Init(Ref<Window> window) {
 
 		m_Window = window;
@@ -129,17 +126,17 @@ namespace LoFox {
 		InitPipelines(Vertex::GetBindingDescription(), Vertex::GetAttributeDescriptions());
 
 		// Important! The swapchain framebuffers need to be created after the pipeline is created.
-		m_SwapChain->CreateFramebuffers();
+		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline.RenderPass);
 
 		CreateVertexBuffer();
 		CreateIndexBuffer();
 
 		// Create UniformBuffers
 		uint32_t uniformBufferSize = sizeof(UniformBufferObject);
-		m_UniformBuffers.resize(m_MaxFramesInFlight);
-		m_UniformBuffersMapped.resize(m_MaxFramesInFlight);
+		m_UniformBuffers.resize(MaxFramesInFlight);
+		m_UniformBuffersMapped.resize(MaxFramesInFlight);
 
-		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+		for (size_t i = 0; i < MaxFramesInFlight; i++) {
 
 			m_UniformBuffers[i] = CreateRef<Buffer>(uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -154,18 +151,18 @@ namespace LoFox {
 		CreateDescriptorPool();
 
 		// Allocate Descriptor sets
-		std::vector<VkDescriptorSetLayout> layouts(m_MaxFramesInFlight, m_GraphicsDescriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(MaxFramesInFlight, m_GraphicsDescriptorSetLayout);
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {};
 		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		descriptorSetAllocInfo.descriptorPool = m_DescriptorPool;
-		descriptorSetAllocInfo.descriptorSetCount = (uint32_t)(m_MaxFramesInFlight);
+		descriptorSetAllocInfo.descriptorSetCount = (uint32_t)(MaxFramesInFlight);
 		descriptorSetAllocInfo.pSetLayouts = layouts.data();
 
-		m_GraphicsDescriptorSets.resize(m_MaxFramesInFlight);
+		m_GraphicsDescriptorSets.resize(MaxFramesInFlight);
 		LF_CORE_ASSERT(vkAllocateDescriptorSets(RenderContext::LogicalDevice, &descriptorSetAllocInfo, m_GraphicsDescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
 		// Update Descriptor sets
-		for (size_t i = 0; i < m_MaxFramesInFlight; i++) {
+		for (size_t i = 0; i < MaxFramesInFlight; i++) {
 
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = m_UniformBuffers[i]->GetBuffer();
@@ -225,44 +222,18 @@ namespace LoFox {
 
 	void Renderer::StartFrame() {
 
-		vkWaitForFences(RenderContext::LogicalDevice, 1, &RenderContext::InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
-
-		m_ThisFramesImageIndex = m_SwapChain->AcquireNextImageIndex(m_CurrentFrame);
-		if (m_ThisFramesImageIndex < 0)
-			return;
-
-		vkResetFences(RenderContext::LogicalDevice, 1, &RenderContext::InFlightFences[m_CurrentFrame]);
-
-		vkResetCommandBuffer(RenderContext::CommandBuffers[m_CurrentFrame], 0);
+		m_SwapChain->BeginFrame();
 	}
 
 	void Renderer::SubmitFrame() {
 
-		RecordCommandBuffer(RenderContext::CommandBuffers[m_CurrentFrame]);
-
-		if (m_ThisFramesImageIndex < 0)
+		if (m_SwapChain->GetCurrentFrame() < 0)
 			return;
 
-		UpdateUniformBuffer(m_CurrentFrame);
+		RecordCommandBuffer(m_SwapChain->GetThisFramesCommandbuffer());
+		UpdateUniformBuffer(m_SwapChain->GetCurrentFrame());
 
-		VkSemaphore waitSemaphores[] = { RenderContext::ImageAvailableSemaphores[m_CurrentFrame] };
-		VkSemaphore signalSemaphores[] = { RenderContext::RenderFinishedSemaphores[m_CurrentFrame] };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &RenderContext::CommandBuffers[m_CurrentFrame];
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-
-		LF_CORE_ASSERT(vkQueueSubmit(RenderContext::GraphicsQueueHandle, 1, &submitInfo, RenderContext::InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
-
-		m_SwapChain->PresentImage(m_ThisFramesImageIndex, signalSemaphores);
-
-		m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFramesInFlight;
+		m_SwapChain->SubmitFrame();
 	}
 
 	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
@@ -282,7 +253,7 @@ namespace LoFox {
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = m_GraphicsPipeline.RenderPass;
-		renderPassBeginInfo.framebuffer = m_SwapChain->GetFramebuffer(m_ThisFramesImageIndex);
+		renderPassBeginInfo.framebuffer = m_SwapChain->GetThisFramesFramebuffer();
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = m_SwapChain->GetExtent();
 		renderPassBeginInfo.clearValueCount = (uint32_t)clearColors.size();
@@ -297,21 +268,10 @@ namespace LoFox {
 
 		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		VkViewport viewport = {};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_SwapChain->GetExtent().width);
-		viewport.height = static_cast<float>(m_SwapChain->GetExtent().height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		m_GraphicsPipeline.SetViewport(commandBuffer, { 0.0f, 0.0f }, { m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height });
+		m_GraphicsPipeline.SetScissor(commandBuffer, { 0.0f, 0.0f }, { m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height });
 
-		VkRect2D scissor = {};
-		scissor.offset = { 0, 0 };
-		scissor.extent = m_SwapChain->GetExtent();
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Layout, 0, 1, &m_GraphicsDescriptorSets[m_CurrentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Layout, 0, 1, &m_GraphicsDescriptorSets[m_SwapChain->GetCurrentFrame()], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
 
@@ -338,6 +298,7 @@ namespace LoFox {
 		if (m_Window->IsMinimized())
 			return true;
 		m_SwapChain->Recreate();
+		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline.RenderPass);
 		Application::GetInstance().OnUpdate();
 		return true;
 	}
@@ -396,15 +357,15 @@ namespace LoFox {
 
 		std::vector<VkDescriptorPoolSize> descriptorPoolSizes(2);
 		descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorPoolSizes[0].descriptorCount = (uint32_t)(m_MaxFramesInFlight);
+		descriptorPoolSizes[0].descriptorCount = (uint32_t)(MaxFramesInFlight);
 		descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorPoolSizes[1].descriptorCount = (uint32_t)(m_MaxFramesInFlight);
+		descriptorPoolSizes[1].descriptorCount = (uint32_t)(MaxFramesInFlight);
 
 		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
 		descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptorPoolCreateInfo.poolSizeCount = 2;
 		descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
-		descriptorPoolCreateInfo.maxSets = (uint32_t)(m_MaxFramesInFlight);
+		descriptorPoolCreateInfo.maxSets = (uint32_t)(MaxFramesInFlight);
 
 		LF_CORE_ASSERT(vkCreateDescriptorPool(RenderContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
 	}
@@ -412,35 +373,17 @@ namespace LoFox {
 	void Renderer::InitPipelines(VkVertexInputBindingDescription vertexBindingDescription, std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions) {
 
 		// Create Graphics pipeline
-		VkAttachmentDescription colorAttachmentDescription = {};
-		colorAttachmentDescription.format = m_SwapChain->GetImageFormat();
-		colorAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		VkAttachmentDescription depthAttachmentDescription = {};
-		depthAttachmentDescription.format = m_SwapChain->GetDepthImage()->GetFormat();
-		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
 		GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 		graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
 		graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
-		graphicsPipelineCreateInfo.Attachments = { colorAttachmentDescription, depthAttachmentDescription };
 		graphicsPipelineCreateInfo.VertexAttributeDescriptions = vertexAttributeDescriptions;
 		graphicsPipelineCreateInfo.VertexBindingDescription = vertexBindingDescription;
 		graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
+		graphicsPipelineCreateInfo.SwapChainFormat = m_SwapChain->GetImageFormat();
+		graphicsPipelineCreateInfo.DepthImageFormat = m_SwapChain->GetDepthImage()->GetFormat();
 
-		m_GraphicsPipeline = Pipeline::CreateGraphicsPipeline(graphicsPipelineCreateInfo);
+		GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
+		m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
 	}
 
 }

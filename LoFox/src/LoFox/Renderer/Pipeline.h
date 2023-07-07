@@ -15,7 +15,8 @@ namespace LoFox {
 		std::string VertexShaderPath = "";
 		std::string FragmentShaderPath = "";
 
-		std::vector<VkAttachmentDescription> Attachments;
+		VkFormat SwapChainFormat;
+		VkFormat DepthImageFormat;
 
 		VkVertexInputBindingDescription VertexBindingDescription;
 		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions;
@@ -31,6 +32,9 @@ namespace LoFox {
 		VkRenderPass RenderPass;
 		VkPipelineLayout Layout;
 
+		void SetViewport(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size);
+		void SetScissor(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size);
+
 		void InitLayout();
 		void InitRenderPass();
 		void InitPipeline();
@@ -38,9 +42,13 @@ namespace LoFox {
 		void Destroy();
 	};
 
-	class Pipeline {
+	class GraphicsPipelineBuilder {
 
 	public:
-		static GraphicsPipeline CreateGraphicsPipeline(GraphicsPipelineCreateInfo createInfo);
+		GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo);
+		GraphicsPipeline CreateGraphicsPipeline();
+	private:
+		GraphicsPipelineCreateInfo m_CreateInfo;
+		GraphicsPipeline m_Pipeline;
 	};
 }

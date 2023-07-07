@@ -25,11 +25,11 @@ namespace LoFox {
 		static void StartFrame();
 		static void SubmitFrame();
 
-		static inline GraphicsPipeline GetGraphicsPipeline() { return m_GraphicsPipeline; }
-
 		static void WaitIdle();
 
 		static void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
+	public:
+		static const int MaxFramesInFlight = 1;
 	private:
 		static void RecordCommandBuffer(VkCommandBuffer commandBuffer);
 
@@ -62,10 +62,5 @@ namespace LoFox {
 		static VkDescriptorPool m_DescriptorPool;
 		static VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
 		static std::vector<VkDescriptorSet> m_GraphicsDescriptorSets;
-
-		static uint32_t m_ThisFramesImageIndex;
-
-		static int m_CurrentFrame;
-		static const int m_MaxFramesInFlight = 1;
 	};
 }

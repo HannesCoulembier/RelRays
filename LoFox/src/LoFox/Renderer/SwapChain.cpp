@@ -13,12 +13,63 @@ namespace LoFox {
 	SwapChain::SwapChain(Ref<Window> window)
 		: m_Window(window) {
 
-		CreateSwapChainAndImages();
-		CreateImageViews();
+		CreateSwapChain();
+		CreateImagesWithViews();
 		CreateDepthResources();
+
+		CreateSyncObjects();
+		CreateCommandBuffers();
 	}
 
-	void SwapChain::Destroy() { CleanupSwapChain(); }
+	void SwapChain::Destroy() {
+
+		CleanupSwapChain();
+
+		for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
+
+			vkDestroySemaphore(RenderContext::LogicalDevice, m_ImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(RenderContext::LogicalDevice, m_RenderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(RenderContext::LogicalDevice, m_InFlightFences[i], nullptr);
+		}
+	}
+
+	void SwapChain::BeginFrame() {
+
+		vkWaitForFences(RenderContext::LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+
+		m_ThisFramesImageIndex = AcquireNextImageIndex();
+		if (m_ThisFramesImageIndex < 0) // SwapChain out of date?
+			return;
+
+		vkResetFences(RenderContext::LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
+
+		vkResetCommandBuffer(m_Images[m_ThisFramesImageIndex].CommandBuffer, 0);
+	}
+
+	void SwapChain::SubmitFrame() {
+
+		if (m_ThisFramesImageIndex < 0)
+			return;
+
+		VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphores[m_CurrentFrame] };
+		VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_Images[m_ThisFramesImageIndex].CommandBuffer;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		LF_CORE_ASSERT(vkQueueSubmit(RenderContext::GraphicsQueueHandle, 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
+
+		PresentImage(signalSemaphores);
+		
+		m_CurrentFrame = (m_CurrentFrame + 1) % Renderer::MaxFramesInFlight;
+	}
 
 	void SwapChain::Recreate() {
 
@@ -26,13 +77,12 @@ namespace LoFox {
 
 		CleanupSwapChain();
 
-		CreateSwapChainAndImages();
-		CreateImageViews();
+		CreateSwapChain();
+		CreateImagesWithViews();
 		CreateDepthResources();
-		CreateFramebuffers();
 	}
 
-	void SwapChain::CreateSwapChainAndImages() {
+	void SwapChain::CreateSwapChain() {
 
 		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(RenderContext::PhysicalDevice, RenderContext::Surface);
 
@@ -74,34 +124,22 @@ namespace LoFox {
 		swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
 		LF_CORE_ASSERT(vkCreateSwapchainKHR(RenderContext::LogicalDevice, &swapChainCreateInfo, nullptr, &m_SwapChain) == VK_SUCCESS, "Failed to create swap chain!");
-
-		// Retrieving the images in the swap chain
-		vkGetSwapchainImagesKHR(RenderContext::LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
-		m_Images.resize(imageCount);
-		vkGetSwapchainImagesKHR(RenderContext::LogicalDevice, m_SwapChain, &imageCount, m_Images.data());
 	}
 
-	void SwapChain::CreateImageViews() {
+	void SwapChain::CreateImagesWithViews() {
 
-		m_ImageViews.resize(m_Images.size());
-		for (uint32_t i = 0; i < m_Images.size(); i++) {
+		// Retrieving the images in the swap chain
+		uint32_t imageCount;
+		vkGetSwapchainImagesKHR(RenderContext::LogicalDevice, m_SwapChain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
+		m_Images.resize(imageCount);
+		std::vector<VkImage> images(imageCount);
+		vkGetSwapchainImagesKHR(RenderContext::LogicalDevice, m_SwapChain, &imageCount, images.data());
 
-			VkImageViewCreateInfo imageViewCreateInfo{};
-			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			imageViewCreateInfo.image = m_Images[i];
-			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			imageViewCreateInfo.format = m_ImageFormat;
-			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-			imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-			imageViewCreateInfo.subresourceRange.levelCount = 1;
-			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-			imageViewCreateInfo.subresourceRange.layerCount = 1;
+		// Creating the imageViews
+		for (size_t i = 0; i < imageCount; i++) {
 
-			LF_CORE_ASSERT(vkCreateImageView(RenderContext::LogicalDevice, &imageViewCreateInfo, nullptr, &m_ImageViews[i]) == VK_SUCCESS, "Failed to create image views!");
+			m_Images[i].Image = images[i];
+			m_Images[i].ImageView = Image::CreateImageView(m_Images[i].Image, m_ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 	}
 
@@ -113,47 +151,45 @@ namespace LoFox {
 
 	}
 
-	void SwapChain::CreateFramebuffers() {
+	void SwapChain::CreateFramebuffers(VkRenderPass renderPass) {
 
-		m_Framebuffers.resize(m_ImageViews.size());
-
-		for (size_t i = 0; i < m_ImageViews.size(); i++) {
+		for (size_t i = 0; i < m_Images.size(); i++) {
 
 			std::array<VkImageView, 2> attachments = {
-				m_ImageViews[i],
+				m_Images[i].ImageView,
 				m_DepthImage->GetImageView(),
 			};
 
 			VkFramebufferCreateInfo framebufferCreateInfo = {};
 			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferCreateInfo.renderPass = Renderer::GetGraphicsPipeline().RenderPass;
+			framebufferCreateInfo.renderPass = renderPass;
 			framebufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
 			framebufferCreateInfo.pAttachments = attachments.data();
 			framebufferCreateInfo.width = m_Extent.width;
 			framebufferCreateInfo.height = m_Extent.height;
 			framebufferCreateInfo.layers = 1;
 
-			LF_CORE_ASSERT(vkCreateFramebuffer(RenderContext::LogicalDevice, &framebufferCreateInfo, nullptr, &m_Framebuffers[i]) == VK_SUCCESS, "Failed to create framebuffer!");
+			LF_CORE_ASSERT(vkCreateFramebuffer(RenderContext::LogicalDevice, &framebufferCreateInfo, nullptr, &m_Images[i].Framebuffer) == VK_SUCCESS, "Failed to create framebuffer!");
 		}
 	}
 
 	void SwapChain::CleanupSwapChain() {
 
-		for (auto framebuffer : m_Framebuffers)
-			vkDestroyFramebuffer(RenderContext::LogicalDevice, framebuffer, nullptr);
+		for (auto frame : m_Images) {
 
-		for (auto imageView : m_ImageViews)
-			vkDestroyImageView(RenderContext::LogicalDevice, imageView, nullptr);
+			vkDestroyFramebuffer(RenderContext::LogicalDevice, frame.Framebuffer, nullptr);
+			vkDestroyImageView(RenderContext::LogicalDevice, frame.ImageView, nullptr);
+		}
 
 		m_DepthImage->Destroy();
 
 		vkDestroySwapchainKHR(RenderContext::LogicalDevice, m_SwapChain, nullptr);
 	}
 
-	int SwapChain::AcquireNextImageIndex(uint32_t currentFrame) {
+	int SwapChain::AcquireNextImageIndex() {
 
 		uint32_t nextImageIndex;
-		VkResult result = vkAcquireNextImageKHR(RenderContext::LogicalDevice, m_SwapChain, UINT64_MAX, RenderContext::ImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &nextImageIndex);
+		VkResult result = vkAcquireNextImageKHR(RenderContext::LogicalDevice, m_SwapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &nextImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			Recreate();
 			return -1;
@@ -162,7 +198,7 @@ namespace LoFox {
 		return nextImageIndex;
 	}
 
-	void SwapChain::PresentImage(uint32_t imageIndex, VkSemaphore* waitSemaphores) {
+	void SwapChain::PresentImage(VkSemaphore* waitSemaphores) {
 
 		VkSwapchainKHR swapChains[] = { m_SwapChain };
 		VkPresentInfoKHR presentInfo = {};
@@ -171,7 +207,7 @@ namespace LoFox {
 		presentInfo.pWaitSemaphores = waitSemaphores;
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
-		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pImageIndices = &m_ThisFramesImageIndex;
 		presentInfo.pResults = nullptr;
 
 		VkResult result = vkQueuePresentKHR(RenderContext::PresentQueueHandle, &presentInfo);
@@ -180,5 +216,41 @@ namespace LoFox {
 		}
 		else
 			LF_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swapchain image!");
+	}
+
+	void SwapChain::CreateSyncObjects() {
+
+		// Create sync objects
+		m_ImageAvailableSemaphores.resize(Renderer::MaxFramesInFlight);
+		m_RenderFinishedSemaphores.resize(Renderer::MaxFramesInFlight);
+		m_InFlightFences.resize(Renderer::MaxFramesInFlight);
+
+		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		VkFenceCreateInfo fenceCreateInfo = {};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
+
+			LF_CORE_ASSERT(vkCreateSemaphore(RenderContext::LogicalDevice, &semaphoreCreateInfo, nullptr, &m_ImageAvailableSemaphores[i]) == VK_SUCCESS, "Failed to create imageAvailable semaphore!");
+			LF_CORE_ASSERT(vkCreateSemaphore(RenderContext::LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderFinishedSemaphores[i]) == VK_SUCCESS, "Failed to create renderFinished semaphore!");
+			LF_CORE_ASSERT(vkCreateFence(RenderContext::LogicalDevice, &fenceCreateInfo, nullptr, &m_InFlightFences[i]) == VK_SUCCESS, "Failed to create inFlight fence!");
+		}
+	}
+
+	void SwapChain::CreateCommandBuffers() {
+
+		std::vector<VkCommandBuffer> commandBuffers(m_Images.size());
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandPool = RenderContext::CommandPool;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(RenderContext::LogicalDevice, &commandBufferAllocInfo, commandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
+		
+		for (size_t i = 0; i < m_Images.size(); i++)
+			m_Images[i].CommandBuffer = commandBuffers[i];
 	}
 }
