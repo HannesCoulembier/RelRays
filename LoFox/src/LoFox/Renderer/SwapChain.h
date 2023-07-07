@@ -13,7 +13,6 @@ namespace LoFox {
 		VkImage Image;
 		VkImageView ImageView;
 		VkFramebuffer Framebuffer;
-		VkCommandBuffer CommandBuffer;
 	};
 
 	class SwapChain {
@@ -32,7 +31,7 @@ namespace LoFox {
 
 		inline VkSwapchainKHR GetSwapChain() { return m_SwapChain; }
 		inline VkFramebuffer GetThisFramesFramebuffer() { return m_Images[m_ThisFramesImageIndex].Framebuffer; }
-		inline VkCommandBuffer GetThisFramesCommandbuffer() { return m_Images[m_ThisFramesImageIndex].CommandBuffer; }
+		inline VkCommandBuffer GetThisFramesCommandbuffer() { return m_CommandBuffers[m_CurrentFrame]; }
 		inline int GetCurrentFrame() { return m_CurrentFrame; }
 
 		inline Ref<Image> GetDepthImage() { return m_DepthImage; }
@@ -54,6 +53,7 @@ namespace LoFox {
 
 		VkSwapchainKHR m_SwapChain;
 		std::vector<SwapChainImage> m_Images; // size should correspond to the number of images available on the swapchain
+		std::vector<VkCommandBuffer> m_CommandBuffers;
 
 		Ref<Image> m_DepthImage;
 

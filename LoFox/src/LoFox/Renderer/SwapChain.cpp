@@ -43,7 +43,7 @@ namespace LoFox {
 
 		vkResetFences(RenderContext::LogicalDevice, 1, &m_InFlightFences[m_CurrentFrame]);
 
-		vkResetCommandBuffer(m_Images[m_ThisFramesImageIndex].CommandBuffer, 0);
+		vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
 	}
 
 	void SwapChain::SubmitFrame() {
@@ -60,7 +60,7 @@ namespace LoFox {
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_Images[m_ThisFramesImageIndex].CommandBuffer;
+		submitInfo.pCommandBuffers = &m_CommandBuffers[m_CurrentFrame];
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -241,16 +241,13 @@ namespace LoFox {
 
 	void SwapChain::CreateCommandBuffers() {
 
-		std::vector<VkCommandBuffer> commandBuffers(m_Images.size());
+		m_CommandBuffers.resize(Renderer::MaxFramesInFlight);
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
 		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		commandBufferAllocInfo.commandPool = RenderContext::CommandPool;
 		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferAllocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+		commandBufferAllocInfo.commandBufferCount = (uint32_t)m_CommandBuffers.size();
 
-		LF_CORE_ASSERT(vkAllocateCommandBuffers(RenderContext::LogicalDevice, &commandBufferAllocInfo, commandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
-		
-		for (size_t i = 0; i < m_Images.size(); i++)
-			m_Images[i].CommandBuffer = commandBuffers[i];
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(RenderContext::LogicalDevice, &commandBufferAllocInfo, m_CommandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
 	}
 }
