@@ -13,7 +13,10 @@ namespace LoFox {
 	public:
 		static void Init();
 		static void Shutdown();
+
+		static void PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage);
 		
+		static void PushConstant(uint32_t index, const void* data);
 		static void SetClearColor(glm::vec4 backGroundColor);
 		static void SetViewport(glm::vec2 offset, glm::vec2 size);
 		static void SetScissor(glm::vec2 offset, glm::vec2 size);
@@ -27,6 +30,11 @@ namespace LoFox {
 		static inline uint32_t GetNumberOfIndices() { return m_NumberOfIndices; }
 		static inline VkViewport GetViewport() { return m_Viewport; }
 		static inline VkRect2D GetScissor() { return m_Scissor; }
+		static inline std::vector<VkPushConstantRange> GetPushConstants() { return m_PushConstants; }
+		static inline std::vector<uint32_t> GetPushConstantOffsets() { return m_PushConstantOffsets; }
+		static inline std::vector<const void*> GetPushConstantsData() { return m_PushConstantsData; }
+
+		static void EmptyVertexBuffers();
 	private:
 		static std::vector<VkClearValue> m_ClearValues;
 
@@ -39,5 +47,10 @@ namespace LoFox {
 
 		static VkViewport m_Viewport;
 		static VkRect2D m_Scissor;
+
+		static uint32_t m_PushConstantsTotalOffset;
+		static std::vector<uint32_t> m_PushConstantOffsets;
+		static std::vector<VkPushConstantRange> m_PushConstants;
+		static std::vector<const void*> m_PushConstantsData;
 	};
 }

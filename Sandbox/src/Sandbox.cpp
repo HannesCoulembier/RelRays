@@ -40,6 +40,10 @@ struct Vertex {
 	}
 };
 
+struct TestObject {
+	glm::mat4 model;
+};
+
 const std::vector<Vertex> vertices = {
 	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
@@ -66,6 +70,8 @@ namespace LoFox {
 		~ExampleLayer() {}
 
 		void OnAttach() {
+
+			RenderCommand::PreparePushConstant(sizeof(TestObject), VK_SHADER_STAGE_VERTEX_BIT);
 
 			// Create GraphicsDescriptorset layouts
 			VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
@@ -129,15 +135,21 @@ namespace LoFox {
 
 			if (!Application::GetInstance().GetActiveWindow()->IsMinimized()) {
 
-				RenderCommand::SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f }); // Can also be done in OnAttach, as long as it is before Renderer::StartFrame
+				// Can also be done set OnAttach, as long as it is before Renderer::StartFrame
+				RenderCommand::SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 				RenderCommand::SetViewport({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height });
 				RenderCommand::SetScissor({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height});
+				// ----------------------------------------------------------------------------
 
 				Renderer::StartFrame();
 				
 				RenderCommand::SubmitVertexBuffer(m_VertexBuffer);
 				RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
 
+				testObject test;
+				test.model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.3f));
+				RenderCommand::PushConstant(0, &test);
+				
 				Renderer::SubmitFrame();
 			}
 

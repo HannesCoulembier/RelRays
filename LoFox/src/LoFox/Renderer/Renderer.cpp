@@ -196,12 +196,6 @@ namespace LoFox {
 			return;
 
 		// To be moved to client ----------------------------------------------------
-		VkCommandBuffer commandBuffer = m_SwapChain->GetThisFramesCommandbuffer();
-
-		testObject test;
-		test.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f));
-		vkCmdPushConstants(commandBuffer, m_GraphicsPipeline.Layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(testObject), &test);
-
 		UpdateUniformBuffer(m_SwapChain->GetCurrentFrame());
 		// To be moved to client ----------------------------------------------------
 
@@ -212,6 +206,7 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkEndCommandBuffer(m_SwapChain->GetThisFramesCommandbuffer()) == VK_SUCCESS, "Failed to record command buffer!");
 
 		m_SwapChain->SubmitFrame();
+		RenderCommand::EmptyVertexBuffers();
 	}
 
 	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
@@ -227,6 +222,17 @@ namespace LoFox {
 		vkCmdSetScissor(commandBuffer, 0, 1, &RenderCommand::GetScissor());
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Layout, 0, 1, &m_GraphicsDescriptorSets[m_SwapChain->GetCurrentFrame()], 0, nullptr);
+
+		std::vector<VkPushConstantRange> pushConstants = RenderCommand::GetPushConstants();
+		std::vector<uint32_t> pushConstantOffsets = RenderCommand::GetPushConstantOffsets();
+		std::vector<const void*> pushConstantsData = RenderCommand::GetPushConstantsData();
+		for (size_t i = 0; i < pushConstants.size(); i++) {
+
+			VkPushConstantRange pushConstant = pushConstants[i];
+			uint32_t offset = pushConstantOffsets[i];
+			const void* data = pushConstantsData[i];
+			vkCmdPushConstants(commandBuffer, m_GraphicsPipeline.Layout, pushConstant.stageFlags, offset, pushConstant.size, data);
+		}
 
 		vkCmdDrawIndexed(commandBuffer, RenderCommand::GetNumberOfIndices(), 1, 0, 0, 0);
 	}

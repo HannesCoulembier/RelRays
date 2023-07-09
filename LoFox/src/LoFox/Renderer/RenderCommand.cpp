@@ -15,10 +15,16 @@ namespace LoFox {
 	VkViewport RenderCommand::m_Viewport;
 	VkRect2D RenderCommand::m_Scissor;
 
+	uint32_t RenderCommand::m_PushConstantsTotalOffset;
+	std::vector<uint32_t> RenderCommand::m_PushConstantOffsets;
+	std::vector<VkPushConstantRange> RenderCommand::m_PushConstants;
+	std::vector<const void*> RenderCommand::m_PushConstantsData;
+
 	void RenderCommand::Init() {
 
 		m_ClearValues.resize(2);
 		m_VertexBuffersTotalOffset = 0;
+		m_PushConstantsTotalOffset = 0;
 		
 		m_Viewport = {};
 		m_Viewport.x = 0.0f;
@@ -37,6 +43,24 @@ namespace LoFox {
 
 	void RenderCommand::Shutdown() {
 
+	}
+
+	void RenderCommand::PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage) {
+
+		VkPushConstantRange pushConstantRange = {};
+		pushConstantRange.offset = m_PushConstantsTotalOffset;
+		pushConstantRange.size = objectSize;
+		pushConstantRange.stageFlags = shaderStage;
+
+		m_PushConstants.push_back(pushConstantRange);
+		m_PushConstantOffsets.push_back(m_PushConstantsTotalOffset);
+		m_PushConstantsData.push_back(nullptr);
+		m_PushConstantsTotalOffset += objectSize;
+	}
+
+	void RenderCommand::PushConstant(uint32_t index, const void* data) {
+
+		m_PushConstantsData[index] = data;
 	}
 
 	void RenderCommand::SubmitVertexBuffer(Ref<VertexBuffer> buffer) {
@@ -72,5 +96,12 @@ namespace LoFox {
 		m_Scissor.offset.y = offset.y;
 		m_Scissor.extent.width = size.x;
 		m_Scissor.extent.height = size.y;
+	}
+
+	void RenderCommand::EmptyVertexBuffers() {
+
+		m_VertexBuffersTotalOffset = 0;
+		m_VertexBufferOffsets.clear();
+		m_VertexBuffers.clear();
 	}
 }

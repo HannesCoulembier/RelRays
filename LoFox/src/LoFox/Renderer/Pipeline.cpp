@@ -4,7 +4,7 @@
 #include "LoFox/Renderer/Shader.h"
 
 #include "LoFox/Renderer/Renderer.h"
-
+#include "LoFox/Renderer/RenderCommand.h"
 #include "LoFox/Renderer/RenderContext.h"
 
 namespace LoFox {
@@ -31,6 +31,8 @@ namespace LoFox {
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(testObject);
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		std::vector<VkPushConstantRange> pushConstants = RenderCommand::GetPushConstants();
 
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		// layoutCreateInfo.flags = 
