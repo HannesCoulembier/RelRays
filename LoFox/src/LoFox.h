@@ -18,4 +18,6 @@
 #include "LoFox/Events/MouseEvent.h"
 #include "LoFox/Events/ApplicationEvent.h"
 
+#include "LoFox/Renderer/RenderCommand.h"
 #include "LoFox/Renderer/Renderer.h"
+#include "LoFox/Renderer/RenderContext.h"

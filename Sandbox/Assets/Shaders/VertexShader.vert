@@ -1,5 +1,10 @@
 #version 450
 
+layout(push_constant) uniform constants {
+    
+    mat4 model;
+} tempName;
+
 layout(binding = 0) uniform UniformBufferObject {
 
     mat4 model;
@@ -16,7 +21,7 @@ layout(location = 1) out vec2 fragTexCoord;
 
 void main() {
 
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
+    gl_Position = tempName.model * ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
     fragColor = color;
     fragTexCoord = texCoord;
 }

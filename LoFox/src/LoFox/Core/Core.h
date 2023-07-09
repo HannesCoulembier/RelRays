@@ -9,7 +9,7 @@ Shows all Vulkan messages (otherwise only messages with severity warning or hige
 Lists as much information as possible (all available Vulkan extensions, layers, application name, window size, ...)
 */
 #ifdef LF_DEBUG
-	// #define LF_BE_OVERLYSPECIFIC
+	#define LF_BE_OVERLYSPECIFIC
 
 	#define LF_USE_VULKAN_VALIDATION_LAYERS
 #endif

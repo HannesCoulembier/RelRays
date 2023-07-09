@@ -22,22 +22,26 @@ namespace LoFox {
 		static void Init(Ref<Window> window);
 		static void Shutdown();
 
+		static void SubmitGraphicsPipeline(GraphicsPipeline pipeline);
+
 		static void StartFrame();
 		static void SubmitFrame();
 
 		static void WaitIdle();
 
+		static inline VkFormat GetSwapChainImageFormat() { return m_SwapChain->GetImageFormat(); }
+		static inline VkFormat GetSwapChainDepthFormat() { return m_SwapChain->GetDepthImage()->GetFormat(); }
+		static inline VkExtent2D GetSwapChainExtent() { return m_SwapChain->GetExtent(); }
+
 		static void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 	public:
 		static const int MaxFramesInFlight = 1;
 	private:
-		static void RecordCommandBuffer(VkCommandBuffer commandBuffer);
-
+		static void RecordCommandBuffer();
 		static void UpdateUniformBuffer(uint32_t currentImage);
+
 		static void CreateImageSampler();
 
-		static void CreateVertexBuffer();
-		static void CreateIndexBuffer();
 		static void CreateDescriptorPool();
 		static void InitPipelines(VkVertexInputBindingDescription vertexBindingDescription, std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions);
 
@@ -55,9 +59,6 @@ namespace LoFox {
 		static std::vector<void*> m_UniformBuffersMapped;
 
 		static VkSampler m_Sampler;
-
-		static Ref<Buffer> m_VertexBuffer;
-		static Ref<Buffer> m_IndexBuffer;
 
 		static VkDescriptorPool m_DescriptorPool;
 		static VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;

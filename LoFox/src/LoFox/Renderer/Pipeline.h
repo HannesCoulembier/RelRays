@@ -6,6 +6,10 @@
 
 namespace LoFox {
 
+	struct testObject {
+		glm::mat4 model;
+	};
+
 	enum PipelineType {
 		Graphics,
 	};
@@ -14,9 +18,6 @@ namespace LoFox {
 
 		std::string VertexShaderPath = "";
 		std::string FragmentShaderPath = "";
-
-		VkFormat SwapChainFormat;
-		VkFormat DepthImageFormat;
 
 		VkVertexInputBindingDescription VertexBindingDescription;
 		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions;
@@ -31,9 +32,6 @@ namespace LoFox {
 		VkPipeline Pipeline;
 		VkRenderPass RenderPass;
 		VkPipelineLayout Layout;
-
-		void SetViewport(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size);
-		void SetScissor(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size);
 
 		void InitLayout();
 		void InitRenderPass();

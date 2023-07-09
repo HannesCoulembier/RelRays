@@ -24,10 +24,8 @@ namespace LoFox {
 	
 	VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
 
-		#ifndef LF_BE_OVERLYSPECIFIC
-		if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+		if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) // Filters all vulkan messages that have a severity lower than warning
 			return VK_FALSE;
-		#endif
 
 		switch (messageSeverity) {
 

@@ -6,69 +6,14 @@
 #include "LoFox/Renderer/SwapChain.h"
 #include "LoFox/Renderer/Buffer.h"
 
+#include "LoFox/Renderer/RenderCommand.h"
 #include "LoFox/Renderer/RenderContext.h"
-
-struct Vertex {
-
-	glm::vec3 Position;
-	glm::vec3 Color;
-	glm::vec2 TexCoord;
-
-	static VkVertexInputBindingDescription GetBindingDescription() {
-
-		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions() {
-
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
-
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, Position);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, Color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
-
-		return attributeDescriptions;
-	}
-};
 
 struct UniformBufferObject {
 
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
-};
-
-const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-const std::vector<uint32_t> vertexIndices = {
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4,
 };
 
 namespace LoFox {
@@ -78,8 +23,6 @@ namespace LoFox {
 
 	Ref<SwapChain> Renderer::m_SwapChain;
 	GraphicsPipeline Renderer::m_GraphicsPipeline;
-	Ref<Buffer> Renderer::m_VertexBuffer;
-	Ref<Buffer> Renderer::m_IndexBuffer;
 
 	VkSampler Renderer::m_Sampler;
 	Ref<Image> Renderer::m_Texture1;
@@ -97,6 +40,7 @@ namespace LoFox {
 		m_Timer.Reset();
 
 		RenderContext::Init(m_Window);
+		RenderCommand::Init();
 
 		m_SwapChain = CreateRef<SwapChain>(m_Window);
 
@@ -120,16 +64,8 @@ namespace LoFox {
 		graphicsDescriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		graphicsDescriptorSetlayoutCreateInfo.bindingCount = (uint32_t)graphicsBindings.size();
 		graphicsDescriptorSetlayoutCreateInfo.pBindings = graphicsBindings.data();
-
+		
 		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(RenderContext::LogicalDevice, &graphicsDescriptorSetlayoutCreateInfo, nullptr, &m_GraphicsDescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
-
-		InitPipelines(Vertex::GetBindingDescription(), Vertex::GetAttributeDescriptions());
-
-		// Important! The swapchain framebuffers need to be created after the pipeline is created.
-		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline.RenderPass);
-
-		CreateVertexBuffer();
-		CreateIndexBuffer();
 
 		// Create UniformBuffers
 		uint32_t uniformBufferSize = sizeof(UniformBufferObject);
@@ -199,10 +135,15 @@ namespace LoFox {
 		}
 	}
 
-	void Renderer::Shutdown() {
+	void Renderer::SubmitGraphicsPipeline(GraphicsPipeline pipeline) {
 
-		m_VertexBuffer->Destroy();
-		m_IndexBuffer->Destroy();
+		m_GraphicsPipeline = pipeline;
+
+		// Important! The swapchain framebuffers need to be created after the pipeline is created.
+		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline.RenderPass);
+	}
+	
+	void Renderer::Shutdown() {
 
 		m_Texture1->Destroy();
 
@@ -217,28 +158,15 @@ namespace LoFox {
 		m_SwapChain->Destroy();
 		m_GraphicsPipeline.Destroy();
 
+		RenderCommand::Shutdown();
 		RenderContext::Shutdown();
 	}
 
 	void Renderer::StartFrame() {
 
 		m_SwapChain->BeginFrame();
-	}
 
-	void Renderer::SubmitFrame() {
-
-		if (m_SwapChain->GetCurrentFrame() < 0)
-			return;
-
-		RecordCommandBuffer(m_SwapChain->GetThisFramesCommandbuffer());
-		UpdateUniformBuffer(m_SwapChain->GetCurrentFrame());
-
-		m_SwapChain->SubmitFrame();
-	}
-
-	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
-
-	void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer) {
+		VkCommandBuffer commandBuffer = m_SwapChain->GetThisFramesCommandbuffer();
 
 		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
 		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -247,37 +175,60 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
 
-		std::array<VkClearValue, 2> clearColors = {};
-		clearColors[0] = { {0.0f, 0.0f, 0.0f, 1.0f} };
-		clearColors[1] = { 1.0f, 0 };
+		std::vector<VkClearValue> clearValues = RenderCommand::GetClearValues();
+
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = m_GraphicsPipeline.RenderPass;
 		renderPassBeginInfo.framebuffer = m_SwapChain->GetThisFramesFramebuffer();
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = m_SwapChain->GetExtent();
-		renderPassBeginInfo.clearValueCount = (uint32_t)clearColors.size();
-		renderPassBeginInfo.pClearValues = clearColors.data();
+		renderPassBeginInfo.clearValueCount = (uint32_t)clearValues.size();
+		renderPassBeginInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Pipeline);
+	}
 
-		VkBuffer vertexBuffers[] = { m_VertexBuffer->GetBuffer() };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	void Renderer::SubmitFrame() {
 
-		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		if (m_SwapChain->GetCurrentFrame() < 0)
+			return;
 
-		m_GraphicsPipeline.SetViewport(commandBuffer, { 0.0f, 0.0f }, { m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height });
-		m_GraphicsPipeline.SetScissor(commandBuffer, { 0.0f, 0.0f }, { m_SwapChain->GetExtent().width, m_SwapChain->GetExtent().height });
+		// To be moved to client ----------------------------------------------------
+		VkCommandBuffer commandBuffer = m_SwapChain->GetThisFramesCommandbuffer();
+
+		testObject test;
+		test.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f));
+		vkCmdPushConstants(commandBuffer, m_GraphicsPipeline.Layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(testObject), &test);
+
+		UpdateUniformBuffer(m_SwapChain->GetCurrentFrame());
+		// To be moved to client ----------------------------------------------------
+
+		RecordCommandBuffer();
+
+		vkCmdEndRenderPass(m_SwapChain->GetThisFramesCommandbuffer());
+
+		LF_CORE_ASSERT(vkEndCommandBuffer(m_SwapChain->GetThisFramesCommandbuffer()) == VK_SUCCESS, "Failed to record command buffer!");
+
+		m_SwapChain->SubmitFrame();
+	}
+
+	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
+
+	void Renderer::RecordCommandBuffer() {
+
+		VkCommandBuffer commandBuffer = m_SwapChain->GetThisFramesCommandbuffer();
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, RenderCommand::GetVertexBuffers().data(), RenderCommand::GetVertexBufferOffsets().data());
+		vkCmdBindIndexBuffer(commandBuffer, RenderCommand::GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		
+		vkCmdSetViewport(commandBuffer, 0, 1, &RenderCommand::GetViewport());
+		vkCmdSetScissor(commandBuffer, 0, 1, &RenderCommand::GetScissor());
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Layout, 0, 1, &m_GraphicsDescriptorSets[m_SwapChain->GetCurrentFrame()], 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffer, (uint32_t)vertexIndices.size(), 1, 0, 0, 0);
-
-		vkCmdEndRenderPass(commandBuffer);
-
-		LF_CORE_ASSERT(vkEndCommandBuffer(commandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
+		vkCmdDrawIndexed(commandBuffer, RenderCommand::GetNumberOfIndices(), 1, 0, 0, 0);
 	}
 
 	void Renderer::UpdateUniformBuffer(uint32_t currentImage) {
@@ -329,30 +280,6 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateSampler(RenderContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
 	}
 
-	void Renderer::CreateVertexBuffer() {
-
-		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-		Ref<Buffer> vertexStagingBuffer = CreateRef<Buffer>(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		m_VertexBuffer = CreateRef<Buffer>(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		vertexStagingBuffer->SetData(vertices.data());
-
-		Buffer::CopyBuffer(vertexStagingBuffer, m_VertexBuffer);
-		vertexStagingBuffer->Destroy();
-	}
-
-	void Renderer::CreateIndexBuffer() {
-
-		uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
-		Ref<Buffer> indexStagingBuffer = CreateRef<Buffer>(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		m_IndexBuffer = CreateRef<Buffer>(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		indexStagingBuffer->SetData(vertexIndices.data());
-
-		Buffer::CopyBuffer(indexStagingBuffer, m_IndexBuffer);
-		indexStagingBuffer->Destroy();
-	}
-
 	void Renderer::CreateDescriptorPool() {
 
 		std::vector<VkDescriptorPoolSize> descriptorPoolSizes(2);
@@ -379,8 +306,6 @@ namespace LoFox {
 		graphicsPipelineCreateInfo.VertexAttributeDescriptions = vertexAttributeDescriptions;
 		graphicsPipelineCreateInfo.VertexBindingDescription = vertexBindingDescription;
 		graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
-		graphicsPipelineCreateInfo.SwapChainFormat = m_SwapChain->GetImageFormat();
-		graphicsPipelineCreateInfo.DepthImageFormat = m_SwapChain->GetDepthImage()->GetFormat();
 
 		GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
 		m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();

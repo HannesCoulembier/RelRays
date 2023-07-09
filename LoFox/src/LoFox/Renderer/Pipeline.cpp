@@ -3,6 +3,8 @@
 
 #include "LoFox/Renderer/Shader.h"
 
+#include "LoFox/Renderer/Renderer.h"
+
 #include "LoFox/Renderer/RenderContext.h"
 
 namespace LoFox {
@@ -25,12 +27,17 @@ namespace LoFox {
 
 	void GraphicsPipeline::InitLayout() {
 
+		VkPushConstantRange pushConstantRange = {};
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(testObject);
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		// layoutCreateInfo.flags = 
 		// layoutCreateInfo.pNext = 
-		layoutCreateInfo.pPushConstantRanges = nullptr;
+		layoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 		layoutCreateInfo.pSetLayouts = &CreateInfo.DescriptorSetLayout;
-		layoutCreateInfo.pushConstantRangeCount = 0;
+		layoutCreateInfo.pushConstantRangeCount = 1;
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
@@ -41,7 +48,7 @@ namespace LoFox {
 
 		// The image of the SwapChain
 		VkAttachmentDescription colorAttachmentDescription = {};
-		colorAttachmentDescription.format = CreateInfo.SwapChainFormat;
+		colorAttachmentDescription.format = Renderer::GetSwapChainImageFormat();
 		colorAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -56,7 +63,7 @@ namespace LoFox {
 
 		// The image of the depth buffer
 		VkAttachmentDescription depthAttachmentDescription = {};
-		depthAttachmentDescription.format = CreateInfo.DepthImageFormat;
+		depthAttachmentDescription.format = Renderer::GetSwapChainDepthFormat();
 		depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -206,28 +213,6 @@ namespace LoFox {
 		pipelineCreateInfo.subpass = 0;
 
 		LF_CORE_ASSERT(vkCreateGraphicsPipelines(RenderContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
-	}
-
-	void GraphicsPipeline::SetViewport(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size) {
-
-		VkViewport viewport = {};
-		viewport.x = pos.x;
-		viewport.y = pos.y;
-		viewport.width = size.x;
-		viewport.height = size.y;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-	}
-	
-	void GraphicsPipeline::SetScissor(VkCommandBuffer commandBuffer, glm::vec2 pos, glm::vec2 size) {
-
-		VkRect2D scissor = {};
-		scissor.offset.x = pos.x;
-		scissor.offset.y = pos.y;
-		scissor.extent.width = size.x;
-		scissor.extent.height = size.y;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
 
 	void GraphicsPipeline::Destroy() {

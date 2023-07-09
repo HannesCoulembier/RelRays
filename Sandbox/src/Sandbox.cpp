@@ -1,6 +1,62 @@
 #include <LoFox.h>
 #include <LoFox/Core/EntryPoint.h>
 
+struct Vertex {
+
+	glm::vec3 Position;
+	glm::vec3 Color;
+	glm::vec2 TexCoord;
+
+	static VkVertexInputBindingDescription GetBindingDescription() {
+
+		VkVertexInputBindingDescription bindingDescription = {};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		return bindingDescription;
+	}
+
+	static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions() {
+
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
+
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, Position);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, Color);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
+
+		return attributeDescriptions;
+	}
+};
+
+const std::vector<Vertex> vertices = {
+	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+};
+
+const std::vector<uint32_t> vertexIndices = {
+	0, 1, 2, 2, 3, 0,
+	4, 5, 6, 6, 7, 4,
+};
+
 namespace LoFox {
 
 	class ExampleLayer : public Layer {
@@ -9,8 +65,56 @@ namespace LoFox {
 		ExampleLayer() {}
 		~ExampleLayer() {}
 
-		void OnAttach() {}
-		void OnDetach() {}
+		void OnAttach() {
+
+			// Create GraphicsDescriptorset layouts
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
+			uboLayoutBinding.binding = 0;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboLayoutBinding.descriptorCount = 1;
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboLayoutBinding.pImmutableSamplers = nullptr;
+
+			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+			samplerLayoutBinding.binding = 1;
+			samplerLayoutBinding.descriptorCount = 1;
+			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			samplerLayoutBinding.pImmutableSamplers = nullptr;
+			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			std::vector<VkDescriptorSetLayoutBinding> graphicsBindings = { uboLayoutBinding, samplerLayoutBinding };
+			VkDescriptorSetLayoutCreateInfo graphicsDescriptorSetlayoutCreateInfo = {};
+			graphicsDescriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			graphicsDescriptorSetlayoutCreateInfo.bindingCount = (uint32_t)graphicsBindings.size();
+			graphicsDescriptorSetlayoutCreateInfo.pBindings = graphicsBindings.data();
+
+			LF_CORE_ASSERT(vkCreateDescriptorSetLayout(RenderContext::LogicalDevice, &graphicsDescriptorSetlayoutCreateInfo, nullptr, &m_GraphicsDescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
+
+			// Create Graphics pipeline
+			GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
+			graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
+			graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
+			graphicsPipelineCreateInfo.VertexAttributeDescriptions = Vertex::GetAttributeDescriptions();
+			graphicsPipelineCreateInfo.VertexBindingDescription = Vertex::GetBindingDescription();
+			graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
+
+			GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
+			m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
+
+			Renderer::SubmitGraphicsPipeline(m_GraphicsPipeline);
+
+			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+			m_VertexBuffer = CreateRef<VertexBuffer>(vertexBufferSize, vertices.data());
+
+			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
+			m_IndexBuffer = CreateRef<IndexBuffer>(indexBufferSize, vertexIndices.size(), vertexIndices.data());
+		}
+		void OnDetach() {
+			
+			m_VertexBuffer->Destroy();
+			m_IndexBuffer->Destroy();
+			vkDestroyDescriptorSetLayout(RenderContext::LogicalDevice, m_GraphicsDescriptorSetLayout, nullptr);
+		}
 
 		void OnUpdate(float ts) {
 
@@ -25,7 +129,14 @@ namespace LoFox {
 
 			if (!Application::GetInstance().GetActiveWindow()->IsMinimized()) {
 
+				RenderCommand::SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f }); // Can also be done in OnAttach, as long as it is before Renderer::StartFrame
+				RenderCommand::SetViewport({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height });
+				RenderCommand::SetScissor({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height});
+
 				Renderer::StartFrame();
+				
+				RenderCommand::SubmitVertexBuffer(m_VertexBuffer);
+				RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
 
 				Renderer::SubmitFrame();
 			}
@@ -63,6 +174,12 @@ namespace LoFox {
 				LF_INFO("Pressed key {0}", static_cast<LoFox::KeyPressedEvent&>(event).GetKeyCode());
 			*/
 		}
+
+	private:
+		VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
+		GraphicsPipeline m_GraphicsPipeline;
+		Ref<VertexBuffer> m_VertexBuffer;
+		Ref<IndexBuffer> m_IndexBuffer;
 	};
 
 	class SandboxApp : public Application {
