@@ -12,34 +12,49 @@ namespace LoFox {
 	GraphicsPipelineBuilder::GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo)
 		: m_CreateInfo(createInfo) {
 
-		m_Pipeline = {};
-		m_Pipeline.CreateInfo = m_CreateInfo;
+		m_Pipeline = CreateRef<GraphicsPipeline>();
+		m_Pipeline->CreateInfo = m_CreateInfo;
 	}
 
-	GraphicsPipeline GraphicsPipelineBuilder::CreateGraphicsPipeline() {
+	Ref<GraphicsPipeline> GraphicsPipelineBuilder::CreateGraphicsPipeline() {
 
-		m_Pipeline.InitLayout();
-		m_Pipeline.InitRenderPass();
-		m_Pipeline.InitPipeline();
+		m_Pipeline->InitLayout();
+		m_Pipeline->InitRenderPass();
+		m_Pipeline->InitPipeline();
 
 		return m_Pipeline;
 	}
 
-	void GraphicsPipeline::InitLayout() {
+	void GraphicsPipelineBuilder::PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage) {
+
+		LF_CORE_ASSERT(!(m_Pipeline->m_PushConstantsStagesUsed & shaderStage), "There can only be one push constant per shader stage!");
+		m_Pipeline->m_PushConstantsStagesUsed |= shaderStage;
 
 		VkPushConstantRange pushConstantRange = {};
-		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(testObject);
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.offset = m_Pipeline->m_PushConstantsTotalOffset;
+		pushConstantRange.size = objectSize;
+		pushConstantRange.stageFlags = shaderStage;
 
-		std::vector<VkPushConstantRange> pushConstants = RenderCommand::GetPushConstants();
+		m_Pipeline->m_PushConstants.push_back(pushConstantRange);
+		m_Pipeline->m_PushConstantsData.push_back(nullptr);
+		m_Pipeline->m_PushConstantsTotalOffset += objectSize;
+	}
+
+	void GraphicsPipeline::PushConstant(uint32_t index, const void* data) {
+
+		m_PushConstantsData[index] = data;
+	}
+
+	void GraphicsPipeline::InitLayout() {
+
+		// std::vector<VkPushConstantRange> pushConstants = RenderCommand::GetPushConstants();
 
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		// layoutCreateInfo.flags = 
 		// layoutCreateInfo.pNext = 
-		layoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+		layoutCreateInfo.pPushConstantRanges = m_PushConstants.data();
 		layoutCreateInfo.pSetLayouts = &CreateInfo.DescriptorSetLayout;
-		layoutCreateInfo.pushConstantRangeCount = 1;
+		layoutCreateInfo.pushConstantRangeCount = m_PushConstants.size();
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 

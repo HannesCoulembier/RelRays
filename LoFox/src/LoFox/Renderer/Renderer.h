@@ -22,7 +22,7 @@ namespace LoFox {
 		static void Init(Ref<Window> window);
 		static void Shutdown();
 
-		static void SubmitGraphicsPipeline(GraphicsPipeline pipeline);
+		static void SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline);
 
 		static void StartFrame();
 		static void SubmitFrame();
@@ -43,25 +43,25 @@ namespace LoFox {
 		static void CreateImageSampler();
 
 		static void CreateDescriptorPool();
-		static void InitPipelines(VkVertexInputBindingDescription vertexBindingDescription, std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions);
 
 		static bool OnFramebufferResize(FramebufferResizeEvent& event);
 	private:
 		static Ref<Window> m_Window;
-		static Timer m_Timer;
-
 		static Ref<SwapChain> m_SwapChain;
-		static GraphicsPipeline m_GraphicsPipeline;
 
-		static Ref<Image> m_Texture1;
+		inline static Timer m_Timer;
 
-		static std::vector<Ref<Buffer>> m_UniformBuffers;
-		static std::vector<void*> m_UniformBuffersMapped;
+		inline static Ref<GraphicsPipeline> m_GraphicsPipeline;
 
-		static VkSampler m_Sampler;
+		inline static Ref<Image> m_Texture1;
 
-		static VkDescriptorPool m_DescriptorPool;
-		static VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
-		static std::vector<VkDescriptorSet> m_GraphicsDescriptorSets;
+		inline static std::vector<Ref<Buffer>> m_UniformBuffers;
+		inline static std::vector<void*> m_UniformBuffersMapped;
+
+		inline static VkSampler m_Sampler;
+
+		inline static VkDescriptorPool m_DescriptorPool;
+		inline static VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
+		inline static std::vector<VkDescriptorSet> m_GraphicsDescriptorSets;
 	};
 }

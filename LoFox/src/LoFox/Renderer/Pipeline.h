@@ -6,14 +6,6 @@
 
 namespace LoFox {
 
-	struct testObject {
-		glm::mat4 model;
-	};
-
-	enum PipelineType {
-		Graphics,
-	};
-
 	struct GraphicsPipelineCreateInfo {
 
 		std::string VertexShaderPath = "";
@@ -33,20 +25,34 @@ namespace LoFox {
 		VkRenderPass RenderPass;
 		VkPipelineLayout Layout;
 
+		void PushConstant(uint32_t index, const void* data);
+
+		void Destroy();
+
+		std::vector<VkPushConstantRange> GetPushConstants() { return m_PushConstants; }
+		std::vector<const void*> GetPushConstantsData() { return m_PushConstantsData; }
+	private:
 		void InitLayout();
 		void InitRenderPass();
 		void InitPipeline();
+	private:
+		uint32_t m_PushConstantsTotalOffset;
+		VkShaderStageFlags m_PushConstantsStagesUsed;
+		std::vector<VkPushConstantRange> m_PushConstants;
+		std::vector<const void*> m_PushConstantsData;
 
-		void Destroy();
+		friend class GraphicsPipelineBuilder;
 	};
 
 	class GraphicsPipelineBuilder {
 
 	public:
 		GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo);
-		GraphicsPipeline CreateGraphicsPipeline();
+		Ref<GraphicsPipeline> CreateGraphicsPipeline();
+
+		void PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage);
 	private:
 		GraphicsPipelineCreateInfo m_CreateInfo;
-		GraphicsPipeline m_Pipeline;
+		Ref<GraphicsPipeline> m_Pipeline;
 	};
 }

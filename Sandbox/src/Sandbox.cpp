@@ -71,8 +71,6 @@ namespace LoFox {
 
 		void OnAttach() {
 
-			RenderCommand::PreparePushConstant(sizeof(TestObject), VK_SHADER_STAGE_VERTEX_BIT);
-
 			// Create GraphicsDescriptorset layouts
 			VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
 			uboLayoutBinding.binding = 0;
@@ -105,6 +103,8 @@ namespace LoFox {
 			graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
 
 			GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
+			graphicsPipelineBuilder.PreparePushConstant(sizeof(TestObject), VK_SHADER_STAGE_VERTEX_BIT);
+			graphicsPipelineBuilder.PreparePushConstant(sizeof(TestObject), VK_SHADER_STAGE_FRAGMENT_BIT);
 			m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
 
 			Renderer::SubmitGraphicsPipeline(m_GraphicsPipeline);
@@ -146,9 +146,10 @@ namespace LoFox {
 				RenderCommand::SubmitVertexBuffer(m_VertexBuffer);
 				RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
 
-				testObject test;
+				TestObject test;
 				test.model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.3f));
-				RenderCommand::PushConstant(0, &test);
+				m_GraphicsPipeline->PushConstant(0, &test);
+				m_GraphicsPipeline->PushConstant(1, &test);
 				
 				Renderer::SubmitFrame();
 			}
@@ -189,7 +190,7 @@ namespace LoFox {
 
 	private:
 		VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
-		GraphicsPipeline m_GraphicsPipeline;
+		Ref<GraphicsPipeline> m_GraphicsPipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 	};

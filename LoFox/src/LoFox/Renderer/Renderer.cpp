@@ -19,20 +19,7 @@ struct UniformBufferObject {
 namespace LoFox {
 
 	Ref<Window> Renderer::m_Window;
-	Timer Renderer::m_Timer;
-
 	Ref<SwapChain> Renderer::m_SwapChain;
-	GraphicsPipeline Renderer::m_GraphicsPipeline;
-
-	VkSampler Renderer::m_Sampler;
-	Ref<Image> Renderer::m_Texture1;
-
-	std::vector<Ref<Buffer>> Renderer::m_UniformBuffers;
-	std::vector<void*> Renderer::m_UniformBuffersMapped;
-
-	VkDescriptorPool Renderer::m_DescriptorPool;
-	VkDescriptorSetLayout Renderer::m_GraphicsDescriptorSetLayout;
-	std::vector<VkDescriptorSet> Renderer::m_GraphicsDescriptorSets;
 
 	void Renderer::Init(Ref<Window> window) {
 
@@ -135,12 +122,12 @@ namespace LoFox {
 		}
 	}
 
-	void Renderer::SubmitGraphicsPipeline(GraphicsPipeline pipeline) {
+	void Renderer::SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline) {
 
 		m_GraphicsPipeline = pipeline;
 
 		// Important! The swapchain framebuffers need to be created after the pipeline is created.
-		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline.RenderPass);
+		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline->RenderPass);
 	}
 	
 	void Renderer::Shutdown() {
@@ -156,7 +143,7 @@ namespace LoFox {
 		vkDestroyDescriptorSetLayout(RenderContext::LogicalDevice, m_GraphicsDescriptorSetLayout, nullptr);
 
 		m_SwapChain->Destroy();
-		m_GraphicsPipeline.Destroy();
+		m_GraphicsPipeline->Destroy();
 
 		RenderCommand::Shutdown();
 		RenderContext::Shutdown();
@@ -179,7 +166,7 @@ namespace LoFox {
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.renderPass = m_GraphicsPipeline.RenderPass;
+		renderPassBeginInfo.renderPass = m_GraphicsPipeline->RenderPass;
 		renderPassBeginInfo.framebuffer = m_SwapChain->GetThisFramesFramebuffer();
 		renderPassBeginInfo.renderArea.offset = { 0, 0 };
 		renderPassBeginInfo.renderArea.extent = m_SwapChain->GetExtent();
@@ -187,7 +174,7 @@ namespace LoFox {
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Pipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline->Pipeline);
 	}
 
 	void Renderer::SubmitFrame() {
@@ -221,17 +208,15 @@ namespace LoFox {
 		vkCmdSetViewport(commandBuffer, 0, 1, &RenderCommand::GetViewport());
 		vkCmdSetScissor(commandBuffer, 0, 1, &RenderCommand::GetScissor());
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline.Layout, 0, 1, &m_GraphicsDescriptorSets[m_SwapChain->GetCurrentFrame()], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline->Layout, 0, 1, &m_GraphicsDescriptorSets[m_SwapChain->GetCurrentFrame()], 0, nullptr);
 
-		std::vector<VkPushConstantRange> pushConstants = RenderCommand::GetPushConstants();
-		std::vector<uint32_t> pushConstantOffsets = RenderCommand::GetPushConstantOffsets();
-		std::vector<const void*> pushConstantsData = RenderCommand::GetPushConstantsData();
+		std::vector<VkPushConstantRange> pushConstants = m_GraphicsPipeline->GetPushConstants();
+		std::vector<const void*> pushConstantsData = m_GraphicsPipeline->GetPushConstantsData();
 		for (size_t i = 0; i < pushConstants.size(); i++) {
 
 			VkPushConstantRange pushConstant = pushConstants[i];
-			uint32_t offset = pushConstantOffsets[i];
 			const void* data = pushConstantsData[i];
-			vkCmdPushConstants(commandBuffer, m_GraphicsPipeline.Layout, pushConstant.stageFlags, offset, pushConstant.size, data);
+			vkCmdPushConstants(commandBuffer, m_GraphicsPipeline->Layout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
 		}
 
 		vkCmdDrawIndexed(commandBuffer, RenderCommand::GetNumberOfIndices(), 1, 0, 0, 0);
@@ -255,7 +240,7 @@ namespace LoFox {
 		if (m_Window->IsMinimized())
 			return true;
 		m_SwapChain->Recreate();
-		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline.RenderPass);
+		m_SwapChain->CreateFramebuffers(m_GraphicsPipeline->RenderPass);
 		Application::GetInstance().OnUpdate();
 		return true;
 	}
@@ -301,20 +286,6 @@ namespace LoFox {
 		descriptorPoolCreateInfo.maxSets = (uint32_t)(MaxFramesInFlight);
 
 		LF_CORE_ASSERT(vkCreateDescriptorPool(RenderContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
-	}
-
-	void Renderer::InitPipelines(VkVertexInputBindingDescription vertexBindingDescription, std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions) {
-
-		// Create Graphics pipeline
-		GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
-		graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
-		graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
-		graphicsPipelineCreateInfo.VertexAttributeDescriptions = vertexAttributeDescriptions;
-		graphicsPipelineCreateInfo.VertexBindingDescription = vertexBindingDescription;
-		graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
-
-		GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
-		m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
 	}
 
 }
