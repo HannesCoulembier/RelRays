@@ -40,7 +40,8 @@ struct Vertex {
 	}
 };
 
-struct TestObject {
+struct ObjectData {
+
 	glm::mat4 model;
 };
 
@@ -103,8 +104,7 @@ namespace LoFox {
 			graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
 
 			GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
-			graphicsPipelineBuilder.PreparePushConstant(sizeof(TestObject), VK_SHADER_STAGE_VERTEX_BIT);
-			graphicsPipelineBuilder.PreparePushConstant(sizeof(TestObject), VK_SHADER_STAGE_FRAGMENT_BIT);
+			graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), VK_SHADER_STAGE_VERTEX_BIT);
 			m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
 
 			Renderer::SubmitGraphicsPipeline(m_GraphicsPipeline);
@@ -124,6 +124,7 @@ namespace LoFox {
 
 		void OnUpdate(float ts) {
 
+			m_Time += ts;
 			static float avgFPS = 0;
 			static uint32_t frames = 0;
 			frames++;
@@ -146,10 +147,9 @@ namespace LoFox {
 				RenderCommand::SubmitVertexBuffer(m_VertexBuffer);
 				RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
 
-				TestObject test;
-				test.model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.3f));
+				ObjectData test;
+				test.model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.3f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 				m_GraphicsPipeline->PushConstant(0, &test);
-				m_GraphicsPipeline->PushConstant(1, &test);
 				
 				Renderer::SubmitFrame();
 			}
@@ -193,6 +193,8 @@ namespace LoFox {
 		Ref<GraphicsPipeline> m_GraphicsPipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
+
+		float m_Time = 0;
 	};
 
 	class SandboxApp : public Application {
