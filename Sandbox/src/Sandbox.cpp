@@ -1,43 +1,11 @@
 #include <LoFox.h>
 #include <LoFox/Core/EntryPoint.h>
 
-struct Vertex {
+struct QuadVertex {
 
 	glm::vec3 Position;
 	glm::vec3 Color;
 	glm::vec2 TexCoord;
-
-	static VkVertexInputBindingDescription GetBindingDescription() {
-
-		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions() {
-
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
-
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, Position);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, Color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
-
-		return attributeDescriptions;
-	}
 };
 
 struct ObjectData {
@@ -45,7 +13,7 @@ struct ObjectData {
 	glm::mat4 model;
 };
 
-const std::vector<Vertex> vertices = {
+const std::vector<QuadVertex> vertices = {
 	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
 	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
@@ -95,25 +63,31 @@ namespace LoFox {
 
 			LF_CORE_ASSERT(vkCreateDescriptorSetLayout(RenderContext::LogicalDevice, &graphicsDescriptorSetlayoutCreateInfo, nullptr, &m_GraphicsDescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
 
+			// Buffers
+			VertexLayout layout = { // Must match QuadVertex
+				{ VertexAttributeType::Float3 }, // position
+				{ VertexAttributeType::Float3 }, // color
+				{ VertexAttributeType::Float2 }, // texCoord
+			};
+
+			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+			m_VertexBuffer = CreateRef<VertexBuffer>(vertexBufferSize, vertices.data(), layout);
+
+			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
+			m_IndexBuffer = CreateRef<IndexBuffer>(indexBufferSize, vertexIndices.size(), vertexIndices.data());
+
 			// Create Graphics pipeline
 			GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 			graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
 			graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
-			graphicsPipelineCreateInfo.VertexAttributeDescriptions = Vertex::GetAttributeDescriptions();
-			graphicsPipelineCreateInfo.VertexBindingDescription = Vertex::GetBindingDescription();
 			graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
-
 			GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
+
 			graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), VK_SHADER_STAGE_VERTEX_BIT);
+			graphicsPipelineBuilder.PrepareVertexBuffer(m_VertexBuffer);
+
 			m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
-
 			Renderer::SubmitGraphicsPipeline(m_GraphicsPipeline);
-
-			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-			m_VertexBuffer = CreateRef<VertexBuffer>(vertexBufferSize, vertices.data());
-
-			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
-			m_IndexBuffer = CreateRef<IndexBuffer>(indexBufferSize, vertexIndices.size(), vertexIndices.data());
 		}
 		void OnDetach() {
 			
@@ -148,7 +122,7 @@ namespace LoFox {
 				RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
 
 				ObjectData test;
-				test.model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.3f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+				test.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -0.2f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 				m_GraphicsPipeline->PushConstant(0, &test);
 				
 				Renderer::SubmitFrame();

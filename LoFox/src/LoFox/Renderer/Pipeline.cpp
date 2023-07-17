@@ -2,6 +2,7 @@
 #include "LoFox/Renderer/Pipeline.h"
 
 #include "LoFox/Renderer/Shader.h"
+#include "LoFox/Renderer/VertexBuffer.h"
 
 #include "LoFox/Renderer/Renderer.h"
 #include "LoFox/Renderer/RenderCommand.h"
@@ -40,10 +41,9 @@ namespace LoFox {
 		m_Pipeline->m_PushConstantsTotalOffset += objectSize;
 	}
 
-	void GraphicsPipeline::PushConstant(uint32_t index, const void* data) {
+	void GraphicsPipelineBuilder::PrepareVertexBuffer(Ref<VertexBuffer> buffer) { m_Pipeline->m_VertexBuffer = buffer; }
 
-		m_PushConstantsData[index] = data;
-	}
+	void GraphicsPipeline::PushConstant(uint32_t index, const void* data) { m_PushConstantsData[index] = data; }
 
 	void GraphicsPipeline::InitLayout() {
 
@@ -195,12 +195,13 @@ namespace LoFox {
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader.GetCreateInfo(), fragmentShader.GetCreateInfo() };
 
+		std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions = m_VertexBuffer->GetVertexLayout().GetAttributeDescriptions();
 		VkPipelineVertexInputStateCreateInfo vertexInputState = {};
 		vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputState.vertexBindingDescriptionCount = 1;
-		vertexInputState.pVertexBindingDescriptions = &CreateInfo.VertexBindingDescription;
-		vertexInputState.vertexAttributeDescriptionCount = (uint32_t)CreateInfo.VertexAttributeDescriptions.size();
-		vertexInputState.pVertexAttributeDescriptions = CreateInfo.VertexAttributeDescriptions.data();
+		vertexInputState.pVertexBindingDescriptions = &m_VertexBuffer->GetVertexLayout().GetBindingDescription();
+		vertexInputState.vertexAttributeDescriptionCount = (uint32_t)vertexAttributeDescriptions.size();
+		vertexInputState.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
 
 		VkPipelineViewportStateCreateInfo viewportState = {}; // Viewport and Scissors are dynamic states
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

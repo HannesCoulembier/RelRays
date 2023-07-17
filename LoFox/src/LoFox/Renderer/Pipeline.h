@@ -4,15 +4,14 @@
 
 #include <vulkan/vulkan.h>
 
+#include "LoFox/Renderer/VertexBuffer.h"
+
 namespace LoFox {
 
 	struct GraphicsPipelineCreateInfo {
 
 		std::string VertexShaderPath = "";
 		std::string FragmentShaderPath = "";
-
-		VkVertexInputBindingDescription VertexBindingDescription;
-		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions;
 
 		VkDescriptorSetLayout DescriptorSetLayout;
 	};
@@ -41,6 +40,8 @@ namespace LoFox {
 		std::vector<VkPushConstantRange> m_PushConstants;
 		std::vector<const void*> m_PushConstantsData;
 
+		Ref<VertexBuffer> m_VertexBuffer;
+
 		friend class GraphicsPipelineBuilder;
 	};
 
@@ -51,6 +52,7 @@ namespace LoFox {
 		Ref<GraphicsPipeline> CreateGraphicsPipeline();
 
 		void PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage);
+		void PrepareVertexBuffer(Ref<VertexBuffer> buffer);
 	private:
 		GraphicsPipelineCreateInfo m_CreateInfo;
 		Ref<GraphicsPipeline> m_Pipeline;
