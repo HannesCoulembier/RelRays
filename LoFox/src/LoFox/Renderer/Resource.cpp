@@ -6,7 +6,7 @@
 
 namespace LoFox {
 
-	Resource::Resource(VkDescriptorType type, VkShaderStageFlags shaderStage, std::vector<Ref<Buffer>> buffers, Ref<Image> texture)
+	Resource::Resource(VkDescriptorType type, VkShaderStageFlags shaderStage, std::vector<Ref<Buffer>> buffers, Ref<LoFox::Texture> texture)
 		: Type(type), ShaderStage(shaderStage), Buffers(buffers), Texture(texture) {
 		
 		for (const auto& buffer : Buffers) {

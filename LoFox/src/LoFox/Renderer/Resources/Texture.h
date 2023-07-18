@@ -1,16 +1,15 @@
 #pragma once
 
-#include "LoFox/Core/Core.h"
+#include <vulkan/vulkan.h>
 
-#include "LoFox/Renderer/Buffer.h"
+#include "LoFox/Renderer/Image.h"
 
 namespace LoFox {
 
-	class Image {
+	class Texture {
 
 	public:
-		Image(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags);
-
+		Texture(const std::string& path);
 		void Destroy();
 
 		inline int GetWidth() { return m_Width; }
@@ -20,8 +19,11 @@ namespace LoFox {
 		inline VkFormat GetFormat() { return m_Format; }
 
 		void TransitionLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+
+		static Ref<Texture> Create(const std::string& path);
 	private:
+		std::string m_Path;
+
 		VkImage m_Image;
 		VkDeviceMemory m_Memory;
 		VkImageView m_ImageView;
