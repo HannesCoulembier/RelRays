@@ -25,3 +25,4 @@
 #include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Renderer/IndexBuffer.h"
 #include "LoFox/Renderer/Resources/Texture.h"
+#include "LoFox/Renderer/Resources/UniformBuffer.h"

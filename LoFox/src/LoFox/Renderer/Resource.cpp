@@ -6,23 +6,11 @@
 
 namespace LoFox {
 
-	Resource::Resource(VkDescriptorType type, VkShaderStageFlags shaderStage, std::vector<Ref<Buffer>> buffers, Ref<LoFox::Texture> texture)
-		: Type(type), ShaderStage(shaderStage), Buffers(buffers), Texture(texture) {
-		
-		for (const auto& buffer : Buffers) {
+	Resource::Resource(VkDescriptorType type, VkShaderStageFlags shaderStage, Ref<UniformBuffer> buffer, Ref<LoFox::Texture> texture)
+		: Type(type), ShaderStage(shaderStage), Buffer(buffer), Texture(texture) {
 
-			VkDescriptorBufferInfo bufferDescriptorInfo = {};
-			bufferDescriptorInfo.buffer = VK_NULL_HANDLE;
-			if (Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-
-				bufferDescriptorInfo.buffer = buffer->GetBuffer();
-				bufferDescriptorInfo.offset = 0;
-				bufferDescriptorInfo.range = 128; // TODO: Fix this hardcoding by making proper UniformBuffer class to replace std::vector<Ref<Buffer>> (this should hold UniformBufferObject)
-				// bufferDescriptorInfo.range = sizeof(UniformBufferObject);
-			}
-
-			BufferDescriptorInfos.push_back(bufferDescriptorInfo);
-		}
+		if (Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+			BufferDescriptorInfos = Buffer->GetDescriptorInfos();
 
 		ImageDescriptorInfo = {};
 		ImageDescriptorInfo.imageView = VK_NULL_HANDLE;

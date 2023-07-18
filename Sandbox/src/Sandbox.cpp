@@ -46,24 +46,14 @@ namespace LoFox {
 
 		void OnAttach() {
 
-			// Create UniformBuffers
-			uint32_t uniformBufferSize = sizeof(UBO);
-			m_UniformBuffers.resize(Renderer::MaxFramesInFlight);
-			m_UniformBuffersMapped.resize(Renderer::MaxFramesInFlight);
+			m_UniformBuffer = UniformBuffer::Create(sizeof(UBO));
 
-			for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
-
-				m_UniformBuffers[i] = CreateRef<Buffer>(uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-				vkMapMemory(RenderContext::LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
-			}
-
-			// Create textures
-			m_Texture1 = CreateRef<Image>("Assets/Textures/Rick.png");
+			// Create texture(s)
+			m_Texture1 = Texture::Create("Assets/Textures/Rick.png");
 
 			m_ResourceLayout = ResourceLayout::Create({
-				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, m_UniformBuffers, nullptr },
-				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, {}, m_Texture1 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,			VK_SHADER_STAGE_VERTEX_BIT,		m_UniformBuffer,	{}			},
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	VK_SHADER_STAGE_FRAGMENT_BIT,	{},					m_Texture1	},
 			});
 
 			Renderer::SetResourceLayout(m_ResourceLayout);
@@ -101,9 +91,7 @@ namespace LoFox {
 			m_ResourceLayout->Destroy();
 
 			m_Texture1->Destroy();
-
-			for (auto buffer : m_UniformBuffers)
-				buffer->Destroy();
+			m_UniformBuffer->Destroy();
 		}
 
 		void OnUpdate(float ts) {
@@ -170,7 +158,7 @@ namespace LoFox {
 			ubo.proj = glm::perspective(glm::radians(45.0f), Renderer::GetSwapChainExtent().width / (float)Renderer::GetSwapChainExtent().height, 0.1f, 10.0f);
 			ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
 
-			memcpy(m_UniformBuffersMapped[Renderer::GetCurrentFrame()], &ubo, sizeof(ubo));
+			m_UniformBuffer->SetData(&ubo);
 		}
 
 		void OnEvent(LoFox::Event& event) {
@@ -190,10 +178,11 @@ namespace LoFox {
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 
-		Ref<Image> m_Texture1;
+		Ref<Texture> m_Texture1;
+		Ref<UniformBuffer> m_UniformBuffer;
 
-		std::vector<Ref<Buffer>> m_UniformBuffers;
-		std::vector<void*> m_UniformBuffersMapped;
+		// std::vector<Ref<Buffer>> m_UniformBuffers;
+		// std::vector<void*> m_UniformBuffersMapped;
 
 		float m_Time = 0;
 	};
