@@ -13,6 +13,12 @@ struct ObjectData {
 	glm::mat4 model;
 };
 
+struct UBO {
+
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
+};
+
 const std::vector<QuadVertex> vertices = {
 	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
@@ -40,28 +46,27 @@ namespace LoFox {
 
 		void OnAttach() {
 
-			// Create GraphicsDescriptorset layouts
-			VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
-			uboLayoutBinding.binding = 0;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uboLayoutBinding.descriptorCount = 1;
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-			uboLayoutBinding.pImmutableSamplers = nullptr;
+			// Create UniformBuffers
+			uint32_t uniformBufferSize = sizeof(UBO);
+			m_UniformBuffers.resize(Renderer::MaxFramesInFlight);
+			m_UniformBuffersMapped.resize(Renderer::MaxFramesInFlight);
 
-			VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-			samplerLayoutBinding.binding = 1;
-			samplerLayoutBinding.descriptorCount = 1;
-			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			samplerLayoutBinding.pImmutableSamplers = nullptr;
-			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
 
-			std::vector<VkDescriptorSetLayoutBinding> graphicsBindings = { uboLayoutBinding, samplerLayoutBinding };
-			VkDescriptorSetLayoutCreateInfo graphicsDescriptorSetlayoutCreateInfo = {};
-			graphicsDescriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			graphicsDescriptorSetlayoutCreateInfo.bindingCount = (uint32_t)graphicsBindings.size();
-			graphicsDescriptorSetlayoutCreateInfo.pBindings = graphicsBindings.data();
+				m_UniformBuffers[i] = CreateRef<Buffer>(uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-			LF_CORE_ASSERT(vkCreateDescriptorSetLayout(RenderContext::LogicalDevice, &graphicsDescriptorSetlayoutCreateInfo, nullptr, &m_GraphicsDescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
+				vkMapMemory(RenderContext::LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
+			}
+
+			// Create textures
+			m_Texture1 = CreateRef<Image>("Assets/Textures/Rick.png");
+
+			m_ResourceLayout = ResourceLayout::Create({
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, m_UniformBuffers, nullptr },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, {}, m_Texture1 },
+			});
+
+			Renderer::SetResourceLayout(m_ResourceLayout);
 
 			// Buffers
 			VertexLayout layout = { // Must match QuadVertex
@@ -80,7 +85,7 @@ namespace LoFox {
 			GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 			graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
 			graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
-			graphicsPipelineCreateInfo.DescriptorSetLayout = m_GraphicsDescriptorSetLayout;
+			graphicsPipelineCreateInfo.ResourceLayout = m_ResourceLayout;
 			GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
 
 			graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), VK_SHADER_STAGE_VERTEX_BIT);
@@ -93,7 +98,12 @@ namespace LoFox {
 			
 			m_VertexBuffer->Destroy();
 			m_IndexBuffer->Destroy();
-			vkDestroyDescriptorSetLayout(RenderContext::LogicalDevice, m_GraphicsDescriptorSetLayout, nullptr);
+			m_ResourceLayout->Destroy();
+
+			m_Texture1->Destroy();
+
+			for (auto buffer : m_UniformBuffers)
+				buffer->Destroy();
 		}
 
 		void OnUpdate(float ts) {
@@ -114,6 +124,8 @@ namespace LoFox {
 				RenderCommand::SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 				RenderCommand::SetViewport({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height });
 				RenderCommand::SetScissor({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height});
+				// Should be set before Renderer::StartFrame ----------------------------------
+				UpdateUniformBuffer();
 				// ----------------------------------------------------------------------------
 
 				Renderer::StartFrame();
@@ -151,6 +163,16 @@ namespace LoFox {
 			*/
 		}
 
+		void UpdateUniformBuffer() {
+
+			UBO ubo = {};
+			ubo.view = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.proj = glm::perspective(glm::radians(45.0f), Renderer::GetSwapChainExtent().width / (float)Renderer::GetSwapChainExtent().height, 0.1f, 10.0f);
+			ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
+
+			memcpy(m_UniformBuffersMapped[Renderer::GetCurrentFrame()], &ubo, sizeof(ubo));
+		}
+
 		void OnEvent(LoFox::Event& event) {
 
 			LoFox::EventDispatcher dispatcher(event);
@@ -163,10 +185,15 @@ namespace LoFox {
 		}
 
 	private:
-		VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
+		Ref<ResourceLayout> m_ResourceLayout;
 		Ref<GraphicsPipeline> m_GraphicsPipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
+
+		Ref<Image> m_Texture1;
+
+		std::vector<Ref<Buffer>> m_UniformBuffers;
+		std::vector<void*> m_UniformBuffersMapped;
 
 		float m_Time = 0;
 	};

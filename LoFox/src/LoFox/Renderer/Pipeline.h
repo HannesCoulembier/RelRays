@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 
 #include "LoFox/Renderer/VertexBuffer.h"
+#include "LoFox/Renderer/Resource.h"
 
 namespace LoFox {
 
@@ -13,7 +14,7 @@ namespace LoFox {
 		std::string VertexShaderPath = "";
 		std::string FragmentShaderPath = "";
 
-		VkDescriptorSetLayout DescriptorSetLayout;
+		Ref<ResourceLayout> ResourceLayout;
 	};
 
 	class GraphicsPipeline {

@@ -22,6 +22,7 @@ namespace LoFox {
 		static void Init(Ref<Window> window);
 		static void Shutdown();
 
+		static void SetResourceLayout(Ref<ResourceLayout> layout);
 		static void SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline);
 
 		static void StartFrame();
@@ -32,15 +33,14 @@ namespace LoFox {
 		static inline VkFormat GetSwapChainImageFormat() { return m_SwapChain->GetImageFormat(); }
 		static inline VkFormat GetSwapChainDepthFormat() { return m_SwapChain->GetDepthImage()->GetFormat(); }
 		static inline VkExtent2D GetSwapChainExtent() { return m_SwapChain->GetExtent(); }
+		static inline uint32_t GetCurrentFrame() { return m_SwapChain->GetCurrentFrame(); }
+		static inline VkSampler GetImageSampler() { return m_Sampler; }
 
 		static void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
 	public:
 		static const int MaxFramesInFlight = 1;
 	private:
 		static void RecordCommandBuffer();
-		static void UpdateUniformBuffer(uint32_t currentImage);
-
-		static void CreateImageSampler();
 
 		static void CreateDescriptorPool();
 
@@ -52,16 +52,11 @@ namespace LoFox {
 		inline static Timer m_Timer;
 
 		inline static Ref<GraphicsPipeline> m_GraphicsPipeline;
-
-		inline static Ref<Image> m_Texture1;
-
-		inline static std::vector<Ref<Buffer>> m_UniformBuffers;
-		inline static std::vector<void*> m_UniformBuffersMapped;
+		inline static Ref<ResourceLayout> m_ResourceLayout;
 
 		inline static VkSampler m_Sampler;
 
 		inline static VkDescriptorPool m_DescriptorPool;
-		inline static VkDescriptorSetLayout m_GraphicsDescriptorSetLayout;
 		inline static std::vector<VkDescriptorSet> m_GraphicsDescriptorSets;
 	};
 }

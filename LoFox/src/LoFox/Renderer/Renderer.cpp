@@ -30,50 +30,38 @@ namespace LoFox {
 
 		m_SwapChain = CreateRef<SwapChain>(m_Window);
 
-		// Create GraphicsDescriptorset layouts
-		VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // uniform buffer with MVP matrices
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding.pImmutableSamplers = nullptr;
+		VkPhysicalDeviceProperties properties = {};
+		vkGetPhysicalDeviceProperties(RenderContext::PhysicalDevice, &properties);
 
-		VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-		samplerLayoutBinding.binding = 1;
-		samplerLayoutBinding.descriptorCount = 1;
-		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerLayoutBinding.pImmutableSamplers = nullptr;
-		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		VkSamplerCreateInfo samplerCreateInfo = {};
+		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.anisotropyEnable = VK_TRUE;
+		samplerCreateInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+		samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK; // Unused: see addressModes
+		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerCreateInfo.compareEnable = VK_FALSE;
+		samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerCreateInfo.mipLodBias = 0.0f;
+		samplerCreateInfo.minLod = 0.0f;
+		samplerCreateInfo.maxLod = 0.0f;
 
-		std::vector<VkDescriptorSetLayoutBinding> graphicsBindings = { uboLayoutBinding, samplerLayoutBinding };
-		VkDescriptorSetLayoutCreateInfo graphicsDescriptorSetlayoutCreateInfo = {};
-		graphicsDescriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		graphicsDescriptorSetlayoutCreateInfo.bindingCount = (uint32_t)graphicsBindings.size();
-		graphicsDescriptorSetlayoutCreateInfo.pBindings = graphicsBindings.data();
-		
-		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(RenderContext::LogicalDevice, &graphicsDescriptorSetlayoutCreateInfo, nullptr, &m_GraphicsDescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
+		LF_CORE_ASSERT(vkCreateSampler(RenderContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
+	}
 
-		// Create UniformBuffers
-		uint32_t uniformBufferSize = sizeof(UniformBufferObject);
-		m_UniformBuffers.resize(MaxFramesInFlight);
-		m_UniformBuffersMapped.resize(MaxFramesInFlight);
+	void Renderer::SetResourceLayout(Ref<ResourceLayout> layout) {
 
-		for (size_t i = 0; i < MaxFramesInFlight; i++) {
-
-			m_UniformBuffers[i] = CreateRef<Buffer>(uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-			vkMapMemory(RenderContext::LogicalDevice, m_UniformBuffers[i]->GetMemory(), 0, uniformBufferSize, 0, &m_UniformBuffersMapped[i]);
-		}
-
-		// Create textures
-		m_Texture1 = CreateRef<Image>("Assets/Textures/Rick.png");
-		
-		CreateImageSampler();
+		m_ResourceLayout = layout;
 
 		CreateDescriptorPool();
 
 		// Allocate Descriptor sets
-		std::vector<VkDescriptorSetLayout> layouts(MaxFramesInFlight, m_GraphicsDescriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(MaxFramesInFlight, m_ResourceLayout->GetDescriptorSetLayout());
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {};
 		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		descriptorSetAllocInfo.descriptorPool = m_DescriptorPool;
@@ -86,38 +74,32 @@ namespace LoFox {
 		// Update Descriptor sets
 		for (size_t i = 0; i < MaxFramesInFlight; i++) {
 
-			VkDescriptorBufferInfo bufferInfo = {};
-			bufferInfo.buffer = m_UniformBuffers[i]->GetBuffer();
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
+			std::vector<VkWriteDescriptorSet> descriptorWrites = {};
+			uint32_t binding = 0;
+			for (const auto& resource : m_ResourceLayout->GetResources()) {
 
-			VkDescriptorImageInfo imageInfo = {};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = m_Texture1->GetImageView();
-			imageInfo.sampler = m_Sampler;
+				VkDescriptorBufferInfo bufferInfo = {};
+				if (resource.BufferDescriptorInfos.size() != 0)
+					bufferInfo = resource.BufferDescriptorInfos[i];
 
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = m_GraphicsDescriptorSets[i];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-			descriptorWrites[0].pImageInfo = nullptr;
-			descriptorWrites[0].pTexelBufferView = nullptr;
+				VkDescriptorImageInfo imageInfo = resource.ImageDescriptorInfo;
 
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = m_GraphicsDescriptorSets[i];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pBufferInfo = nullptr;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-			descriptorWrites[1].pTexelBufferView = nullptr;
+				VkWriteDescriptorSet descriptorWrite = {};
+				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrite.dstSet = m_GraphicsDescriptorSets[i];
+				descriptorWrite.dstBinding = binding;
+				descriptorWrite.dstArrayElement = 0;
+				descriptorWrite.descriptorType = resource.Type;
+				descriptorWrite.descriptorCount = 1;
+				descriptorWrite.pBufferInfo = (resource.BufferDescriptorInfos.size() == 0) ? nullptr : &bufferInfo;
+				descriptorWrite.pImageInfo = &imageInfo;
+				descriptorWrite.pTexelBufferView = nullptr;
 
-			vkUpdateDescriptorSets(RenderContext::LogicalDevice, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+				descriptorWrites.push_back(descriptorWrite);
+				binding++;
+
+				vkUpdateDescriptorSets(RenderContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+			}
 		}
 	}
 
@@ -131,15 +113,9 @@ namespace LoFox {
 	
 	void Renderer::Shutdown() {
 
-		m_Texture1->Destroy();
-
-		for (auto buffer : m_UniformBuffers)
-			buffer->Destroy();
-
 		vkDestroySampler(RenderContext::LogicalDevice, m_Sampler, nullptr);
 
 		vkDestroyDescriptorPool(RenderContext::LogicalDevice, m_DescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(RenderContext::LogicalDevice, m_GraphicsDescriptorSetLayout, nullptr);
 
 		m_SwapChain->Destroy();
 		m_GraphicsPipeline->Destroy();
@@ -181,10 +157,6 @@ namespace LoFox {
 		if (m_SwapChain->GetCurrentFrame() < 0)
 			return;
 
-		// To be moved to client ----------------------------------------------------
-		UpdateUniformBuffer(m_SwapChain->GetCurrentFrame());
-		// To be moved to client ----------------------------------------------------
-
 		RecordCommandBuffer();
 
 		vkCmdEndRenderPass(m_SwapChain->GetThisFramesCommandbuffer());
@@ -221,18 +193,6 @@ namespace LoFox {
 		vkCmdDrawIndexed(commandBuffer, RenderCommand::GetNumberOfIndices(), 1, 0, 0, 0);
 	}
 
-	void Renderer::UpdateUniformBuffer(uint32_t currentImage) {
-
-		float time = m_Timer.Elapsed();
-
-		UniformBufferObject ubo = {};
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChain->GetExtent().width / (float)m_SwapChain->GetExtent().height, 0.1f, 10.0f);
-		ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
-
-		memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-	}
-
 	bool Renderer::OnFramebufferResize(FramebufferResizeEvent& event) {
 
 		if (m_Window->IsMinimized())
@@ -243,43 +203,20 @@ namespace LoFox {
 		return true;
 	}
 
-	void Renderer::CreateImageSampler() {
-
-		VkPhysicalDeviceProperties properties = {};
-		vkGetPhysicalDeviceProperties(RenderContext::PhysicalDevice, &properties);
-
-		VkSamplerCreateInfo samplerCreateInfo = {};
-		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-		samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerCreateInfo.anisotropyEnable = VK_TRUE;
-		samplerCreateInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-		samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK; // Unused: see addressModes
-		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerCreateInfo.compareEnable = VK_FALSE;
-		samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerCreateInfo.mipLodBias = 0.0f;
-		samplerCreateInfo.minLod = 0.0f;
-		samplerCreateInfo.maxLod = 0.0f;
-
-		LF_CORE_ASSERT(vkCreateSampler(RenderContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
-	}
-
 	void Renderer::CreateDescriptorPool() {
 
-		std::vector<VkDescriptorPoolSize> descriptorPoolSizes(2);
-		descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorPoolSizes[0].descriptorCount = (uint32_t)(MaxFramesInFlight);
-		descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorPoolSizes[1].descriptorCount = (uint32_t)(MaxFramesInFlight);
+		std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {};
+		for (const auto& resource : m_ResourceLayout->GetResources()) {
+
+			VkDescriptorPoolSize descriptorPoolSize = {};
+			descriptorPoolSize.type = resource.Type;
+			descriptorPoolSize.descriptorCount = (uint32_t)(MaxFramesInFlight);
+			descriptorPoolSizes.push_back(descriptorPoolSize);
+		}
 
 		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
 		descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolCreateInfo.poolSizeCount = 2;
+		descriptorPoolCreateInfo.poolSizeCount = descriptorPoolSizes.size();
 		descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
 		descriptorPoolCreateInfo.maxSets = (uint32_t)(MaxFramesInFlight);
 

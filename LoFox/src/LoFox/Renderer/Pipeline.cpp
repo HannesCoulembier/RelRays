@@ -49,11 +49,12 @@ namespace LoFox {
 
 		// std::vector<VkPushConstantRange> pushConstants = RenderCommand::GetPushConstants();
 
+		VkDescriptorSetLayout descriptorSetLayout = CreateInfo.ResourceLayout->GetDescriptorSetLayout();
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		// layoutCreateInfo.flags = 
 		// layoutCreateInfo.pNext = 
 		layoutCreateInfo.pPushConstantRanges = m_PushConstants.data();
-		layoutCreateInfo.pSetLayouts = &CreateInfo.DescriptorSetLayout;
+		layoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 		layoutCreateInfo.pushConstantRangeCount = m_PushConstants.size();
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
