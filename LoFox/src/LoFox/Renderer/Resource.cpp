@@ -6,20 +6,23 @@
 
 namespace LoFox {
 
-	Resource::Resource(VkDescriptorType type, VkShaderStageFlags shaderStage, Ref<UniformBuffer> buffer, Ref<LoFox::Texture> texture)
-		: Type(type), ShaderStage(shaderStage), Buffer(buffer), Texture(texture) {
+	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::TextureAtlas> atlas)
+		: Type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER), ShaderStage(shaderStage), TexAtlas(atlas) {
 
-		if (Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-			BufferDescriptorInfos = Buffer->GetDescriptorInfos();
+		ImageDescriptorInfos = TexAtlas->GetDescriptorInfos();
+		DescriptorCount = TexAtlas->GetTexCount();
+	}
 
-		ImageDescriptorInfo = {};
-		ImageDescriptorInfo.imageView = VK_NULL_HANDLE;
-		if (Type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer)
+		: Type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER), ShaderStage(shaderStage), UniformBuffer(uniformBuffer) {
 
-			ImageDescriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			ImageDescriptorInfo.imageView = Texture->GetImageView();
-			ImageDescriptorInfo.sampler = Renderer::GetImageSampler();
-		}
+		BufferDescriptorInfos = UniformBuffer->GetDescriptorInfos();
+	}
+
+	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageBuffer> storageBuffer)
+		: Type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER), ShaderStage(shaderStage), StorageBuffer(storageBuffer) {
+
+		BufferDescriptorInfos = StorageBuffer->GetDescriptorInfos();
 	}
 
 	ResourceLayout::ResourceLayout(std::initializer_list<Resource> resources)
@@ -32,7 +35,7 @@ namespace LoFox {
 			VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {};
 			descriptorSetLayoutBinding.binding = binding;
 			descriptorSetLayoutBinding.descriptorType = resource.Type;
-			descriptorSetLayoutBinding.descriptorCount = 1;
+			descriptorSetLayoutBinding.descriptorCount = resource.DescriptorCount;
 			descriptorSetLayoutBinding.stageFlags = resource.ShaderStage;
 			descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
 

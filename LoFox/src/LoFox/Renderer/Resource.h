@@ -5,7 +5,9 @@
 #include <vulkan/vulkan.h>
 
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
+#include "LoFox/Renderer/Resources/StorageBuffer.h"
 #include "LoFox/Renderer/Resources/Texture.h"
+#include "LoFox/Renderer/Resources/TextureAtlas.h"
 
 namespace LoFox {
 
@@ -13,13 +15,17 @@ namespace LoFox {
 
 		VkDescriptorType Type;
 		VkShaderStageFlags ShaderStage;
-		Ref<UniformBuffer> Buffer;
-		Ref<Texture> Texture;
+		Ref<UniformBuffer> UniformBuffer = nullptr;
+		Ref<StorageBuffer> StorageBuffer = nullptr;
+		Ref<TextureAtlas> TexAtlas = nullptr;
+		uint32_t DescriptorCount = 1;
 
 		std::vector<VkDescriptorBufferInfo> BufferDescriptorInfos;
-		VkDescriptorImageInfo ImageDescriptorInfo;
+		std::vector<VkDescriptorImageInfo> ImageDescriptorInfos;
 
-		Resource(VkDescriptorType type, VkShaderStageFlags shaderStage, Ref<UniformBuffer> buffer, Ref<LoFox::Texture> texture);
+		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::TextureAtlas> atlas);
+		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer);
+		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageBuffer> storageBuffer);
 	};
 
 	class ResourceLayout {

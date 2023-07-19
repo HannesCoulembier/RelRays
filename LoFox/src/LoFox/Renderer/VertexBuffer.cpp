@@ -6,8 +6,9 @@ namespace LoFox {
 	VkFormat VertexAttributeTypeToVkFormat(VertexAttributeType type) {
 
 		switch (type) {
-		case VertexAttributeType::Float2:	return VK_FORMAT_R32G32_SFLOAT;
-		case VertexAttributeType::Float3:	return VK_FORMAT_R32G32B32_SFLOAT;
+			case VertexAttributeType::Float2:	return VK_FORMAT_R32G32_SFLOAT;
+			case VertexAttributeType::Float3:	return VK_FORMAT_R32G32B32_SFLOAT;
+			case VertexAttributeType::Uint:		return VK_FORMAT_R32_UINT;
 		}
 
 		LF_CORE_ASSERT(false, "Unknown vertex attribute type!");
@@ -17,8 +18,9 @@ namespace LoFox {
 	uint32_t VertexAttributeTypeSize(VertexAttributeType type) {
 
 		switch (type) {
-		case VertexAttributeType::Float2:	return 2 * 4;
-		case VertexAttributeType::Float3:	return 3 * 4;
+			case VertexAttributeType::Float2:	return 2 * 4;
+			case VertexAttributeType::Float3:	return 3 * 4;
+			case VertexAttributeType::Uint:		return 1 * 4;
 		}
 
 		LF_CORE_ASSERT(false, "Unknown vertex attribute type!");

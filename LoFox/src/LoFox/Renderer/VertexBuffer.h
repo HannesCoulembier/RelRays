@@ -9,6 +9,7 @@ namespace LoFox {
 	enum VertexAttributeType {
 		Float2,
 		Float3,
+		Uint,
 	};
 
 	class VertexLayout {

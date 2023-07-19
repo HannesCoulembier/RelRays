@@ -26,6 +26,7 @@ namespace LoFox {
 		static void SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline);
 
 		static void StartFrame();
+		static void Draw(uint32_t instances);
 		static void SubmitFrame();
 
 		static void WaitIdle();
@@ -40,7 +41,6 @@ namespace LoFox {
 	public:
 		static const int MaxFramesInFlight = 1;
 	private:
-		static void RecordCommandBuffer();
 
 		static void CreateDescriptorPool();
 

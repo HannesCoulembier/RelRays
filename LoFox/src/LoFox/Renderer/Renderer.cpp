@@ -82,7 +82,9 @@ namespace LoFox {
 				if (resource.BufferDescriptorInfos.size() != 0)
 					bufferInfo = resource.BufferDescriptorInfos[i];
 
-				VkDescriptorImageInfo imageInfo = resource.ImageDescriptorInfo;
+				std::vector<VkDescriptorImageInfo> imageInfo = {};
+				if (resource.ImageDescriptorInfos.size() != 0)
+					imageInfo = resource.ImageDescriptorInfos;
 
 				VkWriteDescriptorSet descriptorWrite = {};
 				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -90,9 +92,9 @@ namespace LoFox {
 				descriptorWrite.dstBinding = binding;
 				descriptorWrite.dstArrayElement = 0;
 				descriptorWrite.descriptorType = resource.Type;
-				descriptorWrite.descriptorCount = 1;
+				descriptorWrite.descriptorCount = resource.DescriptorCount;
 				descriptorWrite.pBufferInfo = (resource.BufferDescriptorInfos.size() == 0) ? nullptr : &bufferInfo;
-				descriptorWrite.pImageInfo = &imageInfo;
+				descriptorWrite.pImageInfo = (resource.ImageDescriptorInfos.size() == 0) ? nullptr : imageInfo.data();
 				descriptorWrite.pTexelBufferView = nullptr;
 
 				descriptorWrites.push_back(descriptorWrite);
@@ -157,8 +159,6 @@ namespace LoFox {
 		if (m_SwapChain->GetCurrentFrame() < 0)
 			return;
 
-		RecordCommandBuffer();
-
 		vkCmdEndRenderPass(m_SwapChain->GetThisFramesCommandbuffer());
 
 		LF_CORE_ASSERT(vkEndCommandBuffer(m_SwapChain->GetThisFramesCommandbuffer()) == VK_SUCCESS, "Failed to record command buffer!");
@@ -169,7 +169,7 @@ namespace LoFox {
 
 	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
 
-	void Renderer::RecordCommandBuffer() {
+	void Renderer::Draw(uint32_t instances) {
 
 		VkCommandBuffer commandBuffer = m_SwapChain->GetThisFramesCommandbuffer();
 
@@ -190,7 +190,7 @@ namespace LoFox {
 			vkCmdPushConstants(commandBuffer, m_GraphicsPipeline->Layout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
 		}
 
-		vkCmdDrawIndexed(commandBuffer, RenderCommand::GetNumberOfIndices(), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, RenderCommand::GetNumberOfIndices(), instances, 0, 0, 0);
 	}
 
 	bool Renderer::OnFramebufferResize(FramebufferResizeEvent& event) {
