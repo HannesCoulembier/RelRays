@@ -4,9 +4,7 @@
 struct QuadVertex {
 
 	glm::vec3 Position;
-	glm::vec3 Color;
 	glm::vec2 TexCoord;
-	uint32_t TexIndex;
 };
 
 struct ObjectData {
@@ -18,23 +16,19 @@ struct UBO {
 
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
+	alignas(16) glm::mat4 invView;
+	alignas(16) glm::mat4 invProj;
 };
 
 const std::vector<QuadVertex> vertices = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, 0},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, 0},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, 0},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, 0},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, 0},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, 0},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, 0}
+	{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
+	{{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+	{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
 };
 
 const std::vector<uint32_t> vertexIndices = {
 	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4,
 };
 
 namespace LoFox {
@@ -48,29 +42,36 @@ namespace LoFox {
 		void OnAttach() {
 
 			m_UniformBuffer = UniformBuffer::Create(sizeof(UBO));
-			m_StorageBuffer = StorageBuffer::Create(1024, sizeof(ObjectData));
+			// m_StorageBuffer = StorageBuffer::Create(1024, sizeof(ObjectData));
+
+			m_StorageImage = StorageImage::Create(Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height);
 
 			// Create texture(s)
-			m_TextureAtlas = TextureAtlas::Create();
-			m_Texture1 = Texture::Create("Assets/Textures/Rick.png");
-			m_Texture2 = Texture::Create("Assets/Textures/poland.png");
-			m_TextureAtlas->AddTexture(m_Texture1);
-			m_TextureAtlas->AddTexture(m_Texture2);
+			// m_TextureAtlas = TextureAtlas::Create();
+			// m_Texture1 = Texture::Create("Assets/Textures/Rick.png");
+			// m_Texture2 = Texture::Create("Assets/Textures/poland.png");
+			// m_TextureAtlas->AddTexture(m_Texture1);
+			// m_TextureAtlas->AddTexture(m_Texture2);
 
-			m_ResourceLayout = ResourceLayout::Create({
-				{ VK_SHADER_STAGE_VERTEX_BIT,	m_UniformBuffer	},
-				{ VK_SHADER_STAGE_FRAGMENT_BIT,	m_TextureAtlas	},
-				{ VK_SHADER_STAGE_VERTEX_BIT,	m_StorageBuffer	},
+			m_GraphicsResourceLayout = ResourceLayout::Create({
+				// { VK_SHADER_STAGE_FRAGMENT_BIT,	m_TextureAtlas	},
+				// { VK_SHADER_STAGE_VERTEX_BIT,	m_StorageBuffer	},
+				{ VK_SHADER_STAGE_FRAGMENT_BIT, m_StorageImage	, true}, // Is destination -> isDestination = true
 			});
 
-			Renderer::SetResourceLayout(m_ResourceLayout);
+			m_ComputeResourceLayout = ResourceLayout::Create({
+				{ VK_SHADER_STAGE_COMPUTE_BIT,	m_UniformBuffer	},
+				{ VK_SHADER_STAGE_COMPUTE_BIT,	m_StorageImage , false}, // Is source -> isDestination = false
+			});
+
+			Renderer::SetResourceLayout(m_GraphicsResourceLayout);
 
 			// Buffers
 			VertexLayout layout = { // Must match QuadVertex
 				{ VertexAttributeType::Float3 }, // position
-				{ VertexAttributeType::Float3 }, // color
+				// { VertexAttributeType::Float3 }, // color
 				{ VertexAttributeType::Float2 }, // texCoord
-				{ VertexAttributeType::Uint }, // texIndex
+				// { VertexAttributeType::Uint }, // texIndex
 			};
 
 			uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
@@ -79,32 +80,45 @@ namespace LoFox {
 			uint32_t indexBufferSize = sizeof(vertexIndices[0]) * vertexIndices.size();
 			m_IndexBuffer = CreateRef<IndexBuffer>(indexBufferSize, vertexIndices.size(), vertexIndices.data());
 
+			// Create Compute Pipeline
+			ComputePipelineCreateInfo computePipelineCreateInfo = {};
+			computePipelineCreateInfo.ComputeShaderPath = "Assets/Shaders/ComputeShader.comp";
+			computePipelineCreateInfo.ResourceLayout = m_ComputeResourceLayout;
+
+			ComputePipelineBuilder computePipelineBuilder(computePipelineCreateInfo);
+
+			m_ComputePipeline = computePipelineBuilder.CreateComputePipeline();
+
 			// Create Graphics pipeline
 			GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 			graphicsPipelineCreateInfo.VertexShaderPath = "Assets/Shaders/VertexShader.vert";
 			graphicsPipelineCreateInfo.FragmentShaderPath = "Assets/Shaders/FragmentShader.frag";
-			graphicsPipelineCreateInfo.ResourceLayout = m_ResourceLayout;
+			graphicsPipelineCreateInfo.ResourceLayout = m_GraphicsResourceLayout;
 			GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
 
-			graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), VK_SHADER_STAGE_VERTEX_BIT); // model transform
-			graphicsPipelineBuilder.PreparePushConstant(sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT); // Texture Index
+			// graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), VK_SHADER_STAGE_VERTEX_BIT); // model transform
+			// graphicsPipelineBuilder.PreparePushConstant(sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT); // Texture Index
 			graphicsPipelineBuilder.PrepareVertexBuffer(m_VertexBuffer);
 
 			m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
 			Renderer::SubmitGraphicsPipeline(m_GraphicsPipeline);
 
-			UpdateStorageBuffer();
+			// UpdateStorageBuffer();
 		}
 		void OnDetach() {
 			
 			m_VertexBuffer->Destroy();
 			m_IndexBuffer->Destroy();
-			m_ResourceLayout->Destroy();
+			m_GraphicsResourceLayout->Destroy();
+			m_ComputeResourceLayout->Destroy();
 
-			m_Texture1->Destroy();
-			m_Texture2->Destroy();
+			// m_Texture1->Destroy();
+			// m_Texture2->Destroy();
 			m_UniformBuffer->Destroy();
-			m_StorageBuffer->Destroy();
+			// m_StorageBuffer->Destroy();
+			m_StorageImage->Destroy();
+
+			m_ComputePipeline->Destroy();
 		}
 
 		void OnUpdate(float ts) {
@@ -129,23 +143,28 @@ namespace LoFox {
 				UpdateUniformBuffer();
 				// ----------------------------------------------------------------------------
 
+				Renderer::PrepareFrame();
+
+				m_ComputePipeline->Bind();
+				m_ComputePipeline->Dispatch(Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height, 8, 8);
+
 				Renderer::StartFrame();
 				
 				RenderCommand::SubmitVertexBuffer(m_VertexBuffer);
 				RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
 
-				uint32_t texIndex = 0;
-				ObjectData modelTransform;
-				modelTransform.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -50.0f, -2.3f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-				m_GraphicsPipeline->PushConstant(0, &modelTransform);
-				m_GraphicsPipeline->PushConstant(1, &texIndex);
-				Renderer::Draw(1024);
+				// uint32_t texIndex = 0;
+				// ObjectData modelTransform;
+				// modelTransform.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -50.0f, -2.3f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+				// m_GraphicsPipeline->PushConstant(0, &modelTransform);
+				// m_GraphicsPipeline->PushConstant(1, &texIndex);
+				Renderer::Draw(1);
 
-				texIndex = 2; // there are only 2 textures, so this will not use a texture
-				modelTransform.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -25.0f, -2.3f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-				m_GraphicsPipeline->PushConstant(0, &modelTransform);
-				m_GraphicsPipeline->PushConstant(1, &texIndex);
-				Renderer::Draw(1024);
+				// texIndex = 2; // there are only 2 textures, so this will not use a texture
+				// modelTransform.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -25.0f, -2.3f)) * glm::rotate(glm::mat4(1.0f), m_Time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+				// m_GraphicsPipeline->PushConstant(0, &modelTransform);
+				// m_GraphicsPipeline->PushConstant(1, &texIndex);
+				// Renderer::Draw(1024);
 
 				Renderer::SubmitFrame();
 			}
@@ -176,32 +195,35 @@ namespace LoFox {
 		void UpdateUniformBuffer() {
 
 			UBO ubo = {};
-			ubo.view = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.view = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			ubo.proj = glm::perspective(glm::radians(45.0f), Renderer::GetSwapChainExtent().width / (float)Renderer::GetSwapChainExtent().height, 0.1f, 4000.0f);
 			ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
+
+			ubo.invView = glm::inverse(ubo.view);
+			ubo.invProj = glm::inverse(ubo.proj);
 
 			m_UniformBuffer->SetData(&ubo);
 		}
 
-		void UpdateStorageBuffer() {
-
-			std::vector<ObjectData> models = {};
-			models.resize(1024);
-			for (uint32_t i = 0; i < 32; i++) {
-				for (uint32_t j = 0; j < 32; j++) {
-
-					glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(16.0f - j, 16.0f - i, 0.0f)) * glm::rotate(glm::mat4(1.0f), (float)(i+j)/2.0f * glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-					models[i + j * 32].model = model;
-				}
-			}
-
-			m_StorageBuffer->SetData(models.data(), models.size());
-		}
+		// void UpdateStorageBuffer() {
+		// 
+		// 	std::vector<ObjectData> models = {};
+		// 	models.resize(1024);
+		// 	for (uint32_t i = 0; i < 32; i++) {
+		// 		for (uint32_t j = 0; j < 32; j++) {
+		// 
+		// 			glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(16.0f - j, 16.0f - i, 0.0f)) * glm::rotate(glm::mat4(1.0f), (float)(i+j)/2.0f * glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		// 			models[i + j * 32].model = model;
+		// 		}
+		// 	}
+		// 
+		// 	m_StorageBuffer->SetData(models.data(), models.size());
+		// }
 
 		void OnEvent(LoFox::Event& event) {
 
 			LoFox::EventDispatcher dispatcher(event);
-			
+
 			// Event test
 			/*
 			if (event.GetEventType() == LoFox::EventType::KeyPressed)
@@ -210,16 +232,19 @@ namespace LoFox {
 		}
 
 	private:
-		Ref<ResourceLayout> m_ResourceLayout;
+		Ref<ResourceLayout> m_GraphicsResourceLayout;
+		Ref<ResourceLayout> m_ComputeResourceLayout;
 		Ref<GraphicsPipeline> m_GraphicsPipeline;
+		Ref<ComputePipeline> m_ComputePipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 
-		Ref<Texture> m_Texture1;
-		Ref<Texture> m_Texture2;
-		Ref<TextureAtlas> m_TextureAtlas;
+		// Ref<Texture> m_Texture1;
+		// Ref<Texture> m_Texture2;
+		// Ref<TextureAtlas> m_TextureAtlas;
 		Ref<UniformBuffer> m_UniformBuffer;
-		Ref<StorageBuffer> m_StorageBuffer;
+		// Ref<StorageBuffer> m_StorageBuffer;
+		Ref<StorageImage> m_StorageImage;
 
 		// std::vector<Ref<Buffer>> m_UniformBuffers;
 		// std::vector<void*> m_UniformBuffersMapped;

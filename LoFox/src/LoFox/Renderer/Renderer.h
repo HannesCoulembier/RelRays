@@ -25,12 +25,14 @@ namespace LoFox {
 		static void SetResourceLayout(Ref<ResourceLayout> layout);
 		static void SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline);
 
+		static void PrepareFrame();
 		static void StartFrame();
 		static void Draw(uint32_t instances);
 		static void SubmitFrame();
 
 		static void WaitIdle();
 
+		static inline VkCommandBuffer GetCommandBuffer() { return m_SwapChain->GetThisFramesCommandbuffer(); }
 		static inline VkFormat GetSwapChainImageFormat() { return m_SwapChain->GetImageFormat(); }
 		static inline VkFormat GetSwapChainDepthFormat() { return m_SwapChain->GetDepthImage()->GetFormat(); }
 		static inline VkExtent2D GetSwapChainExtent() { return m_SwapChain->GetExtent(); }

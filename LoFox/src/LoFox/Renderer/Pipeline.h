@@ -9,6 +9,47 @@
 
 namespace LoFox {
 
+	struct ComputePipelineCreateInfo {
+
+		std::string ComputeShaderPath = "";
+
+		Ref<ResourceLayout> ResourceLayout;
+	};
+
+	class ComputePipeline {
+
+	public:
+		ComputePipelineCreateInfo CreateInfo;
+		VkPipeline Pipeline;
+		VkPipelineLayout Layout;
+
+		void Destroy();
+
+		void Bind();
+		void Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight);
+	private:
+		void InitLayout();
+		void InitDescriptorSets();
+		void InitPipeline();
+
+		void CreateDescriptorPool();
+	private:
+		VkDescriptorPool m_DescriptorPool;
+		std::vector<VkDescriptorSet> m_DescriptorSets;
+
+		friend class ComputePipelineBuilder;
+	};
+
+	class ComputePipelineBuilder {
+
+	public:
+		ComputePipelineBuilder(ComputePipelineCreateInfo createInfo);
+		Ref<ComputePipeline> CreateComputePipeline();
+	private:
+		ComputePipelineCreateInfo m_CreateInfo;
+		Ref<ComputePipeline> m_Pipeline;
+	};
+
 	struct GraphicsPipelineCreateInfo {
 
 		std::string VertexShaderPath = "";

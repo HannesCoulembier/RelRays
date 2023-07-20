@@ -28,3 +28,4 @@
 #include "LoFox/Renderer/Resources/TextureAtlas.h"
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
+#include "LoFox/Renderer/Resources/StorageImage.h"

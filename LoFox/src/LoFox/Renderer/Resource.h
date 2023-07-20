@@ -6,6 +6,7 @@
 
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
+#include "LoFox/Renderer/Resources/StorageImage.h"
 #include "LoFox/Renderer/Resources/Texture.h"
 #include "LoFox/Renderer/Resources/TextureAtlas.h"
 
@@ -17,6 +18,7 @@ namespace LoFox {
 		VkShaderStageFlags ShaderStage;
 		Ref<UniformBuffer> UniformBuffer = nullptr;
 		Ref<StorageBuffer> StorageBuffer = nullptr;
+		Ref<StorageImage> StorageImage = nullptr;
 		Ref<TextureAtlas> TexAtlas = nullptr;
 		uint32_t DescriptorCount = 1;
 
@@ -26,6 +28,7 @@ namespace LoFox {
 		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::TextureAtlas> atlas);
 		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer);
 		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageBuffer> storageBuffer);
+		Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination);
 	};
 
 	class ResourceLayout {

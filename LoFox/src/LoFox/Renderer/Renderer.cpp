@@ -126,7 +126,7 @@ namespace LoFox {
 		RenderContext::Shutdown();
 	}
 
-	void Renderer::StartFrame() {
+	void Renderer::PrepareFrame() {
 
 		m_SwapChain->BeginFrame();
 
@@ -138,6 +138,11 @@ namespace LoFox {
 		commandBufferBeginInfo.pInheritanceInfo = nullptr;
 
 		LF_CORE_ASSERT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
+	}
+
+	void Renderer::StartFrame() {
+
+		VkCommandBuffer commandBuffer = m_SwapChain->GetThisFramesCommandbuffer();
 
 		std::vector<VkClearValue> clearValues = RenderCommand::GetClearValues();
 

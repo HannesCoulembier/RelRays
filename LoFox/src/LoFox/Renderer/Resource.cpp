@@ -25,6 +25,18 @@ namespace LoFox {
 		BufferDescriptorInfos = StorageBuffer->GetDescriptorInfos();
 	}
 
+	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination)
+		: ShaderStage(shaderStage), StorageImage(storageImage) {
+
+		if (isDestination)
+			Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		else
+			Type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+		ImageDescriptorInfos.clear();
+		ImageDescriptorInfos.push_back(StorageImage->GetDescriptorInfo());
+	}
+
 	ResourceLayout::ResourceLayout(std::initializer_list<Resource> resources)
 		: m_Resources(resources) {
 

@@ -10,6 +10,148 @@
 
 namespace LoFox {
 
+	ComputePipelineBuilder::ComputePipelineBuilder(ComputePipelineCreateInfo createInfo)
+		: m_CreateInfo(createInfo) {
+
+		m_Pipeline = CreateRef<ComputePipeline>();
+		m_Pipeline->CreateInfo = m_CreateInfo;
+	}
+
+	Ref<ComputePipeline> ComputePipelineBuilder::CreateComputePipeline() {
+
+		m_Pipeline->InitLayout();
+		m_Pipeline->InitDescriptorSets();
+		m_Pipeline->InitPipeline();
+
+		return m_Pipeline;
+	}
+
+	void ComputePipeline::InitLayout() {
+
+		VkDescriptorSetLayout descriptorSetLayout = CreateInfo.ResourceLayout->GetDescriptorSetLayout();
+
+		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
+		// layoutCreateInfo.flags = 
+		// layoutCreateInfo.pNext = 
+		// layoutCreateInfo.pPushConstantRanges = 
+		layoutCreateInfo.pSetLayouts = &descriptorSetLayout;
+		layoutCreateInfo.pushConstantRangeCount = 0;
+		layoutCreateInfo.setLayoutCount = 1;
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		LF_CORE_ASSERT(vkCreatePipelineLayout(RenderContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+	}
+
+	void ComputePipeline::InitDescriptorSets() {
+
+		CreateDescriptorPool();
+
+		// Allocate Descriptor sets
+		std::vector<VkDescriptorSetLayout> layouts(Renderer::MaxFramesInFlight, CreateInfo.ResourceLayout->GetDescriptorSetLayout());
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {};
+		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descriptorSetAllocInfo.descriptorSetCount = (uint32_t)(Renderer::MaxFramesInFlight);
+		descriptorSetAllocInfo.pSetLayouts = layouts.data();
+
+		m_DescriptorSets.resize(Renderer::MaxFramesInFlight);
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(RenderContext::LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+
+		// Update Descriptor sets
+		for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
+
+			std::vector<VkWriteDescriptorSet> descriptorWrites = {};
+			uint32_t binding = 0;
+			for (const auto& resource : CreateInfo.ResourceLayout->GetResources()) {
+
+				VkDescriptorBufferInfo bufferInfo = {};
+				if (resource.BufferDescriptorInfos.size() != 0)
+					bufferInfo = resource.BufferDescriptorInfos[i];
+
+				std::vector<VkDescriptorImageInfo> imageInfo = {};
+				if (resource.ImageDescriptorInfos.size() != 0)
+					imageInfo = resource.ImageDescriptorInfos;
+
+				VkWriteDescriptorSet descriptorWrite = {};
+				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrite.dstSet = m_DescriptorSets[i];
+				descriptorWrite.dstBinding = binding;
+				descriptorWrite.dstArrayElement = 0;
+				descriptorWrite.descriptorType = resource.Type;
+				descriptorWrite.descriptorCount = resource.DescriptorCount;
+				descriptorWrite.pBufferInfo = (resource.BufferDescriptorInfos.size() == 0) ? nullptr : &bufferInfo;
+				descriptorWrite.pImageInfo = (resource.ImageDescriptorInfos.size() == 0) ? nullptr : imageInfo.data();
+				descriptorWrite.pTexelBufferView = nullptr;
+
+				descriptorWrites.push_back(descriptorWrite);
+				binding++;
+
+				vkUpdateDescriptorSets(RenderContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+			}
+		}
+	}
+
+	void ComputePipeline::InitPipeline() {
+
+
+		Shader shader(CreateInfo.ComputeShaderPath, ShaderType::Compute);
+		VkPipelineShaderStageCreateInfo shaderStage = shader.GetCreateInfo();
+
+		VkComputePipelineCreateInfo pipelineCreateInfo = {};
+		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineCreateInfo.basePipelineIndex = -1;
+		// pipelineCreateInfo.flags = 
+		pipelineCreateInfo.layout = Layout;
+		// pipelineCreateInfo.pNext = 
+		pipelineCreateInfo.stage = shaderStage;
+		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+
+		VkResult r = vkCreateComputePipelines(RenderContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline);
+		LF_CORE_ASSERT(r == VK_SUCCESS, "Failed to create compute pipeline!");
+	}
+
+	void ComputePipeline::CreateDescriptorPool() {
+
+		std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {};
+		for (const auto& resource : CreateInfo.ResourceLayout->GetResources()) {
+
+			VkDescriptorPoolSize descriptorPoolSize = {};
+			descriptorPoolSize.type = resource.Type;
+			descriptorPoolSize.descriptorCount = (uint32_t)(Renderer::MaxFramesInFlight);
+			descriptorPoolSizes.push_back(descriptorPoolSize);
+		}
+
+		VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
+		descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptorPoolCreateInfo.poolSizeCount = descriptorPoolSizes.size();
+		descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
+		descriptorPoolCreateInfo.maxSets = (uint32_t)(Renderer::MaxFramesInFlight);
+
+		LF_CORE_ASSERT(vkCreateDescriptorPool(RenderContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
+	}
+
+	void ComputePipeline::Destroy() {
+
+		vkDestroyPipelineLayout(RenderContext::LogicalDevice, Layout, nullptr);
+		vkDestroyPipeline(RenderContext::LogicalDevice, Pipeline, nullptr);
+		vkDestroyDescriptorPool(RenderContext::LogicalDevice, m_DescriptorPool, nullptr);
+	}
+
+	void ComputePipeline::Bind() {
+
+		VkCommandBuffer commandBuffer = Renderer::GetCommandBuffer();
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, Pipeline);
+
+		// Bind descriptor sets
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, Layout, 0, 1, &m_DescriptorSets[Renderer::GetCurrentFrame()], 0, nullptr);
+	}
+
+	void ComputePipeline::Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) {
+
+		VkCommandBuffer commandBuffer = Renderer::GetCommandBuffer();
+		vkCmdDispatch(commandBuffer, (uint32_t)((float)width / (float)groupWidth),(uint32_t)((float)height / (float)groupHeight), 1);
+	}
+
 	GraphicsPipelineBuilder::GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo)
 		: m_CreateInfo(createInfo) {
 
