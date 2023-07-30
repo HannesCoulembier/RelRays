@@ -25,7 +25,7 @@ namespace LoFox {
 
 	public:
 		Window(const WindowSpec& spec);
-		~Window();
+		void Shutdown();
 
 		void CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface);
 
@@ -43,7 +43,6 @@ namespace LoFox {
 		static Ref<Window> Create(const WindowSpec& spec);
 	private:
 		void Init();
-		void Shutdown();
 	private:
 		GLFWwindow* m_WindowHandle = nullptr;
 		WindowSpec m_Spec;

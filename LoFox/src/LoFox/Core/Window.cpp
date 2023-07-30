@@ -44,13 +44,6 @@ namespace LoFox {
 		Init();
 	}
 
-	Window::~Window() {
-
-		LF_OVERSPECIFY("Destroying window named \"{0}\"", m_Spec.Title);
-		
-		Shutdown();
-	}
-
 	void Window::Init() {
 
 		if (windowCount == 0)
@@ -156,6 +149,8 @@ namespace LoFox {
 	}
 
 	void Window::Shutdown() {
+
+		LF_OVERSPECIFY("Destroying window named \"{0}\"", m_Spec.Title);
 
 		glfwDestroyWindow(m_WindowHandle);
 		windowCount--;

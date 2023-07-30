@@ -68,6 +68,8 @@ namespace LoFox {
 
 		Renderer::Shutdown();
 
+		m_Window->Shutdown();
+
 		LF_OVERSPECIFY("Finished destruction of application named \"{0}\"", m_Spec.Name);
 	}
 
