@@ -12,6 +12,12 @@ namespace LoFox {
 			glm::vec2 TexCoord;
 		};
 
+		struct PushConstantObject {
+
+			alignas(4) float Time;
+			alignas(4) int FrameIndex;
+		};
+
 		struct UBO { // Unused at the moment
 
 			alignas(16) glm::mat4 view;
@@ -31,6 +37,20 @@ namespace LoFox {
 			0, 1, 2, 2, 3, 0,
 		};
 
+		struct Sphere {
+			alignas(16) glm::vec3 Position;
+			alignas(4) float Radius;
+			alignas(4) int MaterialIndex = 0;
+		};
+
+		struct Material {
+			alignas(16) glm::vec3 Albedo;
+			alignas(4) float Roughness;
+			alignas(4) float Metallic;
+			alignas(16) glm::vec3 EmissionColor;
+			alignas(4) float EmissionPower;
+		};
+
 	public:
 		RaytraceExampleLayer() {}
 		~RaytraceExampleLayer() {}
@@ -40,6 +60,7 @@ namespace LoFox {
 
 		void OnUpdate(float ts);
 		void UpdateUniformBuffer();
+		void SetStorageBuffers();
 		void OnEvent(LoFox::Event& event);
 	private:
 	private:
@@ -54,6 +75,10 @@ namespace LoFox {
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 
+		Ref<StorageBuffer> m_SphereBuffer;
+		Ref<StorageBuffer> m_MaterialBuffer;
+
 		float m_Time = 0;
+		int m_FrameIndex = 0;
 	};
 }

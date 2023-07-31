@@ -26,6 +26,23 @@ namespace LoFox {
 		return m_Pipeline;
 	}
 
+	void ComputePipelineBuilder::PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage) {
+
+		LF_CORE_ASSERT(!(m_Pipeline->m_PushConstantsStagesUsed & shaderStage), "There can only be one push constant per shader stage!");
+		m_Pipeline->m_PushConstantsStagesUsed |= shaderStage;
+
+		VkPushConstantRange pushConstantRange = {};
+		pushConstantRange.offset = m_Pipeline->m_PushConstantsTotalOffset;
+		pushConstantRange.size = objectSize;
+		pushConstantRange.stageFlags = shaderStage;
+
+		m_Pipeline->m_PushConstants.push_back(pushConstantRange);
+		m_Pipeline->m_PushConstantsData.push_back(nullptr);
+		m_Pipeline->m_PushConstantsTotalOffset += objectSize;
+	}
+
+	void ComputePipeline::PushConstant(uint32_t index, const void* data) { m_PushConstantsData[index] = data; }
+
 	void ComputePipeline::InitLayout() {
 
 		VkDescriptorSetLayout descriptorSetLayout = CreateInfo.ResourceLayout->GetDescriptorSetLayout();
@@ -33,9 +50,9 @@ namespace LoFox {
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		// layoutCreateInfo.flags = 
 		// layoutCreateInfo.pNext = 
-		// layoutCreateInfo.pPushConstantRanges = 
+		layoutCreateInfo.pPushConstantRanges = m_PushConstants.data();
 		layoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-		layoutCreateInfo.pushConstantRangeCount = 0;
+		layoutCreateInfo.pushConstantRangeCount = m_PushConstants.size();
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
@@ -149,6 +166,14 @@ namespace LoFox {
 	void ComputePipeline::Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) {
 
 		VkCommandBuffer commandBuffer = Renderer::GetCommandBuffer();
+
+		for (size_t i = 0; i < m_PushConstants.size(); i++) {
+
+			VkPushConstantRange pushConstant = m_PushConstants[i];
+			const void* data = m_PushConstantsData[i];
+			vkCmdPushConstants(commandBuffer, Layout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
+		}
+
 		vkCmdDispatch(commandBuffer, (uint32_t)((float)width / (float)groupWidth),(uint32_t)((float)height / (float)groupHeight), 1);
 	}
 

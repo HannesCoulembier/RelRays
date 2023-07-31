@@ -23,10 +23,15 @@ namespace LoFox {
 		VkPipeline Pipeline;
 		VkPipelineLayout Layout;
 
+		void PushConstant(uint32_t index, const void* data);
+
 		void Destroy();
 
 		void Bind();
 		void Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight);
+
+		std::vector<VkPushConstantRange> GetPushConstants() { return m_PushConstants; }
+		std::vector<const void*> GetPushConstantsData() { return m_PushConstantsData; }
 	private:
 		void InitLayout();
 		void InitDescriptorSets();
@@ -34,6 +39,11 @@ namespace LoFox {
 
 		void CreateDescriptorPool();
 	private:
+		uint32_t m_PushConstantsTotalOffset;
+		VkShaderStageFlags m_PushConstantsStagesUsed;
+		std::vector<VkPushConstantRange> m_PushConstants;
+		std::vector<const void*> m_PushConstantsData;
+
 		VkDescriptorPool m_DescriptorPool;
 		std::vector<VkDescriptorSet> m_DescriptorSets;
 
@@ -45,6 +55,8 @@ namespace LoFox {
 	public:
 		ComputePipelineBuilder(ComputePipelineCreateInfo createInfo);
 		Ref<ComputePipeline> CreateComputePipeline();
+
+		void PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage);
 	private:
 		ComputePipelineCreateInfo m_CreateInfo;
 		Ref<ComputePipeline> m_Pipeline;

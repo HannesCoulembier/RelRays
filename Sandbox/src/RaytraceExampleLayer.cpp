@@ -1,21 +1,39 @@
 #include "RaytraceExampleLayer.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace LoFox {
 
 	void RaytraceExampleLayer::OnAttach() {
 
 		m_UniformBuffer = UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
 
+		m_SphereBuffer = StorageBuffer::Create(3, sizeof(Sphere));
+		m_MaterialBuffer = StorageBuffer::Create(3, sizeof(Material));
+
 		m_FinalImage = StorageImage::Create(Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height);
 
 		m_GraphicsResourceLayout = ResourceLayout::Create({
 			{ VK_SHADER_STAGE_FRAGMENT_BIT, m_FinalImage	, true}, // Is destination -> isDestination = true
-			});
+		});
 
 		m_RaytraceResourceLayout = ResourceLayout::Create({
 			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_UniformBuffer	},
+			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_SphereBuffer },
+			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_MaterialBuffer },
 			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_FinalImage , false}, // Is source -> isDestination = false
-			});
+		});
+
+		Sphere testSphere;
+		testSphere.Position = glm::vec3(0.0);
+		testSphere.Radius = 1.0f;
+
+		Material testMat;
+		testMat.Albedo = glm::vec3(1.0f, 0.0f, 0.0f);
+		testMat.EmissionColor = glm::vec3(0.0);
+		testMat.EmissionPower = 0.0f;
+		testMat.Metallic = 0.0f;
+		testMat.Roughness = 0.0f;
 
 		Renderer::SetResourceLayout(m_GraphicsResourceLayout);
 
@@ -38,6 +56,8 @@ namespace LoFox {
 
 		ComputePipelineBuilder computePipelineBuilder(computePipelineCreateInfo);
 
+		computePipelineBuilder.PreparePushConstant(sizeof(PushConstantObject), VK_SHADER_STAGE_COMPUTE_BIT);
+
 		m_RaytracePipeline = computePipelineBuilder.CreateComputePipeline();
 
 		// Create Graphics pipeline
@@ -51,6 +71,8 @@ namespace LoFox {
 
 		m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
 		Renderer::SubmitGraphicsPipeline(m_GraphicsPipeline);
+
+		SetStorageBuffers();
 	}
 
 	void RaytraceExampleLayer::OnDetach() {
@@ -61,6 +83,8 @@ namespace LoFox {
 		m_RaytraceResourceLayout->Destroy();
 
 		m_UniformBuffer->Destroy();
+		m_SphereBuffer->Destroy();
+		m_MaterialBuffer->Destroy();
 		m_FinalImage->Destroy();
 
 		m_RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
@@ -89,6 +113,11 @@ namespace LoFox {
 			Renderer::PrepareFrame();
 
 			m_RaytracePipeline->Bind();
+
+			PushConstantObject pushConstant;
+			pushConstant.Time = m_Time;
+			pushConstant.FrameIndex = m_FrameIndex;
+			m_RaytracePipeline->PushConstant(0, &pushConstant);
 			m_RaytracePipeline->Dispatch(Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height, 8, 8);
 
 			Renderer::StartFrame();
@@ -99,6 +128,7 @@ namespace LoFox {
 			Renderer::Draw(1);
 
 			Renderer::SubmitFrame();
+			m_FrameIndex++;
 		}
 
 		// Logger test
@@ -138,13 +168,59 @@ namespace LoFox {
 	void RaytraceExampleLayer::UpdateUniformBuffer() {
 
 		UBO ubo = {};
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), Renderer::GetSwapChainExtent().width / (float)Renderer::GetSwapChainExtent().height, 0.1f, 4000.0f);
-		ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
+		glm::vec3 cameraPos = glm::vec3(0.0, 0.0, -4.0f);
+		glm::vec3 forward = glm::vec3(0.0, 0.0, -1.0f); // Forward into the screen goes into the negative z-direction.
+		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)Renderer::GetSwapChainExtent().width, (float)Renderer::GetSwapChainExtent().height, 0.1f, 4000.0f);
+		// Next line is not nescessary as we are using the projection matrix in our own compute shader instead of in vulkan directly
+		// ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
 
 		ubo.invView = glm::inverse(ubo.view);
 		ubo.invProj = glm::inverse(ubo.proj);
 
 		m_UniformBuffer->SetData(&ubo);
+	}
+
+	void RaytraceExampleLayer::SetStorageBuffers() {
+
+		// Spheres
+		std::vector<Sphere> spheres = {};
+		spheres.resize(3);
+		spheres[0].Position = glm::vec3(0.0f, -0.135f, 0.0f);
+		spheres[0].Radius = 1.0f;
+		spheres[0].MaterialIndex = 0;
+
+		spheres[1].Position = glm::vec3(2.0f, 1.0f, 0.0f);
+		spheres[1].Radius = 1.0f;
+		spheres[1].MaterialIndex = 2;
+
+		spheres[2].Position = glm::vec3(1.0f, -101.0f, -5.0f);
+		spheres[2].Radius = 100.0f;
+		spheres[2].MaterialIndex = 1;
+
+		m_SphereBuffer->SetData(spheres.data(), spheres.size());
+
+		// Materials
+		std::vector<Material> materials = {};
+		materials.resize(3);
+		materials[0].Albedo = glm::vec3(1.0f, 1.0f, 0.0f);
+		materials[0].Roughness = 0.05f;
+		materials[0].Metallic = 0.0f;
+		materials[0].EmissionColor = glm::vec3(1.0f, 1.0f, 0.0f);
+		materials[0].EmissionPower = 0.0f;
+
+		materials[1].Albedo = glm::vec3(1.0f, 0.0f, 1.0f);
+		materials[1].Roughness = 0.1f;
+		materials[1].Metallic = 0.0f;
+		materials[1].EmissionColor = glm::vec3(1.0f, 0.0f, 1.0f);
+		materials[1].EmissionPower = 0.0f;
+
+		materials[2].Albedo = glm::vec3(1.0f, 0.7f, 0.3f);
+		materials[2].Roughness = 0.1f;
+		materials[2].Metallic = 0.0f;
+		materials[2].EmissionColor = glm::vec3(1.0f, 0.7f, 0.3f);
+		materials[2].EmissionPower = 1.0f;
+
+		m_MaterialBuffer->SetData(materials.data(), materials.size());
 	}
 }
