@@ -117,10 +117,10 @@ void main() {
         // ray.Direction = normalize(reflect(ray.Direction, payload.WorldNormal));
 	}
 
-    vec4 prevColor = imageLoad(colorBuffer, screenPos);
-    vec4 finalColor = (float(frameIndex) * prevColor + vec4(light, 1.0))/float(frameIndex+1);
-    // vec4 finalColor = vec4(light, 1.0);
-    imageStore(colorBuffer, screenPos, finalColor);
+    vec3 prevColor = imageLoad(colorBuffer, screenPos).xyz;
+    vec3 finalColor = (float(frameIndex) * prevColor + light)/float(frameIndex+1);
+    // vec3 finalColor = light;
+    imageStore(colorBuffer, screenPos, vec4(finalColor, 1.0));
 }
 
 HitPayload TraceRay(Ray ray) {

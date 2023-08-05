@@ -168,7 +168,7 @@ namespace LoFox {
 	void RaytraceExampleLayer::UpdateUniformBuffer() {
 
 		UBO ubo = {};
-		glm::vec3 cameraPos = glm::vec3(0.0, 0.0, -5.0f - m_Time);
+		glm::vec3 cameraPos = glm::vec3(0.0, 0.0, -5.0f);
 		glm::vec3 forward = glm::vec3(0.0, 0.0, -1.0f); // Forward into the screen goes into the negative z-direction.
 		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)Renderer::GetSwapChainExtent().width, (float)Renderer::GetSwapChainExtent().height, 0.1f, 4000.0f);
