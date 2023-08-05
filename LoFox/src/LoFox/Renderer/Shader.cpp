@@ -11,7 +11,7 @@
 
 namespace LoFox {
 
-	static VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type) {
+	VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type) {
 
 		switch (type) {
 			case ShaderType::Vertex:	return VK_SHADER_STAGE_VERTEX_BIT;

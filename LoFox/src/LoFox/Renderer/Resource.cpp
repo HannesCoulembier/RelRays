@@ -6,26 +6,26 @@
 
 namespace LoFox {
 
-	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::TextureAtlas> atlas)
+	Resource::Resource(ShaderType shaderStage, Ref<LoFox::TextureAtlas> atlas)
 		: Type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER), ShaderStage(shaderStage), TexAtlas(atlas) {
 
 		ImageDescriptorInfos = TexAtlas->GetDescriptorInfos();
 		DescriptorCount = TexAtlas->GetTexCount();
 	}
 
-	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer)
+	Resource::Resource(ShaderType shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer)
 		: Type(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER), ShaderStage(shaderStage), UniformBuffer(uniformBuffer) {
 
 		BufferDescriptorInfos = UniformBuffer->GetDescriptorInfos();
 	}
 
-	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageBuffer> storageBuffer)
+	Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageBuffer> storageBuffer)
 		: Type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER), ShaderStage(shaderStage), StorageBuffer(storageBuffer) {
 
 		BufferDescriptorInfos = StorageBuffer->GetDescriptorInfos();
 	}
 
-	Resource::Resource(VkShaderStageFlags shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination)
+	Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination)
 		: ShaderStage(shaderStage), StorageImage(storageImage) {
 
 		if (isDestination)
@@ -48,7 +48,7 @@ namespace LoFox {
 			descriptorSetLayoutBinding.binding = binding;
 			descriptorSetLayoutBinding.descriptorType = resource.Type;
 			descriptorSetLayoutBinding.descriptorCount = resource.DescriptorCount;
-			descriptorSetLayoutBinding.stageFlags = resource.ShaderStage;
+			descriptorSetLayoutBinding.stageFlags = ShaderTypeToVulkan(resource.ShaderStage);
 			descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
 
 			bindings.push_back(descriptorSetLayoutBinding);

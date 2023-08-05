@@ -14,14 +14,14 @@ namespace LoFox {
 		m_FinalImage = StorageImage::Create(Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height);
 
 		m_GraphicsResourceLayout = ResourceLayout::Create({
-			{ VK_SHADER_STAGE_FRAGMENT_BIT, m_FinalImage	, true}, // Is destination -> isDestination = true
+			{ ShaderType::Fragment, m_FinalImage	, true}, // Is destination -> isDestination = true
 		});
 
 		m_RaytraceResourceLayout = ResourceLayout::Create({
-			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_UniformBuffer	},
-			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_SphereBuffer },
-			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_MaterialBuffer },
-			{ VK_SHADER_STAGE_COMPUTE_BIT,	m_FinalImage , false}, // Is source -> isDestination = false
+			{ ShaderType::Compute,	m_UniformBuffer	},
+			{ ShaderType::Compute,	m_SphereBuffer },
+			{ ShaderType::Compute,	m_MaterialBuffer },
+			{ ShaderType::Compute,	m_FinalImage , false}, // Is source -> isDestination = false
 		});
 
 		Sphere testSphere;
@@ -56,7 +56,7 @@ namespace LoFox {
 
 		ComputePipelineBuilder computePipelineBuilder(computePipelineCreateInfo);
 
-		computePipelineBuilder.PreparePushConstant(sizeof(PushConstantObject), VK_SHADER_STAGE_COMPUTE_BIT);
+		computePipelineBuilder.PreparePushConstant(sizeof(PushConstantObject), ShaderType::Compute);
 
 		m_RaytracePipeline = computePipelineBuilder.CreateComputePipeline();
 
@@ -168,7 +168,7 @@ namespace LoFox {
 	void RaytraceExampleLayer::UpdateUniformBuffer() {
 
 		UBO ubo = {};
-		glm::vec3 cameraPos = glm::vec3(0.0, 0.0, -4.0f);
+		glm::vec3 cameraPos = glm::vec3(0.0, 0.0, -5.0f - m_Time);
 		glm::vec3 forward = glm::vec3(0.0, 0.0, -1.0f); // Forward into the screen goes into the negative z-direction.
 		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)Renderer::GetSwapChainExtent().width, (float)Renderer::GetSwapChainExtent().height, 0.1f, 4000.0f);

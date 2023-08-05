@@ -26,15 +26,17 @@ namespace LoFox {
 		return m_Pipeline;
 	}
 
-	void ComputePipelineBuilder::PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage) {
+	void ComputePipelineBuilder::PreparePushConstant(uint32_t objectSize, ShaderType shaderStage) {
 
-		LF_CORE_ASSERT(!(m_Pipeline->m_PushConstantsStagesUsed & shaderStage), "There can only be one push constant per shader stage!");
-		m_Pipeline->m_PushConstantsStagesUsed |= shaderStage;
+		VkShaderStageFlags stage = ShaderTypeToVulkan(shaderStage);
+
+		LF_CORE_ASSERT(!(m_Pipeline->m_PushConstantsStagesUsed & stage), "There can only be one push constant per shader stage!");
+		m_Pipeline->m_PushConstantsStagesUsed |= stage;
 
 		VkPushConstantRange pushConstantRange = {};
 		pushConstantRange.offset = m_Pipeline->m_PushConstantsTotalOffset;
 		pushConstantRange.size = objectSize;
-		pushConstantRange.stageFlags = shaderStage;
+		pushConstantRange.stageFlags = stage;
 
 		m_Pipeline->m_PushConstants.push_back(pushConstantRange);
 		m_Pipeline->m_PushConstantsData.push_back(nullptr);
@@ -193,15 +195,17 @@ namespace LoFox {
 		return m_Pipeline;
 	}
 
-	void GraphicsPipelineBuilder::PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage) {
+	void GraphicsPipelineBuilder::PreparePushConstant(uint32_t objectSize, ShaderType shaderStage) {
 
-		LF_CORE_ASSERT(!(m_Pipeline->m_PushConstantsStagesUsed & shaderStage), "There can only be one push constant per shader stage!");
-		m_Pipeline->m_PushConstantsStagesUsed |= shaderStage;
+		VkShaderStageFlags stage = ShaderTypeToVulkan(shaderStage);
+
+		LF_CORE_ASSERT(!(m_Pipeline->m_PushConstantsStagesUsed & stage), "There can only be one push constant per shader stage!");
+		m_Pipeline->m_PushConstantsStagesUsed |= stage;
 
 		VkPushConstantRange pushConstantRange = {};
 		pushConstantRange.offset = m_Pipeline->m_PushConstantsTotalOffset;
 		pushConstantRange.size = objectSize;
-		pushConstantRange.stageFlags = shaderStage;
+		pushConstantRange.stageFlags = stage;
 
 		m_Pipeline->m_PushConstants.push_back(pushConstantRange);
 		m_Pipeline->m_PushConstantsData.push_back(nullptr);

@@ -29,3 +29,4 @@
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
 #include "LoFox/Renderer/Resources/StorageImage.h"
+#include "LoFox/Renderer/Shader.h"

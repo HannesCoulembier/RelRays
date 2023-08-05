@@ -13,6 +13,8 @@ namespace LoFox {
 		Compute,
 	};
 
+	VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type);
+
 	class Shader {
 
 	public:

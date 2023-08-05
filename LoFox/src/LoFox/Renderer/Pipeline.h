@@ -56,7 +56,7 @@ namespace LoFox {
 		ComputePipelineBuilder(ComputePipelineCreateInfo createInfo);
 		Ref<ComputePipeline> CreateComputePipeline();
 
-		void PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage);
+		void PreparePushConstant(uint32_t objectSize, ShaderType shaderStage);
 	private:
 		ComputePipelineCreateInfo m_CreateInfo;
 		Ref<ComputePipeline> m_Pipeline;
@@ -105,7 +105,7 @@ namespace LoFox {
 		GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo);
 		Ref<GraphicsPipeline> CreateGraphicsPipeline();
 
-		void PreparePushConstant(uint32_t objectSize, VkShaderStageFlags shaderStage);
+		void PreparePushConstant(uint32_t objectSize, ShaderType shaderStage);
 		void PrepareVertexBuffer(Ref<VertexBuffer> buffer);
 	private:
 		GraphicsPipelineCreateInfo m_CreateInfo;

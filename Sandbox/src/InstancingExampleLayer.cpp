@@ -15,9 +15,9 @@ namespace LoFox {
 		m_TextureAtlas->AddTexture(m_Texture2);
 
 		m_GraphicsResourceLayout = ResourceLayout::Create({
-			{ VK_SHADER_STAGE_VERTEX_BIT,	m_UniformBuffer	},
-			{ VK_SHADER_STAGE_FRAGMENT_BIT,	m_TextureAtlas	},
-			{ VK_SHADER_STAGE_VERTEX_BIT,	m_StorageBuffer	},
+			{ ShaderType::Vertex,	m_UniformBuffer	},
+			{ ShaderType::Fragment,	m_TextureAtlas	},
+			{ ShaderType::Vertex,	m_StorageBuffer	},
 		});
 
 		Renderer::SetResourceLayout(m_GraphicsResourceLayout);
@@ -43,8 +43,8 @@ namespace LoFox {
 		graphicsPipelineCreateInfo.ResourceLayout = m_GraphicsResourceLayout;
 		GraphicsPipelineBuilder graphicsPipelineBuilder(graphicsPipelineCreateInfo);
 
-		graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), VK_SHADER_STAGE_VERTEX_BIT); // model transform
-		graphicsPipelineBuilder.PreparePushConstant(sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT); // Texture Index
+		graphicsPipelineBuilder.PreparePushConstant(sizeof(ObjectData), ShaderType::Vertex); // model transform
+		graphicsPipelineBuilder.PreparePushConstant(sizeof(uint32_t), ShaderType::Fragment); // Texture Index
 		graphicsPipelineBuilder.PrepareVertexBuffer(m_VertexBuffer);
 
 		m_GraphicsPipeline = graphicsPipelineBuilder.CreateGraphicsPipeline();
