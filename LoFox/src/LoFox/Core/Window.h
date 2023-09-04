@@ -6,7 +6,7 @@
 
 #include "LoFox/Events/Event.h"
 
-struct GLFWwindow;
+struct GLFWwindow; // Forward declaration
 
 namespace LoFox {
 

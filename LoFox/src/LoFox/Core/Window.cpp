@@ -15,6 +15,7 @@ namespace LoFox {
 
 	namespace Utils {
 
+		// Returns the extensions glfw needs to operate
 		std::vector<const char*> GetRequiredGLFWExtensions() {
 
 			uint32_t glfwExtensionCount;
@@ -54,6 +55,7 @@ namespace LoFox {
 		m_WindowHandle = glfwCreateWindow(m_Spec.Width, m_Spec.Height, m_Spec.Title.c_str(), nullptr, nullptr);
 		windowCount++;
 
+		// Provides glfw callbacks with m_WindowData
 		glfwSetWindowUserPointer(m_WindowHandle, &m_WindowData);
 
 		// Set glfw callbacks

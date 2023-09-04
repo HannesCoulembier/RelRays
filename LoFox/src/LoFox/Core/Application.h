@@ -8,7 +8,7 @@
 #include "LoFox/Events/Event.h"
 #include "LoFox/Events/ApplicationEvent.h"
 
-int main(int argc, char** argv);
+int main(int argc, char** argv); // Forward declaration (see EntryPoint.h).
 
 namespace LoFox {
 
@@ -31,9 +31,9 @@ namespace LoFox {
 		void Run();
 		void OnUpdate();
 
-		inline Ref<Window> GetActiveWindow() { return m_Window; }
+		inline Ref<Window> GetActiveWindow() { return m_Window; } // We currently only support 1 window, so that's the 'Active' window.
 
-		static Application& GetInstance() { return *s_Instance; }
+		static Application& GetInstance() { return *s_Instance; } // Consequence of having only 1 Application at a time.
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnWindowClose(WindowCloseEvent& event);
@@ -49,6 +49,6 @@ namespace LoFox {
 		friend int ::main(int argc, char** argv);
 	};
 
-	// To be defined in client
+	// To be defined in client.
 	Application* CreateApplication();
 }

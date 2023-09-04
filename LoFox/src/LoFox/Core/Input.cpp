@@ -31,12 +31,12 @@ namespace LoFox {
 		return a == b;
 	}
 
-	// Returns true f.e. when comparing 'a' and 'A' (keyboard dependent)
+	// Returns true f.e. when comparing 'a' and 'A' (keyboard dependent (Belgian period example: ? = ,))
 	bool Input::IsKeyEquivalentTo(KeyCode a, KeyCode b) {
 
 		int a_glfw = Input::KeyCodeToglfw(a);
 		int b_glfw = Input::KeyCodeToglfw(b);
-		bool result = a_glfw == b_glfw;
+		bool result = a_glfw == b_glfw; // TODO: Investigate what this line is doing???
 		return a_glfw == b_glfw;
 	}
 
@@ -71,6 +71,7 @@ namespace LoFox {
 		m_Keyboard = keyboard;
 	}
 
+	// Maps a Key(Code) like 'A' to the corresponding glfw keycode encoding its position on a keyboard.
 	int Input::KeyCodeToglfw(KeyCode key) {
 
 		switch (m_Keyboard) {
@@ -83,6 +84,7 @@ namespace LoFox {
 		return 0;
 	}
 
+	// Maps glfw keycode (dependant on the place on the keyboard) to the corresponding KeyCode using the currently used keyboard.
 	KeyCode Input::glfwToKeyCode(int key) {
 
 		switch (m_Keyboard) {
@@ -95,6 +97,7 @@ namespace LoFox {
 		return (KeyCode)0;
 	}
 
+	// Returns true for stuff like 'A' and false for stuff like 'a'.
 	bool Input::KeyCodeRequiresShift(KeyCode key) {
 
 		switch (m_Keyboard) {
@@ -105,6 +108,8 @@ namespace LoFox {
 		LF_CORE_ASSERT(false, "Unknown Keyboard!");
 		return false;
 	}
+
+	// See KeyCodeRequiresShift (example on Belgian period: @ -> true, r -> false).
 	bool Input::KeyCodeRequiresRightAlt(KeyCode key) {
 
 		switch (m_Keyboard) {

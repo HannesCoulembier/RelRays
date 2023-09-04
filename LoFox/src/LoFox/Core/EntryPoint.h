@@ -5,7 +5,7 @@
 
 #ifdef LF_PLATFORM_WINDOWS
 
-extern LoFox::Application* LoFox::CreateApplication();
+extern LoFox::Application* LoFox::CreateApplication(); // To be defined by the client.
 
 int main(int argc, char** argv) {
 
@@ -17,5 +17,6 @@ int main(int argc, char** argv) {
 
 	delete app;
 }
-
+#else
+	#error LoFox only supports Windows!
 #endif

@@ -9,8 +9,8 @@ namespace LoFox {
 	public:
 		virtual ~Layer() = default;
 
-		virtual void OnAttach() {}
-		virtual void OnDetach() {}
+		virtual void OnAttach() {} // Equivalent to constructor
+		virtual void OnDetach() {} // Equivalent to destructor
 
 		virtual void OnUpdate(float ts) {}
 		virtual void OnEvent(Event& event) {}

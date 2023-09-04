@@ -14,6 +14,7 @@ Lists as much information as possible (all available Vulkan extensions, layers, 
 	#define LF_USE_VULKAN_VALIDATION_LAYERS
 #endif
 
+// Platform detection
 #ifdef _WIN32
 	// Windows x86/x64
 	#define LF_PLATFORM_WINDOWS
@@ -26,6 +27,7 @@ Lists as much information as possible (all available Vulkan extensions, layers, 
 	#error "LoFox only supports Windows"
 #endif
 
+// Configures debug break
 #ifdef LF_DEBUG
 	#if defined(LF_PLATFORM_WINDOWS)
 		#define LF_DEBUGBREAK() __debugbreak()
@@ -40,6 +42,7 @@ Lists as much information as possible (all available Vulkan extensions, layers, 
 	#define LF_DEBUGBREAK()
 #endif
 
+// Helper macros
 #define LF_EXPAND_MACRO(x) x
 #define LF_STRINGIFY_MACRO(x) #x
 
@@ -47,6 +50,7 @@ Lists as much information as possible (all available Vulkan extensions, layers, 
 
 #define LF_BIND_EVENT_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
 
+// Define Scope and Ref (unique and shared pointer decorations)
 namespace LoFox {
 
 	template<typename T>

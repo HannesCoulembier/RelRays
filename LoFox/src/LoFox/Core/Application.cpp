@@ -27,7 +27,8 @@ namespace LoFox {
 
 		Input::SetKeyboard(Keyboard::BelgianPeriod);
 
-		m_Window = Window::Create({ m_Spec.Name, 1720, 960 });
+		// Creating window
+		m_Window = Window::Create({ m_Spec.Name, 1720, 960 }); // TODO: Move screen size settings to ApplicationSpec.
 		m_Window->SetEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init(m_Window);
@@ -40,13 +41,13 @@ namespace LoFox {
 		m_IsRunning = true;
 		while (m_IsRunning) {
 
-			m_Window->OnUpdate();
+			m_Window->OnUpdate(); // Processes events from the window (minimizing, resizing, closing, ...).
 
-			if (!m_Window->IsMinimized())
-				OnUpdate();
+			if (!m_Window->IsMinimized()) // Trying to render something when the window is minimized causes a crash.
+				OnUpdate(); // Keeps track of the timestep and updates all the layers.
 		}
 
-		Renderer::WaitIdle();
+		Renderer::WaitIdle(); // TODO: Move to destructor.
 	}
 
 	void Application::OnUpdate() {
@@ -75,11 +76,11 @@ namespace LoFox {
 
 	void Application::OnEvent(Event& event) {
 
-		EventDispatcher dispatcher(event);
+		EventDispatcher dispatcher(event); // Dispatches events to functions based on their type (WindowCloseEvent, WindowResizeEvent, ...).
 		dispatcher.Dispatch<WindowCloseEvent>(LF_BIND_EVENT_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(LF_BIND_EVENT_FN(Application::OnWindowResize));
 
-		for (auto layer : m_LayerStack) {
+		for (auto layer : m_LayerStack) { // Presents event to the layers, until a layer marks it handled. (Clicking on a button -> all layers behind the button don't need to recieve the event).
 
 			if (event.Handled)
 				break;
