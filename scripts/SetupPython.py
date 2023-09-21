@@ -25,7 +25,7 @@ class PythonRequirements:
 		return True
 
 	@classmethod
-	def ValidateVersion(cls, versionMajor, versionMinor):
+	def ValidateVersion(self, versionMajor, versionMinor):
 		if sys.version is not None:
 			print("Python version {0:d}.{1:d}.{2:d} detected.".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
 			if sys.version_info.major < versionMajor or (sys.version_info.major == versionMajor and sys.version_info.minor < versionMinor):
@@ -36,7 +36,7 @@ class PythonRequirements:
 		return False
 
 	@classmethod
-	def ValidatePackage(cls, packageName):
+	def ValidatePackage(self, packageName):
 		if importLib_util.find_spec(packageName) is None:
 			print(f"Package {packageName} is not installed.")
 			return self.InstallPackage(packageName)
@@ -44,7 +44,7 @@ class PythonRequirements:
 		return True
 
 	@classmethod
-	def InstallPackage(cls, packageName):
+	def InstallPackage(self, packageName):
 		permissionGranted = False
 		while not permissionGranted:
 			reply = str(input(f"Would you like to install Python package '{packageName}'? [Y/N]: ")).lower().strip()[:1]
