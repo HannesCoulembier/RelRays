@@ -3,6 +3,8 @@
 
 namespace LoFox {
 
+	Scope<RendererAPI> RenderCommand::s_RendererAPI = RendererAPI::Create();
+
 	void RenderCommand::Init() {
 
 		m_ClearValues.resize(2);

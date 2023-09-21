@@ -1,7 +1,9 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.h> // TODO: move vulkan stuff to Platform/Vulkan
+
+#include "LoFox/Renderer/RendererAPI.h"
 
 #include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Renderer/IndexBuffer.h"
@@ -44,5 +46,7 @@ namespace LoFox {
 
 		inline static VkViewport m_Viewport;
 		inline static VkRect2D m_Scissor;
+	private:
+		static Scope<RendererAPI> s_RendererAPI;
 	};
 }

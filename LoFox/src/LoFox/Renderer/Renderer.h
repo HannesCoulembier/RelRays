@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include "LoFox/Core/Window.h"
+#include "LoFox/Renderer/RenderCommand.h"
 
 #include "LoFox/Renderer/Buffer.h"
 #include "LoFox/Renderer/Image.h"
@@ -40,6 +41,8 @@ namespace LoFox {
 		static inline VkSampler GetImageSampler() { return m_Sampler; }
 
 		static void OnResize(uint32_t width, uint32_t height) { OnFramebufferResize(FramebufferResizeEvent(width, height)); }
+
+		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 	public:
 		static const int MaxFramesInFlight = 1;
 	private:
