@@ -1,7 +1,7 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/Resource.h"
 
-#include "LoFox/Renderer/RenderContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
 #include "LoFox/Renderer/Renderer.h"
 
 namespace LoFox {
@@ -60,7 +60,7 @@ namespace LoFox {
 		descriptorSetlayoutCreateInfo.bindingCount = (uint32_t)bindings.size();
 		descriptorSetlayoutCreateInfo.pBindings = bindings.data();
 
-		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(RenderContext::LogicalDevice, &descriptorSetlayoutCreateInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
+		LF_CORE_ASSERT(vkCreateDescriptorSetLayout(VulkanContext::LogicalDevice, &descriptorSetlayoutCreateInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
 	}
 
 	Ref<ResourceLayout> ResourceLayout::Create(std::initializer_list<Resource> resources) {
@@ -69,6 +69,6 @@ namespace LoFox {
 
 	void ResourceLayout::Destroy() {
 
-		vkDestroyDescriptorSetLayout(RenderContext::LogicalDevice, m_DescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(VulkanContext::LogicalDevice, m_DescriptorSetLayout, nullptr);
 	}
 }

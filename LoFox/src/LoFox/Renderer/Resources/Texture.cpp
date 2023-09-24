@@ -3,7 +3,8 @@
 
 #include <stb_image.h>
 
-#include "LoFox/Utils/VulkanUtils.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/Utils.h"
 
 #include "LoFox/Renderer/RenderContext.h"
 
@@ -37,19 +38,19 @@ namespace LoFox {
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.flags = 0;
 
-		LF_CORE_ASSERT(vkCreateImage(RenderContext::LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
+		LF_CORE_ASSERT(vkCreateImage(VulkanContext::LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(RenderContext::LogicalDevice, m_Image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanContext::LogicalDevice, m_Image, &memRequirements);
 
 		VkMemoryAllocateInfo memoryAllocInfo = {};
 		memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memoryAllocInfo.allocationSize = memRequirements.size;
-		memoryAllocInfo.memoryTypeIndex = Utils::FindMemoryType(RenderContext::PhysicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		memoryAllocInfo.memoryTypeIndex = Utils::FindMemoryType(VulkanContext::PhysicalDevice, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		LF_CORE_ASSERT(vkAllocateMemory(RenderContext::LogicalDevice, &memoryAllocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
+		LF_CORE_ASSERT(vkAllocateMemory(VulkanContext::LogicalDevice, &memoryAllocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
 
-		vkBindImageMemory(RenderContext::LogicalDevice, m_Image, m_Memory, 0);
+		vkBindImageMemory(VulkanContext::LogicalDevice, m_Image, m_Memory, 0);
 
 		TransitionLayout(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
@@ -119,9 +120,9 @@ namespace LoFox {
 
 	void Texture::Destroy() {
 
-		vkDestroyImageView(RenderContext::LogicalDevice, m_ImageView, nullptr);
-		vkDestroyImage(RenderContext::LogicalDevice, m_Image, nullptr);
-		vkFreeMemory(RenderContext::LogicalDevice, m_Memory, nullptr);
+		vkDestroyImageView(VulkanContext::LogicalDevice, m_ImageView, nullptr);
+		vkDestroyImage(VulkanContext::LogicalDevice, m_Image, nullptr);
+		vkFreeMemory(VulkanContext::LogicalDevice, m_Memory, nullptr);
 	}
 
 	Ref<Texture> Texture::Create(const std::string& path) {

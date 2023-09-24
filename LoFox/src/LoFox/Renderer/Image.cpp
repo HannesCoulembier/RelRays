@@ -3,7 +3,8 @@
 
 #include <stb_image.h>
 
-#include "LoFox/Utils/VulkanUtils.h"
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/Utils.h"
 
 #include "LoFox/Renderer/RenderContext.h"
 
@@ -27,28 +28,28 @@ namespace LoFox {
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		LF_CORE_ASSERT(vkCreateImage(RenderContext::LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
+		LF_CORE_ASSERT(vkCreateImage(VulkanContext::LogicalDevice, &imageCreateInfo, nullptr, &m_Image) == VK_SUCCESS, "Failed to create image!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(RenderContext::LogicalDevice, m_Image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanContext::LogicalDevice, m_Image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = Utils::FindMemoryType(RenderContext::PhysicalDevice, memRequirements.memoryTypeBits, properties);
+		allocInfo.memoryTypeIndex = Utils::FindMemoryType(VulkanContext::PhysicalDevice, memRequirements.memoryTypeBits, properties);
 
-		LF_CORE_ASSERT(vkAllocateMemory(RenderContext::LogicalDevice, &allocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
+		LF_CORE_ASSERT(vkAllocateMemory(VulkanContext::LogicalDevice, &allocInfo, nullptr, &m_Memory) == VK_SUCCESS, "Failed to allocate image memory!");
 
-		vkBindImageMemory(RenderContext::LogicalDevice, m_Image, m_Memory, 0);
+		vkBindImageMemory(VulkanContext::LogicalDevice, m_Image, m_Memory, 0);
 
 		m_ImageView = CreateImageView(m_Image, m_Format, aspectFlags);
 	}
 
 	void Image::Destroy() {
 
-		vkDestroyImageView(RenderContext::LogicalDevice, m_ImageView, nullptr);
-		vkDestroyImage(RenderContext::LogicalDevice, m_Image, nullptr);
-		vkFreeMemory(RenderContext::LogicalDevice, m_Memory, nullptr);
+		vkDestroyImageView(VulkanContext::LogicalDevice, m_ImageView, nullptr);
+		vkDestroyImage(VulkanContext::LogicalDevice, m_Image, nullptr);
+		vkFreeMemory(VulkanContext::LogicalDevice, m_Memory, nullptr);
 	}
 
 	void Image::TransitionLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -109,7 +110,7 @@ namespace LoFox {
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
 		VkImageView imageView;
-		LF_CORE_ASSERT(vkCreateImageView(RenderContext::LogicalDevice, &imageViewCreateInfo, nullptr, &imageView) == VK_SUCCESS, "Failed to create image view!");
+		LF_CORE_ASSERT(vkCreateImageView(VulkanContext::LogicalDevice, &imageViewCreateInfo, nullptr, &imageView) == VK_SUCCESS, "Failed to create image view!");
 		return imageView;
 	}
 }

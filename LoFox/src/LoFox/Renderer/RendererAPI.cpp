@@ -6,8 +6,15 @@
 
 namespace LoFox {
 
-	// RendererAPI::API RendererAPI::s_API = RendererAPI::API::Vulkan;
-	RendererAPI::API RendererAPI::s_API = RendererAPI::API::OpenGL;
+	#ifdef LF_RENDERAPI_OPENGL
+		RendererAPI::API RendererAPI::s_API = RendererAPI::API::OpenGL;
+	#else
+#	ifdef LF_RENDERAPI_VULKAN
+		RendererAPI::API RendererAPI::s_API = RendererAPI::API::Vulkan;
+	#else
+		#error "LoFox needs a render api! f.e. define LF_RENDERAPI_OPENGL"
+	#endif
+	#endif
 
 	Scope<RendererAPI> RendererAPI::Create() {
 

@@ -7,6 +7,7 @@
 #include "LoFox/Renderer/Buffer.h"
 
 #include "LoFox/Renderer/RenderCommand.h"
+#include "Platform/Vulkan/VulkanContext.h"
 #include "LoFox/Renderer/RenderContext.h"
 
 struct UniformBufferObject {
@@ -25,13 +26,12 @@ namespace LoFox {
 		m_Window = window;
 		m_Timer.Reset();
 
-		RenderContext::Init(m_Window);
 		RenderCommand::Init();
 
 		m_SwapChain = CreateRef<SwapChain>(m_Window);
 
 		VkPhysicalDeviceProperties properties = {};
-		vkGetPhysicalDeviceProperties(RenderContext::PhysicalDevice, &properties);
+		vkGetPhysicalDeviceProperties(VulkanContext::PhysicalDevice, &properties);
 
 		VkSamplerCreateInfo samplerCreateInfo = {};
 		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -51,7 +51,7 @@ namespace LoFox {
 		samplerCreateInfo.minLod = 0.0f;
 		samplerCreateInfo.maxLod = 0.0f;
 
-		LF_CORE_ASSERT(vkCreateSampler(RenderContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
+		LF_CORE_ASSERT(vkCreateSampler(VulkanContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
 	}
 
 	void Renderer::SetResourceLayout(Ref<ResourceLayout> layout) {
@@ -69,7 +69,7 @@ namespace LoFox {
 		descriptorSetAllocInfo.pSetLayouts = layouts.data();
 
 		m_GraphicsDescriptorSets.resize(MaxFramesInFlight);
-		LF_CORE_ASSERT(vkAllocateDescriptorSets(RenderContext::LogicalDevice, &descriptorSetAllocInfo, m_GraphicsDescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(VulkanContext::LogicalDevice, &descriptorSetAllocInfo, m_GraphicsDescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
 		// Update Descriptor sets
 		for (size_t i = 0; i < MaxFramesInFlight; i++) {
@@ -100,7 +100,7 @@ namespace LoFox {
 				descriptorWrites.push_back(descriptorWrite);
 				binding++;
 
-				vkUpdateDescriptorSets(RenderContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+				vkUpdateDescriptorSets(VulkanContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
 			}
 		}
 	}
@@ -115,15 +115,14 @@ namespace LoFox {
 	
 	void Renderer::Shutdown() {
 
-		vkDestroySampler(RenderContext::LogicalDevice, m_Sampler, nullptr);
+		vkDestroySampler(VulkanContext::LogicalDevice, m_Sampler, nullptr);
 
-		vkDestroyDescriptorPool(RenderContext::LogicalDevice, m_DescriptorPool, nullptr);
+		vkDestroyDescriptorPool(VulkanContext::LogicalDevice, m_DescriptorPool, nullptr);
 
 		m_SwapChain->Destroy();
 		m_GraphicsPipeline->Destroy();
 
 		RenderCommand::Shutdown();
-		RenderContext::Shutdown();
 	}
 
 	void Renderer::PrepareFrame() {
@@ -172,7 +171,7 @@ namespace LoFox {
 		RenderCommand::EmptyVertexBuffers();
 	}
 
-	void Renderer::WaitIdle() { vkDeviceWaitIdle(RenderContext::LogicalDevice); }
+	void Renderer::WaitIdle() { vkDeviceWaitIdle(VulkanContext::LogicalDevice); }
 
 	void Renderer::Draw(uint32_t instances) {
 
@@ -225,7 +224,7 @@ namespace LoFox {
 		descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
 		descriptorPoolCreateInfo.maxSets = (uint32_t)(MaxFramesInFlight);
 
-		LF_CORE_ASSERT(vkCreateDescriptorPool(RenderContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
+		LF_CORE_ASSERT(vkCreateDescriptorPool(VulkanContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
 	}
 
 }

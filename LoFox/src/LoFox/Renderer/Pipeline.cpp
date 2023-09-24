@@ -6,7 +6,7 @@
 
 #include "LoFox/Renderer/Renderer.h"
 #include "LoFox/Renderer/RenderCommand.h"
-#include "LoFox/Renderer/RenderContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
 
 namespace LoFox {
 
@@ -58,7 +58,7 @@ namespace LoFox {
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-		LF_CORE_ASSERT(vkCreatePipelineLayout(RenderContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
 	}
 
 	void ComputePipeline::InitDescriptorSets() {
@@ -74,7 +74,7 @@ namespace LoFox {
 		descriptorSetAllocInfo.pSetLayouts = layouts.data();
 
 		m_DescriptorSets.resize(Renderer::MaxFramesInFlight);
-		LF_CORE_ASSERT(vkAllocateDescriptorSets(RenderContext::LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(VulkanContext::LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets.data()) == VK_SUCCESS, "Failed to allocate descriptor sets!");
 
 		// Update Descriptor sets
 		for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
@@ -105,7 +105,7 @@ namespace LoFox {
 				descriptorWrites.push_back(descriptorWrite);
 				binding++;
 
-				vkUpdateDescriptorSets(RenderContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+				vkUpdateDescriptorSets(VulkanContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
 			}
 		}
 	}
@@ -125,7 +125,7 @@ namespace LoFox {
 		pipelineCreateInfo.stage = shaderStage;
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 
-		VkResult r = vkCreateComputePipelines(RenderContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline);
+		VkResult r = vkCreateComputePipelines(VulkanContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline);
 		LF_CORE_ASSERT(r == VK_SUCCESS, "Failed to create compute pipeline!");
 	}
 
@@ -146,14 +146,14 @@ namespace LoFox {
 		descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
 		descriptorPoolCreateInfo.maxSets = (uint32_t)(Renderer::MaxFramesInFlight);
 
-		LF_CORE_ASSERT(vkCreateDescriptorPool(RenderContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
+		LF_CORE_ASSERT(vkCreateDescriptorPool(VulkanContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
 	}
 
 	void ComputePipeline::Destroy() {
 
-		vkDestroyPipelineLayout(RenderContext::LogicalDevice, Layout, nullptr);
-		vkDestroyPipeline(RenderContext::LogicalDevice, Pipeline, nullptr);
-		vkDestroyDescriptorPool(RenderContext::LogicalDevice, m_DescriptorPool, nullptr);
+		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, Layout, nullptr);
+		vkDestroyPipeline(VulkanContext::LogicalDevice, Pipeline, nullptr);
+		vkDestroyDescriptorPool(VulkanContext::LogicalDevice, m_DescriptorPool, nullptr);
 	}
 
 	void ComputePipeline::Bind() {
@@ -230,7 +230,7 @@ namespace LoFox {
 		layoutCreateInfo.setLayoutCount = 1;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-		LF_CORE_ASSERT(vkCreatePipelineLayout(RenderContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
 	}
 
 	void GraphicsPipeline::InitRenderPass() {
@@ -290,7 +290,7 @@ namespace LoFox {
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassCreateInfo.subpassCount = 1;
 
-		LF_CORE_ASSERT(vkCreateRenderPass(RenderContext::LogicalDevice, &renderPassCreateInfo, nullptr, &RenderPass) == VK_SUCCESS, "Failed to create render pass!");
+		LF_CORE_ASSERT(vkCreateRenderPass(VulkanContext::LogicalDevice, &renderPassCreateInfo, nullptr, &RenderPass) == VK_SUCCESS, "Failed to create render pass!");
 
 	}
 
@@ -402,13 +402,13 @@ namespace LoFox {
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineCreateInfo.subpass = 0;
 
-		LF_CORE_ASSERT(vkCreateGraphicsPipelines(RenderContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
+		LF_CORE_ASSERT(vkCreateGraphicsPipelines(VulkanContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
 	}
 
 	void GraphicsPipeline::Destroy() {
 
-		vkDestroyPipeline(RenderContext::LogicalDevice, Pipeline, nullptr);
-		vkDestroyPipelineLayout(RenderContext::LogicalDevice, Layout, nullptr);
-		vkDestroyRenderPass(RenderContext::LogicalDevice, RenderPass, nullptr);
+		vkDestroyPipeline(VulkanContext::LogicalDevice, Pipeline, nullptr);
+		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, Layout, nullptr);
+		vkDestroyRenderPass(VulkanContext::LogicalDevice, RenderPass, nullptr);
 	}
 }

@@ -1,9 +1,9 @@
 #include "lfpch.h"
-#include "LoFox/Renderer/DebugMessenger.h"
+#include "Platform/vulkan/DebugMessenger.h"
 
-#include "LoFox/Renderer/RenderContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
 
-#include "LoFox/Utils/VulkanUtils.h"
+#include "Platform/Vulkan/Utils.h"
 
 namespace LoFox {
 
@@ -21,7 +21,7 @@ namespace LoFox {
 		if (func != nullptr)
 			func(instance, debugMessenger, pAllocator);
 	}
-	
+
 	VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
 
 		if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) // Filters all vulkan messages that have a severity lower than warning
@@ -38,11 +38,11 @@ namespace LoFox {
 		return VK_FALSE; // When VK_TRUE is returned, Vulkan will abort the call that made this callback
 	}
 
-	#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 	const std::vector<const char*> DebugMessenger::ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
-	#else
+#else
 	const std::vector<const char*> DebugMessenger::ValidationLayers = {};
-	#endif
+#endif
 
 	DebugMessenger::DebugMessenger() {
 
@@ -52,13 +52,13 @@ namespace LoFox {
 
 	void DebugMessenger::Init() {
 
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 
 		VkDebugUtilsMessageSeverityFlagsEXT messageSeverities;
 		messageSeverities = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-		#ifdef LF_BE_OVERLYSPECIFIC
+#ifdef LF_BE_OVERLYSPECIFIC
 		messageSeverities |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-		#endif
+#endif
 
 		VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {};
 		messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -67,18 +67,18 @@ namespace LoFox {
 		messengerCreateInfo.pfnUserCallback = MessageCallback;
 		messengerCreateInfo.pUserData = nullptr;
 
-		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(RenderContext::Instance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
-		
-		#endif
+		LF_CORE_ASSERT(CreateVulkanDebugMessengerEXT(VulkanContext::Instance, &messengerCreateInfo, nullptr, &m_DebugMessenger) == VK_SUCCESS, "Failed to set up debug messenger!");
+
+#endif
 	}
 
 	void DebugMessenger::Shutdown() {
 
-		#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-		
-		DestroyVulkanDebugUtilsMessengerEXT(RenderContext::Instance, m_DebugMessenger, nullptr);
-		
-		#endif
+#ifdef LF_USE_VULKAN_VALIDATION_LAYERS
+
+		DestroyVulkanDebugUtilsMessengerEXT(VulkanContext::Instance, m_DebugMessenger, nullptr);
+
+#endif
 	}
 
 	Ref<DebugMessenger> DebugMessenger::Create() {

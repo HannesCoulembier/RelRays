@@ -32,6 +32,7 @@ namespace LoFox {
 		void OnUpdate();
 
 		inline Ref<Window> GetActiveWindow() { return m_Window; } // We currently only support 1 window, so that's the 'Active' window.
+		inline ApplicationSpec GetSpec() { return m_Spec; }
 
 		static Application& GetInstance() { return *s_Instance; } // Consequence of having only 1 Application at a time.
 	private:

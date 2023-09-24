@@ -31,6 +31,7 @@ project "LoFox"
 		"src",
 		"vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.Glad}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.VulkanSDK}",
@@ -39,7 +40,9 @@ project "LoFox"
 	links {
 
 		"GLFW",
+		"Glad",
 		"%{Library.Vulkan}",
+		"opengl32.lib",
 	}
 
 	filter "system:windows"

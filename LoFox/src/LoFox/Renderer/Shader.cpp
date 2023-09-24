@@ -7,7 +7,7 @@
 
 #include "LoFox/Utils/Utils.h"
 
-#include "LoFox/Renderer/RenderContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
 
 namespace LoFox {
 
@@ -40,7 +40,7 @@ namespace LoFox {
 		shaderModuleCreateInfo.codeSize = m_ByteCode.size() * sizeof(uint32_t);
 		shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(m_ByteCode.data());
 		
-		LF_CORE_ASSERT(vkCreateShaderModule(RenderContext::LogicalDevice, &shaderModuleCreateInfo, nullptr, &m_ShaderModule) == VK_SUCCESS, "Failed to create shader module!");
+		LF_CORE_ASSERT(vkCreateShaderModule(VulkanContext::LogicalDevice, &shaderModuleCreateInfo, nullptr, &m_ShaderModule) == VK_SUCCESS, "Failed to create shader module!");
 	}
 
 	Shader::Shader(const std::string& path, ShaderType type)
@@ -80,7 +80,7 @@ namespace LoFox {
 
 	Shader::~Shader() {
 
-		vkDestroyShaderModule(RenderContext::LogicalDevice, m_ShaderModule, nullptr);
+		vkDestroyShaderModule(VulkanContext::LogicalDevice, m_ShaderModule, nullptr);
 	}
 
 	void Shader::CompileVulkanBinaries() {

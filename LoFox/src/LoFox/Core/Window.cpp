@@ -1,8 +1,10 @@
 #include "lfpch.h"
 #include "LoFox/Core/Window.h"
 
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#include "LoFox/Renderer/Renderer.h"
+#include "LoFox/Renderer/GraphicsContext.h"
 
 #include "LoFox/Core/Input.h"
 
@@ -12,20 +14,6 @@
 #include "LoFox/Events/RenderEvent.h"
 
 namespace LoFox {
-
-	namespace Utils {
-
-		// Returns the extensions glfw needs to operate
-		std::vector<const char*> GetRequiredGLFWExtensions() {
-
-			uint32_t glfwExtensionCount;
-			const char** glfwExtensions;
-			glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-			std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-			return requiredExtensions;
-		}
-	}
 
 	static uint32_t windowCount = 0;
 
@@ -50,10 +38,20 @@ namespace LoFox {
 		if (windowCount == 0)
 			glfwInit();
 
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		#if defined(LF_DEBUG)
+			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
+				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+		#endif
+		if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+		else
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		
 
 		m_WindowHandle = glfwCreateWindow(m_Spec.Width, m_Spec.Height, m_Spec.Title.c_str(), nullptr, nullptr);
 		windowCount++;
+
+		GraphicsContext::Init(m_WindowHandle);
 
 		// Provides glfw callbacks with m_WindowData
 		glfwSetWindowUserPointer(m_WindowHandle, &m_WindowData);
@@ -154,6 +152,8 @@ namespace LoFox {
 
 		LF_OVERSPECIFY("Destroying window named \"{0}\"", m_Spec.Title);
 
+		GraphicsContext::Shutdown();
+
 		glfwDestroyWindow(m_WindowHandle);
 		windowCount--;
 		if (windowCount == 0)
@@ -163,11 +163,6 @@ namespace LoFox {
 	void Window::OnUpdate() {
 
 		glfwPollEvents();
-	}
-
-	void Window::CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface) {
-
-		LF_CORE_ASSERT(glfwCreateWindowSurface(instance, m_WindowHandle, nullptr, surface) == VK_SUCCESS, "Failed to create window surface!");
 	}
 
 	void Window::GetFramebufferSize(int* width, int* height) const {

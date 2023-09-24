@@ -2,7 +2,7 @@
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 
 #include "LoFox/Renderer/Renderer.h"
-#include "LoFox/Renderer/RenderContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
 
 namespace LoFox {
 
@@ -16,7 +16,7 @@ namespace LoFox {
 
 			m_Buffers[i] = CreateRef<Buffer>(m_Size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-			vkMapMemory(RenderContext::LogicalDevice, m_Buffers[i]->GetMemory(), 0, m_Size, 0, &m_BuffersMapped[i]);
+			vkMapMemory(VulkanContext::LogicalDevice, m_Buffers[i]->GetMemory(), 0, m_Size, 0, &m_BuffersMapped[i]);
 		}
 	}
 

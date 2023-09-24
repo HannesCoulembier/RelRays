@@ -1,7 +1,5 @@
 #pragma once
 
-#include "LoFox/Core/Core.h"
-
 #include <vulkan/vulkan.h>
 
 namespace LoFox {
@@ -15,7 +13,7 @@ namespace LoFox {
 
 		void Shutdown();
 
-		inline PFN_vkDebugUtilsMessengerCallbackEXT GetMessageCallback() { return MessageCallback; }
+		inline static PFN_vkDebugUtilsMessengerCallbackEXT GetMessageCallback() { return MessageCallback; }
 
 		static Ref<DebugMessenger> Create();
 	public:

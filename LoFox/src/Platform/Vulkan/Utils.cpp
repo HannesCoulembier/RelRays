@@ -1,12 +1,16 @@
 #include "lfpch.h"
-#include "LoFox/Utils/VulkanUtils.h"
+#include "Platform/Vulkan/Utils.h"
+
+#include <GLFW/glfw3.h>
 
 namespace LoFox {
 
 	namespace Utils {
 
 		// Populators (populate createInfo structs) -----------------------------------------------------
-		void PopulateDebugMessageCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo, PFN_vkDebugUtilsMessengerCallbackEXT userCallback) {
+		VkDebugUtilsMessengerCreateInfoEXT MakeDebugMessageCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT userCallback) {
+
+			VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
 
 			VkDebugUtilsMessageSeverityFlagsEXT messageSeverities;
 			messageSeverities = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -20,6 +24,7 @@ namespace LoFox {
 			createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 			createInfo.pfnUserCallback = userCallback;
 			createInfo.pUserData = nullptr;
+			return createInfo;
 		}
 
 		// Extensions -----------------------------------------------------------------------------------
@@ -58,6 +63,17 @@ namespace LoFox {
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			#endif
 			return extensions;
+		}
+
+		// Returns the extensions glfw needs to operate
+		std::vector<const char*> GetRequiredGLFWExtensions() {
+
+			uint32_t glfwExtensionCount;
+			const char** glfwExtensions;
+			glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+			std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+			return requiredExtensions;
 		}
 
 		// Layers ---------------------------------------------------------------------------------------
@@ -101,108 +117,6 @@ namespace LoFox {
 					return false;
 			}
 			return true;
-		}
-
-		// Queue Families -------------------------------------------------------------------------------
-		std::vector<VkQueueFamilyProperties> GetVulkanQueueFamilies(VkPhysicalDevice device) {
-
-			uint32_t queueFamilyCount;
-			vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-			std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-			return queueFamilies;
-		}
-
-		QueueFamilyIndices IdentifyVulkanQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
-
-			QueueFamilyIndices indices;
-
-			std::vector<VkQueueFamilyProperties> queueFamilies = GetVulkanQueueFamilies(device);
-
-			for (int i = 0; i < queueFamilies.size(); i++) {
-
-				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-					indices.HasGraphicsFamily = true;
-					indices.GraphicsFamilyIndex = i;
-
-					if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
-						indices.GraphicsIsAlsoComputeFamily = true;
-				}
-				VkBool32 presentSupport;
-				vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-				if (presentSupport) {
-					indices.HasPresentFamily = true;
-					indices.PresentFamilyIndex = i;
-				}
-				if (indices.IsComplete()) break;
-			}
-
-			return indices;
-		}
-
-		// SwapChain ------------------------------------------------------------------------------------
-		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-
-			for (const auto& availableFormat : availableFormats) {
-				if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) // = Ideal format
-					return availableFormat;
-			}
-			return availableFormats[0]; // We couldn't find our preferred format, so we will pick the first one.
-		}
-
-		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-
-			for (const auto& availablePresentMode : availablePresentModes) {
-				if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) // Ideal present mode (renders as fast as possible, when queue is full first image is popped -> less latency, higher power usage)
-					return availablePresentMode;
-			}
-
-			return VK_PRESENT_MODE_FIFO_KHR; // Is always available
-		}
-
-		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Window& window) {
-
-			if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-				return capabilities.currentExtent;
-			}
-			else {
-
-				int width, height;
-				window.GetFramebufferSize(&width, &height);
-
-				VkExtent2D actualExtent = {
-					static_cast<uint32_t>(width),
-					static_cast<uint32_t>(height)
-				};
-
-				actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-				actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-				return actualExtent;
-			}
-		}
-
-		SwapChainSupportDetails GetSwapChainSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface) {
-
-			SwapChainSupportDetails details;
-
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.Capabilities);
-
-			uint32_t formatCount;
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-			if (formatCount != 0) {
-				details.Formats.resize(formatCount);
-				vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.data());
-			}
-
-			uint32_t presentModeCount;
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-			if (presentModeCount != 0) {
-				details.PresentModes.resize(presentModeCount);
-				vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.PresentModes.data());
-			}
-			return details;
 		}
 
 		// PhysicalDevices ------------------------------------------------------------------------
@@ -276,6 +190,105 @@ namespace LoFox {
 			return physicalDevice;
 		}
 
+		// Queue Families -------------------------------------------------------------------------------
+		std::vector<VkQueueFamilyProperties> GetVulkanQueueFamilies(VkPhysicalDevice device) {
+
+			uint32_t queueFamilyCount;
+			vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+			std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+			return queueFamilies;
+		}
+
+		QueueFamilyIndices IdentifyVulkanQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
+
+			QueueFamilyIndices indices;
+
+			std::vector<VkQueueFamilyProperties> queueFamilies = GetVulkanQueueFamilies(device);
+
+			for (int i = 0; i < queueFamilies.size(); i++) {
+
+				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+					indices.HasGraphicsFamily = true;
+					indices.GraphicsFamilyIndex = i;
+
+					if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+						indices.GraphicsIsAlsoComputeFamily = true;
+				}
+				VkBool32 presentSupport;
+				vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+				if (presentSupport) {
+					indices.HasPresentFamily = true;
+					indices.PresentFamilyIndex = i;
+				}
+				if (indices.IsComplete()) break;
+			}
+
+			return indices;
+		}
+
+		// SwapChain ------------------------------------------------------------------------------------
+		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+
+			for (const auto& availableFormat : availableFormats) {
+				if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) // = Ideal format
+					return availableFormat;
+			}
+			return availableFormats[0]; // We couldn't find our preferred format, so we will pick the first one.
+		}
+
+		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+
+			for (const auto& availablePresentMode : availablePresentModes) {
+				if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) // Ideal present mode (renders as fast as possible, when queue is full first image is popped -> less latency, higher power usage)
+					return availablePresentMode;
+			}
+
+			return VK_PRESENT_MODE_FIFO_KHR; // Is always available
+		}
+
+		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
+
+			if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+				return capabilities.currentExtent;
+			}
+			else {
+
+				VkExtent2D actualExtent = {
+					width,
+					height
+				};
+
+				actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+				actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+				return actualExtent;
+			}
+		}
+
+		SwapChainSupportDetails GetSwapChainSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface) {
+
+			SwapChainSupportDetails details;
+
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.Capabilities);
+
+			uint32_t formatCount;
+			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+			if (formatCount != 0) {
+				details.Formats.resize(formatCount);
+				vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.data());
+			}
+
+			uint32_t presentModeCount;
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+			if (presentModeCount != 0) {
+				details.PresentModes.resize(presentModeCount);
+				vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.PresentModes.data());
+			}
+			return details;
+		}
+	
 		// Memory ---------------------------------------------------------------------------------------
 		uint32_t FindMemoryType(VkPhysicalDevice device, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 

@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "LoFox/Core/Settings.h"
+
 // Will give A LOT of debug info (that you propably don't need)
 /*
 Enables progress messages like: "Creating application named: name_of_app"

@@ -2,18 +2,11 @@
 
 #include "LoFox/Core/Core.h"
 
-#include <vulkan/vulkan.h>
-
 #include "LoFox/Events/Event.h"
 
 struct GLFWwindow; // Forward declaration
 
 namespace LoFox {
-
-	namespace Utils {
-
-		std::vector<const char*> GetRequiredGLFWExtensions();
-	}
 
 	struct WindowSpec {
 
@@ -26,8 +19,6 @@ namespace LoFox {
 	public:
 		Window(const WindowSpec& spec);
 		void Shutdown();
-
-		void CreateVulkanSurface(VkInstance instance, VkSurfaceKHR* surface);
 
 		void OnUpdate();
 		void SetEventCallback(const std::function<void(Event&)>& callback) { m_WindowData.WindowEventCallback = callback; }

@@ -1,14 +1,6 @@
 #include "lfpch.h"
 #include "LoFox/Core/Application.h"
 
-#include "LoFox/Core/Log.h"
-
-#include <vulkan/vulkan.h>
-
-#include "LoFox/Utils/VulkanUtils.h"
-#include "LoFox/Utils/Utils.h"
-#include "LoFox/Utils/Time.h"
-
 #include "LoFox/Core/Input.h"
 
 #include "LoFox/Renderer/Renderer.h"
