@@ -39,7 +39,8 @@ namespace LoFox {
 				OnUpdate(); // Keeps track of the timestep and updates all the layers.
 		}
 
-		Renderer::WaitIdle(); // TODO: Move to destructor.
+		// TODO: re-enable renderer
+		// Renderer::WaitIdle(); // TODO: Move to destructor.
 	}
 
 	void Application::OnUpdate() {
