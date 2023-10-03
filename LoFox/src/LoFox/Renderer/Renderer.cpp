@@ -54,6 +54,17 @@ namespace LoFox {
 		// LF_CORE_ASSERT(vkCreateSampler(VulkanContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
 	}
 
+	void Renderer::BeginFrame(glm::vec3 clearColor) {
+
+		GraphicsContext::BeginFrame(clearColor);
+	}
+
+	void Renderer::EndFrame() {
+
+		GraphicsContext::EndFrame();
+		GraphicsContext::PresentFrame();
+	}
+
 	// void Renderer::SetResourceLayout(Ref<ResourceLayout> layout) {
 	// 
 	// 	m_ResourceLayout = layout;

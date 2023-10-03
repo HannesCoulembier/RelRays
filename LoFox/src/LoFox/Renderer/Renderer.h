@@ -23,6 +23,9 @@ namespace LoFox {
 		static void Init(Ref<Window> window);
 		static void Shutdown();
 
+		static void BeginFrame(glm::vec3 clearColor = { 0.0f, 0.0f, 0.0f });
+		static void EndFrame();
+
 		// static void SetResourceLayout(Ref<ResourceLayout> layout);
 		// static void SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline);
 		// 

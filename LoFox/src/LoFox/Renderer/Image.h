@@ -20,7 +20,6 @@ namespace LoFox {
 		inline VkFormat GetFormat() { return m_Format; }
 
 		void TransitionLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	private:
 		VkImage m_Image;
 		VkDeviceMemory m_Memory;

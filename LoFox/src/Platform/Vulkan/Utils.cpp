@@ -165,7 +165,7 @@ namespace LoFox {
 			bool supportsRequiredExtensions = requiredDeviceExtensionsLeft.empty();
 			bool swapChainIsAdequate = false;
 			if (supportsRequiredExtensions) {
-				SwapChainSupportDetails supportDetails = GetSwapChainSupportDetails(device, surface);
+				SwapChainSupportDetails supportDetails = GetSwapchainSupportDetails(device, surface);
 				swapChainIsAdequate = !(supportDetails.Formats.empty()) && !(supportDetails.PresentModes.empty());
 			}
 
@@ -228,8 +228,8 @@ namespace LoFox {
 			return indices;
 		}
 
-		// SwapChain ------------------------------------------------------------------------------------
-		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+		// Swapchain ------------------------------------------------------------------------------------
+		VkSurfaceFormatKHR ChooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
 
 			for (const auto& availableFormat : availableFormats) {
 				if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) // = Ideal format
@@ -238,7 +238,7 @@ namespace LoFox {
 			return availableFormats[0]; // We couldn't find our preferred format, so we will pick the first one.
 		}
 
-		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+		VkPresentModeKHR ChooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
 
 			for (const auto& availablePresentMode : availablePresentModes) {
 				if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) // Ideal present mode (renders as fast as possible, when queue is full first image is popped -> less latency, higher power usage)
@@ -248,7 +248,7 @@ namespace LoFox {
 			return VK_PRESENT_MODE_FIFO_KHR; // Is always available
 		}
 
-		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
+		VkExtent2D ChooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
 
 			if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 				return capabilities.currentExtent;
@@ -267,7 +267,7 @@ namespace LoFox {
 			}
 		}
 
-		SwapChainSupportDetails GetSwapChainSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface) {
+		SwapChainSupportDetails GetSwapchainSupportDetails(VkPhysicalDevice device, VkSurfaceKHR surface) {
 
 			SwapChainSupportDetails details;
 
@@ -321,5 +321,28 @@ namespace LoFox {
 		}
 
 		VkFormat FindDepthFormat(VkPhysicalDevice device) { return FindSupportedFormat(device, { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT); }
+	
+		// Images ---------------------------------------------------------------------------------------
+		VkImageView CreateImageViewFromImage(VkDevice logicalDevice, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+
+			VkImageViewCreateInfo imageViewCreateInfo = {};
+			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewCreateInfo.image = image;
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageViewCreateInfo.format = format;
+			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
+			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+			imageViewCreateInfo.subresourceRange.levelCount = 1;
+			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+			imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+			VkImageView imageView;
+			LF_CORE_ASSERT(vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &imageView) == VK_SUCCESS, "Failed to create image view!");
+			return imageView;
+		}
 	}
 }

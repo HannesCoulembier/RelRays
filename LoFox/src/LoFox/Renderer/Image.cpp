@@ -42,7 +42,7 @@ namespace LoFox {
 
 		vkBindImageMemory(VulkanContext::LogicalDevice, m_Image, m_Memory, 0);
 
-		m_ImageView = CreateImageView(m_Image, m_Format, aspectFlags);
+		m_ImageView = Utils::CreateImageViewFromImage(VulkanContext::LogicalDevice, m_Image, m_Format, aspectFlags);
 	}
 
 	void Image::Destroy() {
@@ -90,27 +90,5 @@ namespace LoFox {
 		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 		RenderContext::EndSingleTimeCommandBuffer(commandBuffer);
-	}
-
-	VkImageView Image::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
-
-		VkImageViewCreateInfo imageViewCreateInfo = {};
-		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.image = image;
-		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = format;
-		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
-		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-		imageViewCreateInfo.subresourceRange.levelCount = 1;
-		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-		VkImageView imageView;
-		LF_CORE_ASSERT(vkCreateImageView(VulkanContext::LogicalDevice, &imageViewCreateInfo, nullptr, &imageView) == VK_SUCCESS, "Failed to create image view!");
-		return imageView;
 	}
 }

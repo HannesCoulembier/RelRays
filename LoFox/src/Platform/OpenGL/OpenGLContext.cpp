@@ -28,6 +28,16 @@ namespace LoFox {
 
 	}
 
+	void OpenGLContext::BeginFrame(glm::vec3 clearColor) {
+
+		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
+
+	void OpenGLContext::EndFrame() {
+		
+	}
+
 	void OpenGLContext::PresentFrame() {
 
 		glfwSwapBuffers(m_WindowHandle);
