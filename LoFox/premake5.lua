@@ -40,15 +40,12 @@ project "LoFox"
 	links {
 
 		"GLFW",
-		"Glad",
-		"%{Library.Vulkan}",
-		"opengl32.lib",
 	}
 
 	filter "system:windows"
 		systemversion "latest"
 
-	filter "configurations:Debug"
+	filter "configurations:Debug-OpenGL or configurations:Debug-Vulkan"
 		defines "LF_DEBUG"
 		runtime "Debug"
 		symbols "on"
@@ -60,7 +57,7 @@ project "LoFox"
 			"%{Library.SPIRV_Cross_GLSL_Debug}",
 		}
 
-	filter "configurations:Release"
+	filter "configurations:Release-OpenGL or configurations:Release-Vulkan"
 		defines "LF_RELEASE"
 		runtime "Release"
 		optimize "on"
@@ -72,7 +69,7 @@ project "LoFox"
 			"%{Library.SPIRV_Cross_GLSL_Release}",
 		}
 
-	filter "configurations:Dist"
+	filter "configurations:Dist-OpenGL or configurations:Dist-Vulkan"
 		defines "LF_DIST"
 		runtime "Release"
 		optimize "on"
@@ -82,4 +79,22 @@ project "LoFox"
 			"%{Library.ShaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
 			"%{Library.SPIRV_Cross_GLSL_Release}",
+		}
+
+
+	filter "configurations:Debug-OpenGL or configurations:Release-OpenGL or configurations:Dist-OpenGL"
+		defines "LF_RENDERAPI_OPENGL"
+
+		links {
+
+			"Glad",
+			"opengl32.lib",
+		}
+
+	filter "configurations:Debug-Vulkan or configurations:Release-Vulkan or configurations:Dist-Vulkan"
+		defines "LF_RENDERAPI_VULKAN"
+		
+		links {
+
+			"%{Library.Vulkan}",
 		}

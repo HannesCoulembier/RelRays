@@ -3,12 +3,12 @@
 
 #include "LoFox/Core/Application.h"
 
-#include "LoFox/Renderer/SwapChain.h"
-#include "LoFox/Renderer/Buffer.h"
+// #include "LoFox/Renderer/SwapChain.h"
+// #include "LoFox/Renderer/Buffer.h"
 
-#include "LoFox/Renderer/RenderCommand.h"
-#include "Platform/Vulkan/VulkanContext.h"
-#include "LoFox/Renderer/RenderContext.h"
+// #include "LoFox/Renderer/RenderCommand.h"
+#include "LoFox/Renderer/GraphicsContext.h"
+// #include "LoFox/Renderer/RenderContext.h"
 
 struct UniformBufferObject {
 
@@ -26,7 +26,7 @@ namespace LoFox {
 		m_Window = window;
 		m_Timer.Reset();
 
-		RenderCommand::Init();
+		// RenderCommand::Init();
 
 		// m_SwapChain = CreateRef<SwapChain>(m_Window);
 
@@ -133,7 +133,7 @@ namespace LoFox {
 		// m_SwapChain->Destroy();
 		// m_GraphicsPipeline->Destroy();
 
-		RenderCommand::Shutdown();
+		// RenderCommand::Shutdown();
 	}
 
 	// void Renderer::PrepareFrame() {

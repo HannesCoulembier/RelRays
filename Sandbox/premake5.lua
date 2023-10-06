@@ -19,7 +19,7 @@ project "Sandbox"
 		"%{wks.location}/LoFox/src",
 		"%{wks.location}/LoFox/vendor",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.VulkanSDK}",
+		-- "%{IncludeDir.VulkanSDK}",
 	}
 
 	links {
@@ -30,17 +30,17 @@ project "Sandbox"
 	filter "system:windows"
 		systemversion "latest"
 
-	filter "configurations:Debug"
+	filter "configurations:Debug-OpenGL or configurations:Debug-Vulkan"
 		defines "LF_DEBUG"
 		runtime "Debug"
 		symbols "on"
 
-	filter "configurations:Release"
+	filter "configurations:Release-OpenGL or configurations:Release-Vulkan"
 		defines "LF_RELEASE"
 		runtime "Release"
 		optimize "on"
 
-	filter "configurations:Dist"
+	filter "configurations:Dist-OpenGL or configurations:Dist-Vulkan"
 		defines "LF_DIST"
 		runtime "Release"
 		optimize "on"

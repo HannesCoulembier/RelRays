@@ -5,9 +5,12 @@ workspace "LoFox"
 	startproject "Sandbox"
 
 	configurations {
-		"Debug",
-		"Release",
-		"Dist"
+		"Debug-OpenGL",
+		"Debug-Vulkan",
+		"Release-OpenGL",
+		"Release-Vulkan",
+		"Dist-OpenGL",
+		"Dist-Vulkan",
 	}
 
 	flags {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <vulkan/vulkan.h> // TODO: move vulkan stuff to Platform/Vulkan
+// #include <vulkan/vulkan.h> // TODO: move vulkan stuff to Platform/Vulkan
 
 #include "LoFox/Renderer/RendererAPI.h"
 
