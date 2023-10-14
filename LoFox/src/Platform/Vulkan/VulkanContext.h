@@ -6,6 +6,7 @@
 
 #include "Platform/Vulkan/DebugMessenger.h"
 
+// Forward declaration
 struct GLFWwindow;
 
 namespace LoFox {
@@ -17,8 +18,15 @@ namespace LoFox {
 		static void Shutdown();
 
 		static void BeginFrame(glm::vec3 clearColor);
+		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
+		static void Draw(Ref<VertexBuffer> vertexBuffer);
 		static void EndFrame();
 		static void PresentFrame();
+
+		static void WaitIdle() { vkDeviceWaitIdle(LogicalDevice); }
+
+		static VkCommandBuffer BeginSingleTimeCommandBuffer();
+		static void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
 	public:
 		inline static VkInstance Instance;
 		inline static VkPhysicalDevice PhysicalDevice;
@@ -30,6 +38,9 @@ namespace LoFox {
 
 		inline static VkCommandPool CommandPool;
 		inline static VkCommandBuffer MainCommandBuffer;
+
+		inline static VkRenderPass RenderPass;
+		inline static VkExtent2D SwapchainExtent;
 	private:
 		static void InitInstance();
 		static void InitSurface();
@@ -46,12 +57,10 @@ namespace LoFox {
 
 		inline static VkSwapchainKHR m_Swapchain;
 		inline static VkFormat m_SwapchainImageFormat;
-		inline static VkExtent2D m_SwapchainExtent;
 		inline static std::vector<VkImage> m_SwapchainImages;
 		inline static std::vector<VkImageView> m_SwapchainImageViews;
 		inline static uint32_t m_ThisFramesImageIndex = 0;
 
-		inline static VkRenderPass m_RenderPass;
 		inline static std::vector<VkFramebuffer> m_Framebuffers;
 
 		inline static VkFence m_RenderFence;

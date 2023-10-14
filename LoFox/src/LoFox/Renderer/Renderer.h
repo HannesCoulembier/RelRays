@@ -12,6 +12,8 @@
 // #include "LoFox/Renderer/Pipeline.h"
 // #include "LoFox/Renderer/SwapChain.h"
 
+#include "LoFox/Renderer/Pipeline.h"
+#include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Events/RenderEvent.h"
 
 #include "LoFox/Utils/Time.h"
@@ -25,7 +27,13 @@ namespace LoFox {
 		static void Shutdown();
 
 		static void BeginFrame(glm::vec3 clearColor = { 0.0f, 0.0f, 0.0f });
+
+		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
+		static void Draw(Ref<VertexBuffer> vertexBuffer);
+
 		static void EndFrame();
+
+		static void WaitIdle();
 
 		// static void SetResourceLayout(Ref<ResourceLayout> layout);
 		// static void SubmitGraphicsPipeline(Ref<GraphicsPipeline> pipeline);
@@ -52,12 +60,7 @@ namespace LoFox {
 	public:
 		// static const int MaxFramesInFlight = 1;
 	private:
-
-		// static void CreateDescriptorPool();
-
-		// static bool OnFramebufferResize(FramebufferResizeEvent& event);
-	private:
-		static Ref<Window> m_Window;
+		inline static Ref<Window> m_Window;
 		// static Ref<SwapChain> m_SwapChain;
 
 		inline static Timer m_Timer;
@@ -69,5 +72,9 @@ namespace LoFox {
 		// 
 		// inline static VkDescriptorPool m_DescriptorPool;
 		// inline static std::vector<VkDescriptorSet> m_GraphicsDescriptorSets;
+	private:
+		// static void CreateDescriptorPool();
+
+		// static bool OnFramebufferResize(FramebufferResizeEvent& event);
 	};
 }

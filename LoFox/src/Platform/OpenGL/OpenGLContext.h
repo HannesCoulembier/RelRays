@@ -2,6 +2,8 @@
 
 #include "LoFox/Renderer/GraphicsContext.h"
 
+#include <glad/glad.h>
+
 struct GLFWwindow;
 
 namespace LoFox {
@@ -13,11 +15,17 @@ namespace LoFox {
 		static void Shutdown();
 
 		static void BeginFrame(glm::vec3 clearColor);
+		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
+		static void Draw(Ref<VertexBuffer> vertexBuffer);
 		static void EndFrame();
+
+		static void WaitIdle() {} // Does nothing as there is no multithreading
 
 		static void PresentFrame();
 	private:
 		inline static GLFWwindow* m_WindowHandle;
+
+		inline static GLuint m_VertexArrayID;
 	};
 
 }

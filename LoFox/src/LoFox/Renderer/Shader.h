@@ -1,8 +1,8 @@
 #pragma once
 
-#include "LoFox/Core/Core.h"
-
-#include <vulkan/vulkan.h>
+// #include "LoFox/Core/Core.h"
+// 
+// #include <vulkan/vulkan.h>
 
 namespace LoFox {
 
@@ -13,27 +13,39 @@ namespace LoFox {
 		Compute,
 	};
 
-	VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type);
+	// VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type);
 
 	class Shader {
 
 	public:
-		Shader(const std::string& path, ShaderType type);
-		~Shader();
+		// Shader(const std::string& path, ShaderType type);
+		// ~Shader();
 
-		inline VkPipelineShaderStageCreateInfo GetCreateInfo() { return m_CreateInfo; }
-	private:
-		void CreateShaderModule();
+		// inline VkPipelineShaderStageCreateInfo GetCreateInfo() { return m_CreateInfo; }
 
-		void CompileVulkanBinaries();
-	private:
-		const std::string& m_Path;
+		virtual void Destroy() = 0;
+
+		std::string GetPath() { return m_Path; }
+		ShaderType GetShaderType() { return m_Type; }
+		void* GetData() { return m_Data; }
+
+		static Ref<Shader> Create(ShaderType type, const std::string& path);
+	protected:
+		Shader(ShaderType type, const std::string& path);
+	protected:
+		std::string m_Path = "";
 		ShaderType m_Type;
 
-		std::string m_SourceCode;
-		std::vector<uint32_t> m_ByteCode;
+		void* m_Data = nullptr;
 
-		VkShaderModule m_ShaderModule;
-		VkPipelineShaderStageCreateInfo m_CreateInfo = {};
+		// std::string m_SourceCode;
+		// std::vector<uint32_t> m_ByteCode;
+		// 
+		// VkShaderModule m_ShaderModule;
+		// VkPipelineShaderStageCreateInfo m_CreateInfo = {};
+	private:
+		// void CreateShaderModule();
+
+		// void CompileVulkanBinaries();
 	};
 }

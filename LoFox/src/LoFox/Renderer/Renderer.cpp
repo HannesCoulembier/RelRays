@@ -18,7 +18,7 @@ struct UniformBufferObject {
 
 namespace LoFox {
 
-	Ref<Window> Renderer::m_Window;
+	// Ref<Window> Renderer::m_Window;
 	// Ref<SwapChain> Renderer::m_SwapChain;
 
 	void Renderer::Init(Ref<Window> window) {
@@ -59,10 +59,25 @@ namespace LoFox {
 		GraphicsContext::BeginFrame(clearColor);
 	}
 
+	void Renderer::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
+
+		GraphicsContext::SetActivePipeline(pipeline);
+	}
+
+	void Renderer::Draw(Ref<VertexBuffer> vertexBuffer) {
+
+		GraphicsContext::Draw(vertexBuffer);
+	}
+
 	void Renderer::EndFrame() {
 
 		GraphicsContext::EndFrame();
 		GraphicsContext::PresentFrame();
+	}
+
+	void Renderer::WaitIdle() {
+
+		GraphicsContext::WaitIdle();
 	}
 
 	// void Renderer::SetResourceLayout(Ref<ResourceLayout> layout) {

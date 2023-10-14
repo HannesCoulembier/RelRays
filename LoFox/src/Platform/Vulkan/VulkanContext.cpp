@@ -3,6 +3,11 @@
 
 #include <GLFW/glfw3.h>
 
+#include "LoFox/Renderer/Shader.h"
+#include "Platform/Vulkan/VulkanShader.h"
+#include "Platform/Vulkan/VulkanVertexBuffer.h"
+#include "Platform/Vulkan/VulkanPipeline.h"
+
 #include "LoFox/Core/Application.h"
 #include "Platform/Vulkan/Utils.h"
 
@@ -41,7 +46,7 @@ namespace LoFox {
 
 		for (VkFramebuffer framebuffer : m_Framebuffers)
 			vkDestroyFramebuffer(LogicalDevice, framebuffer, nullptr);
-		vkDestroyRenderPass(LogicalDevice, m_RenderPass, nullptr);
+		vkDestroyRenderPass(LogicalDevice, RenderPass, nullptr);
 
 		DestroySwapchain();
 
@@ -79,12 +84,25 @@ namespace LoFox {
 		renderPassInfo.pNext = nullptr;
 		renderPassInfo.renderArea.offset.x = 0;
 		renderPassInfo.renderArea.offset.y = 0;
-		renderPassInfo.renderArea.extent = m_SwapchainExtent;
-		renderPassInfo.renderPass = m_RenderPass;
+		renderPassInfo.renderArea.extent = SwapchainExtent;
+		renderPassInfo.renderPass = RenderPass;
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 
 		vkCmdBeginRenderPass(MainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+	}
+
+	void VulkanContext::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
+
+		vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<VulkanGraphicsPipelineData*>(pipeline->GetData())->Pipeline);
+	}
+
+	void VulkanContext::Draw(Ref<VertexBuffer> vertexBuffer) {
+
+		VkBuffer buffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
+		std::vector<VkDeviceSize> offset = { 0 };
+		vkCmdBindVertexBuffers(MainCommandBuffer, 0, 1, &buffer, offset.data());
+		vkCmdDraw(MainCommandBuffer, 3, 1, 0, 0);
 	}
 
 	void VulkanContext::EndFrame() {
@@ -121,6 +139,42 @@ namespace LoFox {
 		presentInfo.waitSemaphoreCount = 1;
 
 		LF_CORE_ASSERT(vkQueuePresentKHR(GraphicsQueueHandle, &presentInfo) == VK_SUCCESS, "Failed to present image!");
+	}
+
+
+	VkCommandBuffer VulkanContext::BeginSingleTimeCommandBuffer() {
+
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.commandPool = CommandPool;
+		commandBufferAllocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer;
+		vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, &commandBuffer);
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+
+		return commandBuffer;
+	}
+
+	void VulkanContext::EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer) {
+
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		vkQueueSubmit(GraphicsQueueHandle, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(GraphicsQueueHandle);
+
+		vkFreeCommandBuffers(LogicalDevice, CommandPool, 1, &commandBuffer);
 	}
 
 
@@ -239,7 +293,7 @@ namespace LoFox {
 
 		int width, height;
 		glfwGetFramebufferSize(m_WindowHandle, &width, &height);
-		m_SwapchainExtent = Utils::ChooseSwapchainExtent(swapChainSupport.Capabilities, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+		SwapchainExtent = Utils::ChooseSwapchainExtent(swapChainSupport.Capabilities, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
 		uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
 		if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) // when maxImageCount = 0, there is no limit
@@ -253,7 +307,7 @@ namespace LoFox {
 		swapchainCreateInfo.minImageCount = imageCount;
 		swapchainCreateInfo.imageFormat = surfaceFormat.format;
 		swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapchainCreateInfo.imageExtent = m_SwapchainExtent;
+		swapchainCreateInfo.imageExtent = SwapchainExtent;
 		swapchainCreateInfo.imageArrayLayers = 1;
 		swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
@@ -333,7 +387,7 @@ namespace LoFox {
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.subpassCount = subpasses.size();
 
-		LF_CORE_ASSERT(vkCreateRenderPass(LogicalDevice, &renderPassInfo, nullptr, &m_RenderPass) == VK_SUCCESS, "Failed to create renderpass!");
+		LF_CORE_ASSERT(vkCreateRenderPass(LogicalDevice, &renderPassInfo, nullptr, &RenderPass) == VK_SUCCESS, "Failed to create renderpass!");
 	}
 
 	void VulkanContext::InitFramebuffers() {
@@ -346,13 +400,13 @@ namespace LoFox {
 			VkFramebufferCreateInfo framebufferInfo = {};
 			framebufferInfo.attachmentCount = 1;
 			// framebufferInfo.flags = 
-			framebufferInfo.height = m_SwapchainExtent.height;
+			framebufferInfo.height = SwapchainExtent.height;
 			framebufferInfo.layers = 1;
 			framebufferInfo.pAttachments = &m_SwapchainImageViews[i];
 			// framebufferInfo.pNext = 
-			framebufferInfo.renderPass = m_RenderPass;
+			framebufferInfo.renderPass = RenderPass;
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.width = m_SwapchainExtent.width;
+			framebufferInfo.width = SwapchainExtent.width;
 
 			LF_CORE_ASSERT(vkCreateFramebuffer(LogicalDevice, &framebufferInfo, nullptr, &m_Framebuffers[i]) == VK_SUCCESS, "Failed to create framebuffers!");
 		}

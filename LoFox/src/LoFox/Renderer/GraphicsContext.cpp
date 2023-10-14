@@ -47,6 +47,30 @@ namespace LoFox {
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
 
+	void GraphicsContext::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
+
+		#ifdef LF_RENDERAPI_OPENGL
+			OpenGLContext::SetActivePipeline(pipeline); return;
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			VulkanContext::SetActivePipeline(pipeline); return;
+		#endif
+
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
+	}
+
+	void GraphicsContext::Draw(Ref<VertexBuffer> vertexBuffer) {
+
+		#ifdef LF_RENDERAPI_OPENGL
+			OpenGLContext::Draw(vertexBuffer); return;
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			VulkanContext::Draw(vertexBuffer); return;
+		#endif
+
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
+	}
+
 	void GraphicsContext::EndFrame() {
 
 		#ifdef LF_RENDERAPI_OPENGL
@@ -66,6 +90,18 @@ namespace LoFox {
 		#endif
 		#ifdef LF_RENDERAPI_VULKAN
 			VulkanContext::PresentFrame(); return;
+		#endif
+
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
+	}
+
+	void GraphicsContext::WaitIdle() {
+
+		#ifdef LF_RENDERAPI_OPENGL
+			OpenGLContext::WaitIdle(); return;
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			VulkanContext::WaitIdle(); return;
 		#endif
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");

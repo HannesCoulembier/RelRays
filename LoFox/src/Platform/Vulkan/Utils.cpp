@@ -27,6 +27,91 @@ namespace LoFox {
 			return createInfo;
 		}
 
+		VkPipelineShaderStageCreateInfo MakePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule module) {
+
+			VkPipelineShaderStageCreateInfo createInfo = {};
+			createInfo.flags = 0;
+			createInfo.module = module;
+			createInfo.pName = "main";
+			createInfo.pNext = nullptr;
+			createInfo.pSpecializationInfo = nullptr;
+			createInfo.stage = stage;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			return createInfo;
+		}
+
+		VkPipelineVertexInputStateCreateInfo MakePipelineVertexInputStateCreateInfo(const std::vector<VkVertexInputBindingDescription>& bindings, const std::vector<VkVertexInputAttributeDescription>& attributes) {
+
+			VkPipelineVertexInputStateCreateInfo createInfo = {};
+			createInfo.flags = 0;
+			createInfo.pNext = nullptr;
+			createInfo.pVertexAttributeDescriptions = attributes.data();
+			createInfo.pVertexBindingDescriptions = bindings.data();
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			createInfo.vertexAttributeDescriptionCount = attributes.size();
+			createInfo.vertexBindingDescriptionCount = bindings.size();
+			return createInfo;
+		}
+
+		VkPipelineInputAssemblyStateCreateInfo MakePipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology) {
+
+			VkPipelineInputAssemblyStateCreateInfo createInfo = {};
+			createInfo.flags = 0;
+			createInfo.pNext = nullptr;
+			createInfo.primitiveRestartEnable = VK_FALSE;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+			createInfo.topology = topology;
+			return createInfo;
+		}
+
+		VkPipelineRasterizationStateCreateInfo MakePipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode, float lineWidth) {
+
+			VkPipelineRasterizationStateCreateInfo createInfo = {};
+			createInfo.cullMode = VK_CULL_MODE_NONE;
+			createInfo.depthBiasClamp = 0.0f;
+			createInfo.depthBiasConstantFactor = 0.0f;
+			createInfo.depthBiasEnable = VK_FALSE;
+			createInfo.depthBiasSlopeFactor = 0.0f;
+			createInfo.depthClampEnable = VK_FALSE;
+			createInfo.flags = 0;
+			createInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+			createInfo.lineWidth = lineWidth;
+			createInfo.pNext = nullptr;
+			createInfo.polygonMode = polygonMode;
+			createInfo.rasterizerDiscardEnable = VK_FALSE;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+			return createInfo;
+		}
+
+		VkPipelineMultisampleStateCreateInfo MakePipelineMultisampleStateCreateInfo() {
+
+			VkPipelineMultisampleStateCreateInfo createInfo = {};
+			createInfo.alphaToCoverageEnable = VK_FALSE;
+			createInfo.alphaToOneEnable = VK_FALSE;
+			createInfo.flags = 0;
+			createInfo.minSampleShading = 1.0f;
+			createInfo.pNext = nullptr;
+			createInfo.pSampleMask = nullptr;
+			createInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+			createInfo.sampleShadingEnable = VK_FALSE;
+			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+			return createInfo;
+		}
+
+		VkPipelineColorBlendAttachmentState MakePipelineColorBlendAttachmentState() {
+
+			VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+			// colorBlendAttachment.alphaBlendOp = 
+			colorBlendAttachment.blendEnable = VK_FALSE;
+			// colorBlendAttachment.colorBlendOp = 
+			colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			// colorBlendAttachment.dstAlphaBlendFactor = 
+			// colorBlendAttachment.dstColorBlendFactor = 
+			// colorBlendAttachment.srcAlphaBlendFactor = 
+			// colorBlendAttachment.srcColorBlendFactor = 
+			return colorBlendAttachment;
+		}
+
 		// Extensions -----------------------------------------------------------------------------------
 		std::vector<VkExtensionProperties> GetVulkanExtensions() {
 

@@ -1,0 +1,112 @@
+#include "lfpch.h"
+#include "Platform/Vulkan/VulkanPipeline.h"
+
+#include "Platform/Vulkan/VulkanContext.h"
+#include "Platform/Vulkan/VulkanShader.h"
+#include "Platform/Vulkan/VulkanVertexBuffer.h"
+#include "Platform/Vulkan/Utils.h"
+
+namespace LoFox {
+
+	VulkanGraphicsPipeline::VulkanGraphicsPipeline(GraphicsPipelineCreateInfo createInfo)
+		: m_CreateInfo(createInfo) {
+
+		m_Data = &m_VulkanData;
+
+		// TODO: Make resource class or something to remove this code
+		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
+		layoutCreateInfo.flags = 0;
+		layoutCreateInfo.pNext = nullptr;
+		layoutCreateInfo.pPushConstantRanges = nullptr;
+		layoutCreateInfo.pSetLayouts = nullptr;
+		layoutCreateInfo.pushConstantRangeCount = 0;
+		layoutCreateInfo.setLayoutCount = 0;
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &m_Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+		// END TODO
+
+		std::vector<VkVertexInputBindingDescription> bindings = {
+			Utils::VertexLayoutToVertexInputBindingDescription(0, m_CreateInfo.VertexLayout)
+		};
+		
+		std::vector<VkVertexInputAttributeDescription> attributes;
+		Utils::AddVertexInputAttributeDescriptionsFromVertexLayout(0, m_CreateInfo.VertexLayout, attributes);
+		
+		m_VertexInputStateCreateInfo = Utils::MakePipelineVertexInputStateCreateInfo(bindings, attributes);
+		m_InputAssemblyStateCreateInfo = Utils::MakePipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		m_RasterizationStateCreateInfo = Utils::MakePipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, 1.0f);
+		m_MultisampleStateCreateInfo = Utils::MakePipelineMultisampleStateCreateInfo();
+		m_ColorBlendAttachmentState = Utils::MakePipelineColorBlendAttachmentState();
+
+		m_Viewport.height = -(float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right
+		m_Viewport.maxDepth = 1.0f;
+		m_Viewport.minDepth = 0.0f;
+		m_Viewport.width = (float)VulkanContext::SwapchainExtent.width;
+		m_Viewport.x = 0.0f;
+		m_Viewport.y = (float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right
+
+		m_Scissor.extent = VulkanContext::SwapchainExtent;
+		m_Scissor.offset = { 0, 0 };
+
+		VkPipelineViewportStateCreateInfo viewportState = {};
+		viewportState.flags = 0;
+		viewportState.pNext = nullptr;
+		viewportState.pScissors = &m_Scissor;
+		viewportState.pViewports = &m_Viewport;
+		viewportState.scissorCount = 1;
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+
+		VkPipelineColorBlendStateCreateInfo colorBlending = {};
+		colorBlending.attachmentCount = 1;
+		// colorBlending.blendConstants = 
+		colorBlending.flags = 0;
+		colorBlending.logicOp = VK_LOGIC_OP_COPY;
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.pAttachments = &m_ColorBlendAttachmentState;
+		colorBlending.pNext = nullptr;
+		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+
+		VkShaderModule vertexModule = static_cast<VulkanShaderData*>(m_CreateInfo.VertexShader->GetData())->ShaderModule;
+		VkShaderModule fragmentModule = static_cast<VulkanShaderData*>(m_CreateInfo.FragmentShader->GetData())->ShaderModule;
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
+			Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexModule),
+			Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentModule)
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+		// pipelineCreateInfo.basePipelineIndex = 
+		pipelineCreateInfo.flags = 0;
+		pipelineCreateInfo.layout = m_Layout;
+		pipelineCreateInfo.pColorBlendState = &colorBlending;
+		pipelineCreateInfo.pDepthStencilState = nullptr;
+		pipelineCreateInfo.pDynamicState = nullptr;
+		pipelineCreateInfo.pInputAssemblyState = &m_InputAssemblyStateCreateInfo;
+		pipelineCreateInfo.pMultisampleState = &m_MultisampleStateCreateInfo;
+		pipelineCreateInfo.pNext = nullptr;
+		pipelineCreateInfo.pRasterizationState = &m_RasterizationStateCreateInfo;
+		pipelineCreateInfo.pStages = shaderStages.data();
+		pipelineCreateInfo.pTessellationState = nullptr;
+		pipelineCreateInfo.pVertexInputState = &m_VertexInputStateCreateInfo;
+		pipelineCreateInfo.pViewportState = &viewportState;
+		pipelineCreateInfo.renderPass = VulkanContext::RenderPass;
+		pipelineCreateInfo.stageCount = shaderStages.size();
+		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCreateInfo.subpass = 0;
+
+		LF_CORE_ASSERT(vkCreateGraphicsPipelines(VulkanContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_VulkanData.Pipeline) == VK_SUCCESS, "Failed to create graphics pipeline!");
+
+	}
+
+	void VulkanGraphicsPipeline::Destroy() {
+
+		// Wait for graphics queue to finish rendering before deleting the pipeline
+		vkQueueWaitIdle(VulkanContext::GraphicsQueueHandle);
+
+		vkDestroyPipeline(VulkanContext::LogicalDevice, m_VulkanData.Pipeline, nullptr);
+		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, m_Layout, nullptr);
+	}
+}
