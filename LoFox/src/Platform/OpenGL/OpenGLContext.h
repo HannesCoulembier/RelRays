@@ -26,6 +26,7 @@ namespace LoFox {
 		inline static GLFWwindow* m_WindowHandle;
 
 		inline static GLuint m_VertexArrayID;
+		inline static Ref<GraphicsPipeline> m_ActivePipeline;
 	};
 
 }

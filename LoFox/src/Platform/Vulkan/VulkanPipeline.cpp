@@ -8,6 +8,19 @@
 
 namespace LoFox {
 
+	VkPrimitiveTopology TopologyToVkPrimitiveTopology(Topology topology) {
+
+		switch (topology) {
+			case Topology::Triangle: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			case Topology::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+			case Topology::Point: LF_CORE_ERROR("Vulkan Implementation does not support Topology::Point! see https://stackoverflow.com/questions/74979938/why-do-i-have-to-write-pointsize-in-the-vertex-shader for more information");
+			// case Topology::Point: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		}
+
+		LF_CORE_ASSERT(false, "Topology not available!");
+		return VkPrimitiveTopology(0);
+	}
+
 	VulkanGraphicsPipeline::VulkanGraphicsPipeline(GraphicsPipelineCreateInfo createInfo)
 		: m_CreateInfo(createInfo) {
 
@@ -34,8 +47,8 @@ namespace LoFox {
 		Utils::AddVertexInputAttributeDescriptionsFromVertexLayout(0, m_CreateInfo.VertexLayout, attributes);
 		
 		m_VertexInputStateCreateInfo = Utils::MakePipelineVertexInputStateCreateInfo(bindings, attributes);
-		m_InputAssemblyStateCreateInfo = Utils::MakePipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-		m_RasterizationStateCreateInfo = Utils::MakePipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, 1.0f);
+		m_InputAssemblyStateCreateInfo = Utils::MakePipelineInputAssemblyStateCreateInfo(TopologyToVkPrimitiveTopology(m_CreateInfo.Topology));
+		m_RasterizationStateCreateInfo = Utils::MakePipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, m_CreateInfo.LineWidth);
 		m_MultisampleStateCreateInfo = Utils::MakePipelineMultisampleStateCreateInfo();
 		m_ColorBlendAttachmentState = Utils::MakePipelineColorBlendAttachmentState();
 

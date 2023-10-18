@@ -26,7 +26,9 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3), "Benga requires at least OpenGL version 4.3");
 
-		glEnable(GL_FRAMEBUFFER_SRGB);
+		glEnable(GL_FRAMEBUFFER_SRGB); // Transforms to correct colorspace when presenting framebuffer
+		glEnable(GL_LINE_SMOOTH); // Makes LineWidth mathematically correct
+		glEnable(GL_POINT_SMOOTH); // Makes points round
 
 		glGenVertexArrays(1, &m_VertexArrayID);
 		glBindVertexArray(m_VertexArrayID);
@@ -47,12 +49,14 @@ namespace LoFox {
 
 		OpenGLGraphicsPipelineData* pipelineData = static_cast<OpenGLGraphicsPipelineData*>(pipeline->GetData());
 
+		m_ActivePipeline = pipeline;
 		glUseProgram(pipelineData->ProgramID);
 	}
 
 	void OpenGLContext::Draw(Ref<VertexBuffer> vertexBuffer) {
 
 		OpenGLVertexBufferData* vertexBufferData = static_cast<OpenGLVertexBufferData*>(vertexBuffer->GetData());
+		OpenGLGraphicsPipelineData* pipelineData = static_cast<OpenGLGraphicsPipelineData*>(m_ActivePipeline->GetData());
 
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferData->Buffer);
 
@@ -120,7 +124,7 @@ namespace LoFox {
 			}
 		}
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(pipelineData->PrimitiveTopology, 0, 3);
 	}
 
 	void OpenGLContext::EndFrame() {

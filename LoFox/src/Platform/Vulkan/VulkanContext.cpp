@@ -243,6 +243,7 @@ namespace LoFox {
 		// Actually setting up the logical device info structs
 		VkPhysicalDeviceFeatures logicalDeviceFeatures = {}; // No features needed for now
 		logicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
+		logicalDeviceFeatures.wideLines = VK_TRUE;
 
 		VkDeviceCreateInfo logicalDeviceCreateInfo{};
 		logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

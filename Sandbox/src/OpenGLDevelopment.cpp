@@ -19,6 +19,9 @@ namespace LoFox {
 		graphicsPipelineCreateInfo.VertexShader = m_VertexShader;
 		graphicsPipelineCreateInfo.FragmentShader = m_FragmentShader;
 		graphicsPipelineCreateInfo.VertexLayout = layout;
+		graphicsPipelineCreateInfo.Topology = Topology::Triangle;
+		graphicsPipelineCreateInfo.LineWidth = 10.0f;
+		graphicsPipelineCreateInfo.PointSize = 100.0f;
 
 		m_Pipeline = GraphicsPipeline::Create(graphicsPipelineCreateInfo);
 	}

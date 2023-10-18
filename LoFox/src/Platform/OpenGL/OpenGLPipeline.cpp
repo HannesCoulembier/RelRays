@@ -5,10 +5,26 @@
 
 namespace LoFox {
 
+	GLenum TopologyToGLenum(Topology topology) {
+
+		switch (topology) {
+			case Topology::Triangle: return GL_TRIANGLES;
+			case Topology::LineStrip: return GL_LINE_STRIP;
+			case Topology::Point: return GL_POINTS;
+		}
+
+		LF_CORE_ASSERT("Unknown Topology!");
+		return GLenum(0);
+	}
+
 	OpenGLGraphicsPipeline::OpenGLGraphicsPipeline(GraphicsPipelineCreateInfo createInfo)
 		: m_CreateInfo(createInfo) {
 
 		m_Data = &m_OpenGLData;
+
+		m_OpenGLData.PrimitiveTopology = TopologyToGLenum(m_CreateInfo.Topology);
+		glLineWidth(m_CreateInfo.LineWidth);
+		glPointSize(m_CreateInfo.PointSize);
 
 		// Program
 		m_OpenGLData.ProgramID = glCreateProgram();

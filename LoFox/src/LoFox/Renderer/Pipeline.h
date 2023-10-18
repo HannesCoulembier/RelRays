@@ -5,11 +5,20 @@
 
 namespace LoFox {
 
+	enum Topology {
+		Triangle,
+		LineStrip,
+		Point,
+	};
+
 	struct GraphicsPipelineCreateInfo {
 
 		Ref<Shader> VertexShader;
 		Ref<Shader> FragmentShader;
 		VertexLayout VertexLayout;
+		Topology Topology = Topology::Triangle;
+		float LineWidth = 1.0f;
+		float PointSize = 1.0f;
 	};
 
 	class GraphicsPipeline {

@@ -9,6 +9,7 @@ namespace LoFox {
 	struct OpenGLGraphicsPipelineData {
 
 		GLuint ProgramID;
+		GLenum PrimitiveTopology;
 	};
 
 	class OpenGLGraphicsPipeline : public GraphicsPipeline {
