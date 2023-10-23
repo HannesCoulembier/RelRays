@@ -49,16 +49,18 @@ namespace LoFox {
 		m_VertexInputStateCreateInfo = Utils::MakePipelineVertexInputStateCreateInfo(bindings, attributes);
 		m_InputAssemblyStateCreateInfo = Utils::MakePipelineInputAssemblyStateCreateInfo(TopologyToVkPrimitiveTopology(m_CreateInfo.Topology));
 		m_RasterizationStateCreateInfo = Utils::MakePipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, m_CreateInfo.LineWidth);
-		m_MultisampleStateCreateInfo = Utils::MakePipelineMultisampleStateCreateInfo();
-		m_ColorBlendAttachmentState = Utils::MakePipelineColorBlendAttachmentState();
+		m_MultisampleStateCreateInfo = Utils::MakePipelineMultisampleStateCreateInfo(); // TODO: investigate adding more parameters to this function?
+		m_ColorBlendAttachmentState = Utils::MakePipelineColorBlendAttachmentState(); // TODO: investigate adding more parameters to this function?
 
-		m_Viewport.height = -(float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right
+		// TODO: add user control over viewport(s) min and max depth, x-y offset and width and height (should be like OpenGL for user, so corrections we do here, stay here)
+		m_Viewport.height = -(float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
 		m_Viewport.maxDepth = 1.0f;
 		m_Viewport.minDepth = 0.0f;
 		m_Viewport.width = (float)VulkanContext::SwapchainExtent.width;
 		m_Viewport.x = 0.0f;
-		m_Viewport.y = (float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right
+		m_Viewport.y = (float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
 
+		// TODO: investigate if this exists in OpenGL and if so, add user control over scissor(s)
 		m_Scissor.extent = VulkanContext::SwapchainExtent;
 		m_Scissor.offset = { 0, 0 };
 
@@ -71,6 +73,7 @@ namespace LoFox {
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
 
+		// TODO: Investigate parameters of VkPipelineColorBlendStateCreateInfo. See if any are usefull for the user and exist in OpenGL
 		VkPipelineColorBlendStateCreateInfo colorBlending = {};
 		colorBlending.attachmentCount = 1;
 		// colorBlending.blendConstants = 
@@ -85,8 +88,8 @@ namespace LoFox {
 		VkShaderModule fragmentModule = static_cast<VulkanShaderData*>(m_CreateInfo.FragmentShader->GetData())->ShaderModule;
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
-			Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexModule),
-			Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentModule)
+			Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, "main", vertexModule),
+			Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, "main", fragmentModule)
 		};
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
@@ -95,14 +98,14 @@ namespace LoFox {
 		pipelineCreateInfo.flags = 0;
 		pipelineCreateInfo.layout = m_Layout;
 		pipelineCreateInfo.pColorBlendState = &colorBlending;
-		pipelineCreateInfo.pDepthStencilState = nullptr;
-		pipelineCreateInfo.pDynamicState = nullptr;
+		pipelineCreateInfo.pDepthStencilState = nullptr; // TODO: add depth and stencil buffers
+		pipelineCreateInfo.pDynamicState = nullptr; // TODO: add dynamic states (where compatible with OpenGL)
 		pipelineCreateInfo.pInputAssemblyState = &m_InputAssemblyStateCreateInfo;
 		pipelineCreateInfo.pMultisampleState = &m_MultisampleStateCreateInfo;
 		pipelineCreateInfo.pNext = nullptr;
 		pipelineCreateInfo.pRasterizationState = &m_RasterizationStateCreateInfo;
 		pipelineCreateInfo.pStages = shaderStages.data();
-		pipelineCreateInfo.pTessellationState = nullptr;
+		pipelineCreateInfo.pTessellationState = nullptr; // TODO: investigate what this does and if we need to set it
 		pipelineCreateInfo.pVertexInputState = &m_VertexInputStateCreateInfo;
 		pipelineCreateInfo.pViewportState = &viewportState;
 		pipelineCreateInfo.renderPass = VulkanContext::RenderPass;

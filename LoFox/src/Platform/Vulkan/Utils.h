@@ -31,7 +31,7 @@ namespace LoFox {
 
 		VkDebugUtilsMessengerCreateInfoEXT MakeDebugMessageCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT userCallback);
 
-		VkPipelineShaderStageCreateInfo MakePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule module);
+		VkPipelineShaderStageCreateInfo MakePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, const char* mainFuncName, VkShaderModule module);
 		VkPipelineVertexInputStateCreateInfo MakePipelineVertexInputStateCreateInfo(const std::vector<VkVertexInputBindingDescription>& bindings, const std::vector<VkVertexInputAttributeDescription>& attributes);
 		VkPipelineInputAssemblyStateCreateInfo MakePipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology);
 		VkPipelineRasterizationStateCreateInfo MakePipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode, float lineWidth);

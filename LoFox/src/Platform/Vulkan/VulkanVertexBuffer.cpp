@@ -23,7 +23,7 @@ namespace LoFox {
 
 			VkVertexInputBindingDescription bindingDescription = {};
 			bindingDescription.binding = binding;
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // TODO: add "InstanceLayout" similar to existing "VertexLayout"
 			bindingDescription.stride = layout.VertexSize;
 
 			return bindingDescription;

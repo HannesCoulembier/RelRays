@@ -27,12 +27,12 @@ namespace LoFox {
 			return createInfo;
 		}
 
-		VkPipelineShaderStageCreateInfo MakePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule module) {
+		VkPipelineShaderStageCreateInfo MakePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, const char* mainFuncName, VkShaderModule module) {
 
 			VkPipelineShaderStageCreateInfo createInfo = {};
 			createInfo.flags = 0;
 			createInfo.module = module;
-			createInfo.pName = "main";
+			createInfo.pName = mainFuncName;
 			createInfo.pNext = nullptr;
 			createInfo.pSpecializationInfo = nullptr;
 			createInfo.stage = stage;
@@ -58,7 +58,7 @@ namespace LoFox {
 			VkPipelineInputAssemblyStateCreateInfo createInfo = {};
 			createInfo.flags = 0;
 			createInfo.pNext = nullptr;
-			createInfo.primitiveRestartEnable = VK_FALSE;
+			createInfo.primitiveRestartEnable = VK_FALSE; // TODO: make more advanced when implementing more possible topologies (see: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPipelineInputAssemblyStateCreateInfo.html)
 			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 			createInfo.topology = topology;
 			return createInfo;
@@ -67,18 +67,23 @@ namespace LoFox {
 		VkPipelineRasterizationStateCreateInfo MakePipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode, float lineWidth) {
 
 			VkPipelineRasterizationStateCreateInfo createInfo = {};
-			createInfo.cullMode = VK_CULL_MODE_NONE;
+			createInfo.cullMode = VK_CULL_MODE_NONE; // TODO: add support for all cull modes (if equivalents exist in OpenGL) see: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkCullModeFlagBits.html
+
+			// TODO: investigate when adding depth testing?
+			// For all of this depth stuff, see: https://github.com/KhronosGroup/Vulkan-Guide/blob/main/chapters/depth.adoc
 			createInfo.depthBiasClamp = 0.0f;
 			createInfo.depthBiasConstantFactor = 0.0f;
 			createInfo.depthBiasEnable = VK_FALSE;
 			createInfo.depthBiasSlopeFactor = 0.0f;
 			createInfo.depthClampEnable = VK_FALSE;
+			// End depth stuff
+
 			createInfo.flags = 0;
-			createInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+			createInfo.frontFace = VK_FRONT_FACE_CLOCKWISE; // TODO: add support for both clockwise as anticlockwise, see createInfo.cullMode and: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkFrontFace.html
 			createInfo.lineWidth = lineWidth;
 			createInfo.pNext = nullptr;
 			createInfo.polygonMode = polygonMode;
-			createInfo.rasterizerDiscardEnable = VK_FALSE;
+			createInfo.rasterizerDiscardEnable = VK_FALSE; // Only usecases of disabling the rasterizer like this is are for véry niche cases. I won't bother
 			createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 			return createInfo;
 		}

@@ -36,7 +36,6 @@ namespace LoFox {
 
 		int a_glfw = Input::KeyCodeToglfw(a);
 		int b_glfw = Input::KeyCodeToglfw(b);
-		bool result = a_glfw == b_glfw; // TODO: Investigate what this line is doing???
 		return a_glfw == b_glfw;
 	}
 
