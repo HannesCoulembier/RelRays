@@ -27,8 +27,6 @@ namespace LoFox {
 	}
 	void OpenGLDevLayer::OnDetach() {
 
-		Renderer::WaitIdle();
-
 		m_VertexBuffer->Destroy();
 		m_VertexShader->Destroy();
 		m_FragmentShader->Destroy();

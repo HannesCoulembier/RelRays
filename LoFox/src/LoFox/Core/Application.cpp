@@ -20,7 +20,7 @@ namespace LoFox {
 		Input::SetKeyboard(Keyboard::BelgianPeriod);
 
 		// Creating window
-		m_Window = Window::Create({ m_Spec.Name, 1720, 960 }); // TODO: Move screen size settings to ApplicationSpec.
+		m_Window = Window::Create({ m_Spec.Name, m_Spec.width, m_Spec.height });
 		m_Window->SetEventCallback(LF_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init(m_Window);
@@ -38,9 +38,6 @@ namespace LoFox {
 			if (!m_Window->IsMinimized()) // Trying to render something when the window is minimized causes a crash.
 				OnUpdate(); // Keeps track of the timestep and updates all the layers.
 		}
-
-		// TODO: re-enable renderer
-		// Renderer::WaitIdle(); // TODO: Move to destructor.
 	}
 
 	void Application::OnUpdate() {
@@ -57,6 +54,7 @@ namespace LoFox {
 
 		LF_OVERSPECIFY("Destroying application named \"{0}\"", m_Spec.Name);
 
+		Renderer::WaitIdle(); // Needs to happen before detaching the layers as they might hold render structs (like vertexbuffers, textures, ...)
 		for (auto& layer : m_LayerStack)
 			layer->OnDetach();
 

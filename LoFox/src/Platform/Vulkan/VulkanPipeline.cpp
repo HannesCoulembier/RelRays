@@ -30,9 +30,9 @@ namespace LoFox {
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		layoutCreateInfo.flags = 0;
 		layoutCreateInfo.pNext = nullptr;
-		layoutCreateInfo.pPushConstantRanges = nullptr;
+		layoutCreateInfo.pPushConstantRanges = nullptr; // We will not support push constants as OpenGL does not have those (use uniform buffer)
 		layoutCreateInfo.pSetLayouts = nullptr;
-		layoutCreateInfo.pushConstantRangeCount = 0;
+		layoutCreateInfo.pushConstantRangeCount = 0; // We will not support push constants as OpenGL does not have those (use uniform buffer)
 		layoutCreateInfo.setLayoutCount = 0;
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 

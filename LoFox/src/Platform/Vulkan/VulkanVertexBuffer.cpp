@@ -63,7 +63,7 @@ namespace LoFox {
 	}
 
 	void VulkanVertexBuffer::Destroy() {
-	
+
 		m_VulkanData.Buffer->Destroy();
 	}
 }

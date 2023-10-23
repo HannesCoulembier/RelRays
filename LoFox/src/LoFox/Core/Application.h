@@ -16,6 +16,8 @@ namespace LoFox {
 
 		std::string Name = "LoFox application";
 		std::string WorkingDirectory;
+		uint32_t width = 1720;
+		uint32_t height = 960;
 	};
 
 	class Application {
