@@ -14,6 +14,13 @@ namespace LoFox {
 		uint32_t Width, Height;
 	};
 
+	struct WindowData {
+
+		uint32_t Width, Height;
+
+		std::function<void(Event&)> WindowEventCallback;
+	};
+
 	class Window {
 
 	public:
@@ -30,6 +37,7 @@ namespace LoFox {
 		WindowSpec GetSpec() { return m_Spec; }
 
 		inline void* GetWindowHandle() { return m_WindowHandle; }
+		inline WindowData GetWindowData() { return m_WindowData; }
 
 		static Ref<Window> Create(const WindowSpec& spec);
 	private:
@@ -37,13 +45,6 @@ namespace LoFox {
 	private:
 		GLFWwindow* m_WindowHandle = nullptr;
 		WindowSpec m_Spec;
-
-		struct WindowData {
-
-			uint32_t Width, Height;
-
-			std::function<void(Event&)> WindowEventCallback;
-		};
 
 		WindowData m_WindowData;
 	};

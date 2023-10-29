@@ -34,11 +34,14 @@ namespace LoFox {
 		InitFramebuffers();
 
 		InitSyncStructures();
+		InitDescriptorPool();
 	}
 
 	void VulkanContext::Shutdown() {
 
 		vkWaitForFences(LogicalDevice, 1, &m_RenderFence, VK_TRUE, UINT64_MAX); // Wait for the rendering to finish
+
+		vkDestroyDescriptorPool(LogicalDevice, MainDescriptorPool, nullptr);
 
 		vkDestroyFence(LogicalDevice, m_RenderFence, nullptr);
 		vkDestroySemaphore(LogicalDevice, m_RenderSemaphore, nullptr);
@@ -94,7 +97,9 @@ namespace LoFox {
 
 	void VulkanContext::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
 
-		vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<VulkanGraphicsPipelineData*>(pipeline->GetData())->Pipeline);
+		VulkanGraphicsPipelineData* pipelineData = static_cast<VulkanGraphicsPipelineData*>(pipeline->GetData());
+		vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
+		vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
 	}
 
 	void VulkanContext::Draw(Ref<VertexBuffer> vertexBuffer) {
@@ -429,6 +434,23 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &m_PresentSemaphore) == VK_SUCCESS, "Failed to create present semaphore!");
 		LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderSemaphore) == VK_SUCCESS, "Failed to create render semaphore!");
+	}
+
+	void VulkanContext::InitDescriptorPool() {
+
+		std::vector<VkDescriptorPoolSize> sizes = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
+		};
+
+		VkDescriptorPoolCreateInfo poolCreateInfo = {};
+		poolCreateInfo.flags = 0;
+		poolCreateInfo.maxSets = 10;
+		poolCreateInfo.pNext = nullptr;
+		poolCreateInfo.poolSizeCount = (uint32_t)sizes.size();
+		poolCreateInfo.pPoolSizes = sizes.data();
+		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+
+		LF_CORE_ASSERT(vkCreateDescriptorPool(LogicalDevice, &poolCreateInfo, nullptr, &MainDescriptorPool) == VK_SUCCESS, "Failed to create main descriptor pool!");
 	}
 
 	void VulkanContext::DestroySwapchain() {

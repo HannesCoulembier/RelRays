@@ -6,6 +6,8 @@
 
 namespace LoFox {
 
+	VkShaderStageFlagBits ShaderTypeToVulkanShaderStage(ShaderType type);
+
 	struct VulkanShaderData {
 
 		VkShaderModule ShaderModule;

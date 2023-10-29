@@ -9,6 +9,8 @@ namespace LoFox {
 	struct VulkanGraphicsPipelineData {
 
 		VkPipeline Pipeline = {};
+		VkPipelineLayout Layout = {};
+		VkDescriptorSet DescriptorSet;
 	};
 
 	class VulkanGraphicsPipeline : public GraphicsPipeline {
@@ -20,8 +22,6 @@ namespace LoFox {
 	private:
 		GraphicsPipelineCreateInfo m_CreateInfo = {};
 		VulkanGraphicsPipelineData m_VulkanData = {};
-
-		VkPipelineLayout m_Layout = {};
 
 		VkPipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo = {};
 		VkPipelineInputAssemblyStateCreateInfo m_InputAssemblyStateCreateInfo = {};

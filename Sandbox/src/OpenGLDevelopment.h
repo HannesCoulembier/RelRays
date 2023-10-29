@@ -11,9 +11,17 @@ namespace LoFox {
 	};
 
 	const std::vector<QuadVertex> vertices = {
-			{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-			{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-			{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+		{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+		{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+		{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+	};
+
+	struct UBO {
+
+		alignas(16) glm::mat4 view;
+		alignas(16) glm::mat4 proj;
+		alignas(16) glm::mat4 invView;
+		alignas(16) glm::mat4 invProj;
 	};
 
 	class OpenGLDevLayer : public Layer {
@@ -34,5 +42,7 @@ namespace LoFox {
 		Ref<Shader> m_FragmentShader;
 		Ref<GraphicsPipeline> m_Pipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
+		Ref<UniformBuffer> m_CameraData;
+		Ref<ResourceLayout> m_ResourceLayout;
 	};
 }

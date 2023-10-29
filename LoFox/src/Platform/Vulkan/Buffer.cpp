@@ -15,10 +15,14 @@ namespace LoFox {
 		: m_Size(size) {
 
 		VkBufferCreateInfo bufferInfo = {};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = m_Size;
-		bufferInfo.usage = usage;
+		// bufferInfo.flags = 
+		bufferInfo.pNext = nullptr;
+		// bufferInfo.pQueueFamilyIndices = 
+		// bufferInfo.queueFamilyIndexCount = 
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		bufferInfo.size = m_Size;
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.usage = usage;
 
 		LF_CORE_ASSERT(vkCreateBuffer(VulkanContext::LogicalDevice, &bufferInfo, nullptr, &m_Buffer) == VK_SUCCESS, "Failed to create buffer!");
 

@@ -11,6 +11,8 @@ struct GLFWwindow;
 
 namespace LoFox {
 
+	// TODO: add double buffering
+
 	class VulkanContext : public GraphicsContext {
 
 	public:
@@ -39,6 +41,8 @@ namespace LoFox {
 		inline static VkCommandPool CommandPool;
 		inline static VkCommandBuffer MainCommandBuffer;
 
+		inline static VkDescriptorPool MainDescriptorPool;
+
 		inline static VkRenderPass RenderPass;
 		inline static VkExtent2D SwapchainExtent;
 	private:
@@ -49,6 +53,7 @@ namespace LoFox {
 		static void InitDefaultRenderPass();
 		static void InitFramebuffers();
 		static void InitSyncStructures();
+		static void InitDescriptorPool();
 
 		static void DestroySwapchain();
 	private:

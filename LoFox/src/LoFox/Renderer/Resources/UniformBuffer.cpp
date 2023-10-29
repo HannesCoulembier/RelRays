@@ -1,53 +1,24 @@
 #include "lfpch.h"
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 
-#include "LoFox/Renderer/Renderer.h"
-#include "Platform/Vulkan/VulkanContext.h"
+#ifdef LF_RENDERAPI_OPENGL
+	#include "Platform/OpenGL/OpenGLUniformBuffer.h"
+#endif
+#ifdef LF_RENDERAPI_VULKAN
+	#include "Platform/Vulkan/Resources/VulkanUniformBuffer.h"
+#endif
 
 namespace LoFox {
 
-	UniformBuffer::UniformBuffer(uint32_t bufferSize)
-		: m_Size(bufferSize) {
+	Ref<UniformBuffer> UniformBuffer::Create(uint32_t size) {
 
-		m_Buffers.resize(Renderer::MaxFramesInFlight);
-		m_BuffersMapped.resize(Renderer::MaxFramesInFlight);
+		#ifdef LF_RENDERAPI_OPENGL
+			return CreateRef<OpenGLUniformBuffer>(size);
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			return CreateRef<VulkanUniformBuffer>(size);
+		#endif
 
-		for (size_t i = 0; i < Renderer::MaxFramesInFlight; i++) {
-
-			m_Buffers[i] = CreateRef<Buffer>(m_Size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-			vkMapMemory(VulkanContext::LogicalDevice, m_Buffers[i]->GetMemory(), 0, m_Size, 0, &m_BuffersMapped[i]);
-		}
-	}
-
-	void UniformBuffer::SetData(const void* data) {
-
-		memcpy(m_BuffersMapped[Renderer::GetCurrentFrame()], data, m_Size);
-	}
-
-	std::vector<VkDescriptorBufferInfo> UniformBuffer::GetDescriptorInfos() {
-
-		std::vector<VkDescriptorBufferInfo> descriptorInfos = {};
-		for (const auto& buffer : m_Buffers) {
-
-			VkDescriptorBufferInfo bufferDescriptorInfo = {};
-			bufferDescriptorInfo.buffer = buffer->GetBuffer();
-			bufferDescriptorInfo.offset = 0;
-			bufferDescriptorInfo.range = m_Size;
-		
-			descriptorInfos.push_back(bufferDescriptorInfo);
-		}
-
-		return descriptorInfos;
-	}
-
-	Ref<UniformBuffer> UniformBuffer::Create(uint32_t bufferSize) {
-		return CreateRef<UniformBuffer>(bufferSize);
-	}
-
-	void UniformBuffer::Destroy(){
-
-		for (auto buffer : m_Buffers)
-			buffer->Destroy();
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
 }

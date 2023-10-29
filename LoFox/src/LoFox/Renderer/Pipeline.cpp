@@ -11,7 +11,6 @@
 namespace LoFox {
 
 	Ref<GraphicsPipeline> GraphicsPipeline::Create(GraphicsPipelineCreateInfo createInfo) {
-		
 
 		#ifdef LF_RENDERAPI_OPENGL
 			return CreateRef<OpenGLGraphicsPipeline>(createInfo);

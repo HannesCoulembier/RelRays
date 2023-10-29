@@ -15,8 +15,19 @@ namespace LoFox {
 			case ShaderType::Fragment:	return shaderc_glsl_fragment_shader;
 			case ShaderType::Compute:	return shaderc_glsl_compute_shader;
 		}
-		LF_CORE_ASSERT(false);
+		LF_CORE_ASSERT(false, "Unknown ShaderType!");
 		return (shaderc_shader_kind)0;
+	}
+
+	VkShaderStageFlagBits ShaderTypeToVulkanShaderStage(ShaderType type) {
+
+		switch (type) {
+			case ShaderType::Vertex:	return VK_SHADER_STAGE_VERTEX_BIT;
+			case ShaderType::Fragment:	return VK_SHADER_STAGE_FRAGMENT_BIT;
+			case ShaderType::Compute:	return VK_SHADER_STAGE_COMPUTE_BIT;
+		}
+		LF_CORE_ASSERT(false, "Unknown ShaderType!");
+		return (VkShaderStageFlagBits)0;
 	}
 
 	VulkanShader::VulkanShader(ShaderType type, const std::string& path)

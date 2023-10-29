@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LoFox/Renderer/Shader.h"
+#include "LoFox/Renderer/Resource.h"
 #include "LoFox/Renderer/VertexBuffer.h"
 
 namespace LoFox {
@@ -15,6 +16,7 @@ namespace LoFox {
 
 		Ref<Shader> VertexShader;
 		Ref<Shader> FragmentShader;
+		Ref<ResourceLayout> ResourceLayout = nullptr;
 		VertexLayout VertexLayout;
 		Topology Topology = Topology::Triangle;
 		float LineWidth = 1.0f;

@@ -3,6 +3,7 @@
 
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/VulkanShader.h"
+#include "Platform/Vulkan/VulkanResource.h"
 #include "Platform/Vulkan/VulkanVertexBuffer.h"
 #include "Platform/Vulkan/Utils.h"
 
@@ -26,18 +27,55 @@ namespace LoFox {
 
 		m_Data = &m_VulkanData;
 
-		// TODO: Make resource class or something to remove this code
+		VkDescriptorSetLayout setLayout = static_cast<VulkanResourceLayoutData*>(createInfo.ResourceLayout->GetData())->DescriptorSetLayout;
 		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
 		layoutCreateInfo.flags = 0;
 		layoutCreateInfo.pNext = nullptr;
 		layoutCreateInfo.pPushConstantRanges = nullptr; // We will not support push constants as OpenGL does not have those (use uniform buffer)
-		layoutCreateInfo.pSetLayouts = nullptr;
+		layoutCreateInfo.pSetLayouts = &setLayout;
 		layoutCreateInfo.pushConstantRangeCount = 0; // We will not support push constants as OpenGL does not have those (use uniform buffer)
-		layoutCreateInfo.setLayoutCount = 0;
+		layoutCreateInfo.setLayoutCount = createInfo.ResourceLayout ? 1 : 0; // If ResourceLayout = nullptr, we set setLayoutCount to 0
 		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &m_Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
-		// END TODO
+		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &m_VulkanData.Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+
+		// Allocate Descriptor sets
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {};
+		descriptorSetAllocInfo.descriptorPool = VulkanContext::MainDescriptorPool;
+		descriptorSetAllocInfo.descriptorSetCount = 1;
+		descriptorSetAllocInfo.pNext = nullptr;
+		descriptorSetAllocInfo.pSetLayouts = &setLayout;
+		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(VulkanContext::LogicalDevice, &descriptorSetAllocInfo, &m_VulkanData.DescriptorSet) == VK_SUCCESS, "Failed to allocate descriptor set!");
+
+		// Write to the descriptor sets
+		uint32_t binding = 0;
+		for (const auto& resource : m_CreateInfo.ResourceLayout->GetResources()) {
+		
+			VkDescriptorBufferInfo bufferInfo = {};
+			if (resource.IsBuffer)
+				bufferInfo = GetVkDescriptorBufferInfoFromResource(resource);
+		
+			VkDescriptorImageInfo imageInfo = {};
+			if (resource.IsImage)
+				imageInfo = GetVkDescriptorImageInfoFromResource(resource);
+		
+			VkWriteDescriptorSet descriptorWrite = {};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = m_VulkanData.DescriptorSet;
+			descriptorWrite.dstBinding = binding;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = ResourceTypeToVulkanDescriptorType(resource.Type);
+			descriptorWrite.descriptorCount = resource.ItemCount;
+			descriptorWrite.pBufferInfo = (resource.IsBuffer) ? &bufferInfo : nullptr;
+			descriptorWrite.pImageInfo = (resource.IsImage) ? &imageInfo : nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+		
+			binding++;
+		
+			vkUpdateDescriptorSets(VulkanContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+		}
 
 		std::vector<VkVertexInputBindingDescription> bindings = {
 			Utils::VertexLayoutToVertexInputBindingDescription(0, m_CreateInfo.VertexLayout)
@@ -96,7 +134,7 @@ namespace LoFox {
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 		// pipelineCreateInfo.basePipelineIndex = 
 		pipelineCreateInfo.flags = 0;
-		pipelineCreateInfo.layout = m_Layout;
+		pipelineCreateInfo.layout = m_VulkanData.Layout;
 		pipelineCreateInfo.pColorBlendState = &colorBlending;
 		pipelineCreateInfo.pDepthStencilState = nullptr; // TODO: add depth and stencil buffers
 		pipelineCreateInfo.pDynamicState = nullptr; // TODO: add dynamic states (where compatible with OpenGL)
@@ -123,6 +161,6 @@ namespace LoFox {
 		vkQueueWaitIdle(VulkanContext::GraphicsQueueHandle);
 
 		vkDestroyPipeline(VulkanContext::LogicalDevice, m_VulkanData.Pipeline, nullptr);
-		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, m_Layout, nullptr);
+		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, m_VulkanData.Layout, nullptr);
 	}
 }

@@ -2,15 +2,14 @@
 
 namespace LoFox {
 
-	class UniformBuffer {
+	class Texture {
 
 	public:
 		virtual void Destroy() = 0;
 
-		virtual void SetData(const void* data) = 0;
 		void* GetData() { return m_Data; }
 
-		static Ref<UniformBuffer> Create(uint32_t size);
+		static Ref<Texture> Create();
 	protected:
 		void* m_Data = nullptr;
 	};
