@@ -6,6 +6,7 @@
 
 #include "Platform/OpenGL/OpenGLPipeline.h"
 #include "Platform/OpenGL/OpenGLVertexBuffer.h"
+#include "Platform/OpenGL/OpenGLResource.h"
 
 namespace LoFox {
 
@@ -51,6 +52,8 @@ namespace LoFox {
 
 		m_ActivePipeline = pipeline;
 		glUseProgram(pipelineData->ProgramID);
+
+		BindResourceLayout(pipelineData->ResourceLayout);
 	}
 
 	void OpenGLContext::Draw(Ref<VertexBuffer> vertexBuffer) {

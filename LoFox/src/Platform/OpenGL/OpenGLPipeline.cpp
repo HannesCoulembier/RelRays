@@ -22,6 +22,8 @@ namespace LoFox {
 
 		m_Data = &m_OpenGLData;
 
+		m_OpenGLData.ResourceLayout = m_CreateInfo.ResourceLayout;
+
 		m_OpenGLData.PrimitiveTopology = TopologyToGLenum(m_CreateInfo.Topology);
 		glLineWidth(m_CreateInfo.LineWidth);
 		glPointSize(m_CreateInfo.PointSize);

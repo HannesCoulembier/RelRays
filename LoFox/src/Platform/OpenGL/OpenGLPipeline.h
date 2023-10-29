@@ -4,12 +4,15 @@
 
 #include <glad/glad.h>
 
+#include "LoFox/Renderer/Resource.h"
+
 namespace LoFox {
 
 	struct OpenGLGraphicsPipelineData {
 
 		GLuint ProgramID;
 		GLenum PrimitiveTopology;
+		Ref<ResourceLayout> ResourceLayout;
 	};
 
 	class OpenGLGraphicsPipeline : public GraphicsPipeline {

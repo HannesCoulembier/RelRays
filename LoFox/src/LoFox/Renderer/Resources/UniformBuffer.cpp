@@ -2,7 +2,7 @@
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 
 #ifdef LF_RENDERAPI_OPENGL
-	#include "Platform/OpenGL/OpenGLUniformBuffer.h"
+	#include "Platform/OpenGL/Resources/OpenGLUniformBuffer.h"
 #endif
 #ifdef LF_RENDERAPI_VULKAN
 	#include "Platform/Vulkan/Resources/VulkanUniformBuffer.h"
