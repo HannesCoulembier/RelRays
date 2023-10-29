@@ -25,7 +25,7 @@ namespace LoFox {
 		LF_CORE_INFO("  Renderer: {0}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 		LF_CORE_INFO("  Version: {0}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
-		LF_CORE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3), "Benga requires at least OpenGL version 4.3");
+		LF_CORE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3), "LoFox requires at least OpenGL version 4.3");
 
 		glEnable(GL_FRAMEBUFFER_SRGB); // Transforms to correct colorspace when presenting framebuffer
 		glEnable(GL_LINE_SMOOTH); // Makes LineWidth mathematically correct

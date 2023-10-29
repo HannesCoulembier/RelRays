@@ -12,9 +12,14 @@ layout (set = 0, binding = 0) uniform CameraBuffer {
 	mat4 invProj;
 } cameraData;
 
+layout (std140, set = 0, binding = 1) readonly buffer ObjectTransformsBuffer {
+	mat4 transforms[];
+} objectTransforms;
+
 void main()
 {
 	//output the position of each vertex
-	gl_Position = cameraData.proj * cameraData.view * vec4(inPos, 1.0f);
+	gl_Position = cameraData.proj * cameraData.view * objectTransforms.transforms[0] * vec4(inPos, 1.0f);
+	// gl_Position = cameraData.proj * cameraData.view * vec4(inPos, 1.0f);
 	outColor = inColor;
 }

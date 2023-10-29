@@ -5,9 +5,11 @@ namespace LoFox {
 	void OpenGLDevLayer::OnAttach() {
 
 		m_CameraData = UniformBuffer::Create(sizeof(UBO));
+		m_ObjectTransforms = StorageBuffer::Create(1000, sizeof(glm::mat4));
 
 		m_ResourceLayout = ResourceLayout::Create({
 			{ ShaderType::Vertex, m_CameraData },
+			{ ShaderType::Vertex, m_ObjectTransforms },
 		});
 		
 		m_FragmentShader = Shader::Create(ShaderType::Fragment, "Assets/Shaders/OpenGLDevelopment/FragmentShader.frag");
@@ -36,6 +38,8 @@ namespace LoFox {
 
 		m_ResourceLayout->Destroy();
 		m_CameraData->Destroy();
+		m_ObjectTransforms->Destroy();
+
 		m_VertexBuffer->Destroy();
 		m_VertexShader->Destroy();
 		m_FragmentShader->Destroy();
@@ -54,8 +58,8 @@ namespace LoFox {
 
 		// TODO: move to function
 		UBO ubo = {};
-		glm::vec3 cameraPos = glm::vec3(0.0, 0.0, m_Time);
-		glm::vec3 forward = glm::vec3(0.0, 0.0, -1.0f); // Forward into the screen goes into the negative z-direction.
+		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);
+		glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f); // Forward into the screen goes into the negative z-direction.
 		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)Application::GetInstance().GetActiveWindow()->GetWindowData().Width, (float)Application::GetInstance().GetActiveWindow()->GetWindowData().Width, 0.1f, 4000.0f);
 		
@@ -63,6 +67,10 @@ namespace LoFox {
 		ubo.invProj = glm::inverse(ubo.proj);
 
 		m_CameraData->SetData(&ubo);
+
+		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(m_Time, 0.0f, 0.0f));
+		std::vector<glm::mat4> translationMatrices = { translationMatrix, translationMatrix };
+		m_ObjectTransforms->SetData(1, translationMatrices.data());
 		// END TODO
 
 		Renderer::BeginFrame({ glm::abs(glm::sin(2.0f*m_Time)), 1.0f, 0.0f });

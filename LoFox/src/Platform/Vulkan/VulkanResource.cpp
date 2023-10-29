@@ -5,6 +5,7 @@
 #include "Platform/Vulkan/VulkanShader.h"
 
 #include "Platform/Vulkan/Resources/VulkanUniformBuffer.h"
+#include "Platform/Vulkan/Resources/VulkanStorageBuffer.h"
 
 namespace LoFox {
 
@@ -12,6 +13,7 @@ namespace LoFox {
 
 		switch (type) {
 			case ResourceType::UniformBufferResource: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			case ResourceType::StorageBufferResource: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		}
 
 		LF_CORE_ASSERT(false, "Unknown ResourceType");
@@ -22,6 +24,11 @@ namespace LoFox {
 		if (resource.UniformBufferRef) {
 			VulkanUniformBufferData* uniformBufferData = static_cast<VulkanUniformBufferData*>(resource.UniformBufferRef->GetData());
 			return uniformBufferData->BufferInfo;
+		}
+
+		if (resource.StorageBufferRef) {
+			VulkanStorageBufferData* storageBufferData = static_cast<VulkanStorageBufferData*>(resource.StorageBufferRef->GetData());
+			return storageBufferData->BufferInfo;
 		}
 
 		LF_CORE_ASSERT(false, "Resource is not a buffer!");

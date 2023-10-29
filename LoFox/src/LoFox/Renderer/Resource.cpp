@@ -26,11 +26,11 @@ namespace LoFox {
 		// BufferDescriptorInfos = UniformBufferRef->GetDescriptorInfos();
 	}
 
-	// Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageBuffer> storageBuffer)
-	// 	: Type(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER), ShaderStage(shaderStage), StorageBuffer(storageBuffer) {
-	// 
-	// 	BufferDescriptorInfos = StorageBuffer->GetDescriptorInfos();
-	// }
+	Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageBuffer> storageBuffer)
+		: Type(ResourceType::StorageBufferResource), ShaderStage(shaderStage), IsBuffer(true), StorageBufferRef(storageBuffer) {
+	
+		// BufferDescriptorInfos = StorageBuffer->GetDescriptorInfos();
+	}
 
 	// Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination)
 	// 	: ShaderStage(shaderStage), StorageImage(storageImage) {

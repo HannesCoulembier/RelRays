@@ -4,7 +4,7 @@
 
 #include "LoFox/Renderer/Shader.h"
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
-// #include "LoFox/Renderer/Resources/StorageBuffer.h"
+#include "LoFox/Renderer/Resources/StorageBuffer.h"
 // #include "LoFox/Renderer/Resources/StorageImage.h"
 // #include "LoFox/Renderer/Resources/Texture.h"
 // #include "LoFox/Renderer/Resources/TextureAtlas.h"
@@ -13,7 +13,8 @@ namespace LoFox {
 
 	enum ResourceType {
 
-		UniformBufferResource
+		UniformBufferResource,
+		StorageBufferResource,
 	};
 
 	struct Resource {
@@ -23,7 +24,7 @@ namespace LoFox {
 		bool IsBuffer = false;
 		bool IsImage = false;
 		Ref<UniformBuffer> UniformBufferRef = nullptr;
-		// Ref<StorageBuffer> StorageBufferRef = nullptr;
+		Ref<StorageBuffer> StorageBufferRef = nullptr;
 		// Ref<StorageImage> StorageImageRef = nullptr;
 		// Ref<TextureAtlas> TexAtlasRef = nullptr;
 		uint32_t ItemCount = 1; // TexAtlas will have multiple textures -> multiple items
@@ -33,7 +34,7 @@ namespace LoFox {
 
 		// Resource(ShaderType shaderStage, Ref<LoFox::TextureAtlas> atlas);
 		Resource(ShaderType shaderStage, Ref<UniformBuffer> uniformBuffer);
-		// Resource(ShaderType shaderStage, Ref<LoFox::StorageBuffer> storageBuffer);
+		Resource(ShaderType shaderStage, Ref<StorageBuffer> storageBuffer);
 		// Resource(ShaderType shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination);
 	};
 

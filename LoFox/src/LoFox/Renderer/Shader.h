@@ -6,6 +6,7 @@
 
 namespace LoFox {
 
+	// TODO: make ShaderType a bit field
 	enum ShaderType {
 
 		Vertex,

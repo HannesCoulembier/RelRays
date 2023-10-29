@@ -42,7 +42,9 @@ namespace LoFox {
 		Ref<Shader> m_FragmentShader;
 		Ref<GraphicsPipeline> m_Pipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
+
 		Ref<UniformBuffer> m_CameraData;
+		Ref<StorageBuffer> m_ObjectTransforms;
 		Ref<ResourceLayout> m_ResourceLayout;
 	};
 }
