@@ -29,6 +29,7 @@ namespace LoFox {
 
 		static VkCommandBuffer BeginSingleTimeCommandBuffer();
 		static void EndSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
+		static void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 	public:
 		inline static VkInstance Instance;
 		inline static VkPhysicalDevice PhysicalDevice;
@@ -72,6 +73,13 @@ namespace LoFox {
 		inline static VkSemaphore m_PresentSemaphore;
 		inline static VkSemaphore m_RenderSemaphore;
 
+		struct ImmediateSubmitBackBone {
+
+			VkFence SubmitFinishedFence;
+			VkCommandBuffer CommandBuffer;
+			VkCommandPool CommandPool;
+		};
+		inline static ImmediateSubmitBackBone m_ImmediateSubmitBackBone;
 	};
 
 }

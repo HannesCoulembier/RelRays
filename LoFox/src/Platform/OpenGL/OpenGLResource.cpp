@@ -3,20 +3,35 @@
 
 #include <glad/glad.h>
 
+#include "Platform/OpenGL/OpenGLContext.h"
+
 #include "Platform/OpenGL/Resources/OpenGLUniformBuffer.h"
 #include "Platform/OpenGL/Resources/OpenGLStorageBuffer.h"
+#include "Platform/OpenGL/Resources/OpenGLTexture.h"
 
 namespace LoFox {
 
-	void BindResourceLayout(Ref<ResourceLayout> layout) {
+	void BindResourceLayout(GLenum program, Ref<ResourceLayout> layout) {
 
 		std::vector<Resource> resources = layout->GetResources();
 		uint32_t binding = 0;
 		for (auto resource : resources) {
 
 			switch (resource.Type) {
-				case ResourceType::UniformBufferResource: glBindBufferBase(GL_UNIFORM_BUFFER, binding, static_cast<OpenGLUniformBufferData*>(resource.UniformBufferRef->GetData())->RendererID); break;
-				case ResourceType::StorageBufferResource: glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, static_cast<OpenGLStorageBufferData*>(resource.StorageBufferRef->GetData())->RendererID); break;
+				case ResourceType::UniformBufferResource: {
+
+					glBindBufferBase(GL_UNIFORM_BUFFER, binding, static_cast<OpenGLUniformBufferData*>(resource.UniformBufferRef->GetData())->RendererID); break;
+				}
+				case ResourceType::StorageBufferResource: {
+
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, static_cast<OpenGLStorageBufferData*>(resource.StorageBufferRef->GetData())->RendererID); break;
+				}
+				case ResourceType::TextureResource: {
+
+					glActiveTexture(GL_TEXTURE0 + binding);
+					glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLTextureData*>(resource.TextureRef->GetData())->RendererID);
+					break;
+				}
 			}
 
 			binding++;

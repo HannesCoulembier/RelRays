@@ -44,6 +44,7 @@ namespace LoFox {
 		vkDestroyDescriptorPool(LogicalDevice, MainDescriptorPool, nullptr);
 
 		vkDestroyFence(LogicalDevice, m_RenderFence, nullptr);
+		vkDestroyFence(LogicalDevice, m_ImmediateSubmitBackBone.SubmitFinishedFence, nullptr);
 		vkDestroySemaphore(LogicalDevice, m_RenderSemaphore, nullptr);
 		vkDestroySemaphore(LogicalDevice, m_PresentSemaphore, nullptr);
 
@@ -53,6 +54,7 @@ namespace LoFox {
 
 		DestroySwapchain();
 
+		vkDestroyCommandPool(LogicalDevice, m_ImmediateSubmitBackBone.CommandPool, nullptr);
 		vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
 		m_DebugMessenger->Shutdown();
 		vkDestroyDevice(LogicalDevice, nullptr);
@@ -107,7 +109,7 @@ namespace LoFox {
 		VkBuffer buffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
 		std::vector<VkDeviceSize> offset = { 0 };
 		vkCmdBindVertexBuffers(MainCommandBuffer, 0, 1, &buffer, offset.data());
-		vkCmdDraw(MainCommandBuffer, 3, 1, 0, 0);
+		vkCmdDraw(MainCommandBuffer, 6, 1, 0, 0);
 	}
 
 	void VulkanContext::EndFrame() {
@@ -180,6 +182,36 @@ namespace LoFox {
 		vkQueueWaitIdle(GraphicsQueueHandle);
 
 		vkFreeCommandBuffers(LogicalDevice, CommandPool, 1, &commandBuffer);
+	}
+
+	void VulkanContext::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) {
+
+		VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		commandBufferBeginInfo.pInheritanceInfo = nullptr;
+		commandBufferBeginInfo.pNext = nullptr;
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		vkBeginCommandBuffer(m_ImmediateSubmitBackBone.CommandBuffer, &commandBufferBeginInfo);
+
+		function(m_ImmediateSubmitBackBone.CommandBuffer);
+
+		vkEndCommandBuffer(m_ImmediateSubmitBackBone.CommandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_ImmediateSubmitBackBone.CommandBuffer;
+		submitInfo.pNext = nullptr;
+		submitInfo.pSignalSemaphores = nullptr;
+		submitInfo.pWaitDstStageMask = nullptr;
+		submitInfo.pWaitSemaphores = nullptr;
+		submitInfo.signalSemaphoreCount = 0;
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 0;
+
+		vkQueueSubmit(GraphicsQueueHandle, 1, &submitInfo, m_ImmediateSubmitBackBone.SubmitFinishedFence);
+		vkWaitForFences(LogicalDevice, 1, &m_ImmediateSubmitBackBone.SubmitFinishedFence, true, 999999);
+		vkResetFences(LogicalDevice, 1, &m_ImmediateSubmitBackBone.SubmitFinishedFence);
+		vkResetCommandPool(LogicalDevice, m_ImmediateSubmitBackBone.CommandPool, 0);
 	}
 
 
@@ -267,6 +299,7 @@ namespace LoFox {
 		vkGetDeviceQueue(LogicalDevice, indices.GraphicsFamilyIndex, 0, &GraphicsQueueHandle);
 		vkGetDeviceQueue(LogicalDevice, indices.PresentFamilyIndex, 0, &PresentQueueHandle);
 
+		// Create Commandpools and CommandBuffers
 		// Create Commandpool
 		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -275,6 +308,14 @@ namespace LoFox {
 		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 
 		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &CommandPool) == VK_SUCCESS, "Failed to create command pool!");
+		
+		// Create ImmediateSubmitBackBone Commandpool
+		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		commandPoolCreateInfo.pNext = nullptr;
+		commandPoolCreateInfo.queueFamilyIndex = indices.GraphicsFamilyIndex;
+		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+
+		LF_CORE_ASSERT(vkCreateCommandPool(LogicalDevice, &commandPoolCreateInfo, nullptr, &m_ImmediateSubmitBackBone.CommandPool) == VK_SUCCESS, "Failed to create immediate submit command pool!");
 
 		// Create MainCommandBuffer
 		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
@@ -284,6 +325,15 @@ namespace LoFox {
 		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		commandBufferAllocInfo.pNext = nullptr;
 		LF_CORE_ASSERT(vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, &MainCommandBuffer) == VK_SUCCESS, "Failed to allocate main command buffer!");
+	
+		// Create ImmediateSubmitBackBone CommandBuffer
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandBufferCount = 1;
+		commandBufferAllocInfo.commandPool = m_ImmediateSubmitBackBone.CommandPool;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.pNext = nullptr;
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(LogicalDevice, &commandBufferAllocInfo, &m_ImmediateSubmitBackBone.CommandBuffer) == VK_SUCCESS, "Failed to allocate immediate submit command buffer!");
+
 	}
 
 	void VulkanContext::InitSwapchain() {
@@ -426,6 +476,12 @@ namespace LoFox {
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
 		LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &m_RenderFence) == VK_SUCCESS, "Failed to create render fence!");
+		
+		fenceCreateInfo.flags = 0;
+		fenceCreateInfo.pNext = nullptr;
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+		LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &m_ImmediateSubmitBackBone.SubmitFinishedFence) == VK_SUCCESS, "Failed to create immediate submit fence!");
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 		semaphoreCreateInfo.flags = 0;
@@ -439,8 +495,9 @@ namespace LoFox {
 	void VulkanContext::InitDescriptorPool() {
 
 		std::vector<VkDescriptorPoolSize> sizes = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,			10 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,			10 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	10 },
 		};
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};

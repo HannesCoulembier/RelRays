@@ -6,10 +6,13 @@ namespace LoFox {
 
 		m_CameraData = UniformBuffer::Create(sizeof(UBO));
 		m_ObjectTransforms = StorageBuffer::Create(1000, sizeof(glm::mat4));
+		std::string test = "Assets/Textures/Rick.png";
+		m_RickTexture = Texture::Create(test);
 
 		m_ResourceLayout = ResourceLayout::Create({
 			{ ShaderType::Vertex, m_CameraData },
 			{ ShaderType::Vertex, m_ObjectTransforms },
+			{ ShaderType::Fragment, m_RickTexture },
 		});
 		
 		m_FragmentShader = Shader::Create(ShaderType::Fragment, "Assets/Shaders/OpenGLDevelopment/FragmentShader.frag");
@@ -18,6 +21,7 @@ namespace LoFox {
 		VertexLayout layout = { // Must match QuadVertex
 			{ VertexAttributeType::Float3 }, // position
 			{ VertexAttributeType::Float3 }, // color
+			{ VertexAttributeType::Float2 }, // uv
 		};
 
 		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
@@ -39,6 +43,7 @@ namespace LoFox {
 		m_ResourceLayout->Destroy();
 		m_CameraData->Destroy();
 		m_ObjectTransforms->Destroy();
+		m_RickTexture->Destroy();
 
 		m_VertexBuffer->Destroy();
 		m_VertexShader->Destroy();

@@ -106,15 +106,40 @@ namespace LoFox {
 		VkPipelineColorBlendAttachmentState MakePipelineColorBlendAttachmentState() {
 
 			VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-			// colorBlendAttachment.alphaBlendOp = 
-			colorBlendAttachment.blendEnable = VK_FALSE;
-			// colorBlendAttachment.colorBlendOp = 
+			colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+			colorBlendAttachment.blendEnable = VK_TRUE;
+			colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 			colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-			// colorBlendAttachment.dstAlphaBlendFactor = 
-			// colorBlendAttachment.dstColorBlendFactor = 
-			// colorBlendAttachment.srcAlphaBlendFactor = 
-			// colorBlendAttachment.srcColorBlendFactor = 
+			colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+			colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 			return colorBlendAttachment;
+		}
+
+		VkSamplerCreateInfo MakeSamplerCreateInfo(VkFilter filters, VkSamplerAddressMode samplerAddressMode) {
+
+			VkSamplerCreateInfo createInfo = {};
+			createInfo.addressModeU = samplerAddressMode;
+			createInfo.addressModeV = samplerAddressMode;
+			createInfo.addressModeW = samplerAddressMode;
+			// createInfo.anisotropyEnable = 
+			// createInfo.borderColor = 
+			// createInfo.compareEnable = 
+			// createInfo.compareOp = 
+			// createInfo.flags = 
+			createInfo.magFilter = filters;
+			// createInfo.maxAnisotropy = 
+			// createInfo.maxLod = 
+			createInfo.minFilter = filters;
+			// createInfo.minLod = 
+			// createInfo.mipLodBias = 
+			// createInfo.mipmapMode = 
+			createInfo.pNext = nullptr;
+			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			// createInfo.unnormalizedCoordinates = 
+
+			return createInfo;
 		}
 
 		// Extensions -----------------------------------------------------------------------------------

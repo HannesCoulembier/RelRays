@@ -21,16 +21,13 @@ namespace LoFox {
 	// }
 
 	Resource::Resource(ShaderType shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer)
-		: Type(ResourceType::UniformBufferResource), ShaderStage(shaderStage), IsBuffer(true), UniformBufferRef(uniformBuffer) {
-
-		// BufferDescriptorInfos = UniformBufferRef->GetDescriptorInfos();
-	}
+		: Type(ResourceType::UniformBufferResource), ShaderStage(shaderStage), IsBuffer(true), UniformBufferRef(uniformBuffer) {}
 
 	Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageBuffer> storageBuffer)
-		: Type(ResourceType::StorageBufferResource), ShaderStage(shaderStage), IsBuffer(true), StorageBufferRef(storageBuffer) {
-	
-		// BufferDescriptorInfos = StorageBuffer->GetDescriptorInfos();
-	}
+		: Type(ResourceType::StorageBufferResource), ShaderStage(shaderStage), IsBuffer(true), StorageBufferRef(storageBuffer) {}
+
+	Resource::Resource(ShaderType shaderStage, Ref<LoFox::Texture> texture)
+		: Type(ResourceType::TextureResource), ShaderStage(shaderStage), IsImage(true), TextureRef(texture) {}
 
 	// Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination)
 	// 	: ShaderStage(shaderStage), StorageImage(storageImage) {

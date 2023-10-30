@@ -1,10 +1,11 @@
 #pragma once
-
 #include "LoFox/Renderer/Resource.h"
+
+#include <glad/glad.h>
 
 namespace LoFox {
 
-	void BindResourceLayout(Ref<ResourceLayout> layout);
+	void BindResourceLayout(GLenum program, Ref<ResourceLayout> layout);
 
 	struct OpenGLResourceLayoutData {
 

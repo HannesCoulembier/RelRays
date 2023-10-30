@@ -8,12 +8,16 @@ namespace LoFox {
 
 		glm::vec3 Position;
 		glm::vec3 Color;
+		glm::vec2 UV;
 	};
 
 	const std::vector<QuadVertex> vertices = {
-		{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-		{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-		{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+		{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+		{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+		{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+		{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+		{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
 	};
 
 	struct UBO {
@@ -45,6 +49,7 @@ namespace LoFox {
 
 		Ref<UniformBuffer> m_CameraData;
 		Ref<StorageBuffer> m_ObjectTransforms;
+		Ref<Texture> m_RickTexture;
 		Ref<ResourceLayout> m_ResourceLayout;
 	};
 }

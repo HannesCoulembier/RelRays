@@ -31,6 +31,11 @@ namespace LoFox {
 		glEnable(GL_LINE_SMOOTH); // Makes LineWidth mathematically correct
 		glEnable(GL_POINT_SMOOTH); // Makes points round
 
+		glEnable(GL_BLEND); // Enables blending
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Enables blending
+
+		glEnable(GL_DEPTH_TEST);
+
 		glGenVertexArrays(1, &m_VertexArrayID);
 		glBindVertexArray(m_VertexArrayID);
 	}
@@ -53,7 +58,7 @@ namespace LoFox {
 		m_ActivePipeline = pipeline;
 		glUseProgram(pipelineData->ProgramID);
 
-		BindResourceLayout(pipelineData->ResourceLayout);
+		BindResourceLayout(pipelineData->ProgramID, pipelineData->ResourceLayout);
 	}
 
 	void OpenGLContext::Draw(Ref<VertexBuffer> vertexBuffer) {
@@ -127,7 +132,7 @@ namespace LoFox {
 			}
 		}
 
-		glDrawArrays(pipelineData->PrimitiveTopology, 0, 3);
+		glDrawArrays(pipelineData->PrimitiveTopology, 0, 6);
 	}
 
 	void OpenGLContext::EndFrame() {

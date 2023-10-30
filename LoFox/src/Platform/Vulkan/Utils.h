@@ -38,6 +38,8 @@ namespace LoFox {
 		VkPipelineMultisampleStateCreateInfo MakePipelineMultisampleStateCreateInfo();
 		VkPipelineColorBlendAttachmentState MakePipelineColorBlendAttachmentState();
 
+		VkSamplerCreateInfo MakeSamplerCreateInfo(VkFilter filters, VkSamplerAddressMode samplerAddressMode);
+
 		// Extensions -----------------------------------------------------------------------------------
 		std::vector<VkExtensionProperties> GetVulkanExtensions();
 
