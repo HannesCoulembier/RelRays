@@ -6,6 +6,7 @@ layout (location = 1) in vec2 inUV;
 layout (location = 0) out vec4 outFragColor;
 
 layout (binding = 2) uniform sampler2D tex1;
+layout (binding = 3) uniform sampler2D tex2;
 
 void main()
 {

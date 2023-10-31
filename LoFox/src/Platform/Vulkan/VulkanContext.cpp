@@ -6,6 +6,7 @@
 #include "LoFox/Renderer/Shader.h"
 #include "Platform/Vulkan/VulkanShader.h"
 #include "Platform/Vulkan/VulkanVertexBuffer.h"
+#include "Platform/Vulkan/VulkanIndexBuffer.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
 
 #include "LoFox/Core/Application.h"
@@ -104,12 +105,14 @@ namespace LoFox {
 		vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
 	}
 
-	void VulkanContext::Draw(Ref<VertexBuffer> vertexBuffer) {
+	void VulkanContext::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
 
-		VkBuffer buffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
+		VkBuffer vBuffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
+		VkBuffer iBuffer = static_cast<VulkanIndexBufferData*>(indexBuffer->GetData())->Buffer->GetBuffer();
 		std::vector<VkDeviceSize> offset = { 0 };
-		vkCmdBindVertexBuffers(MainCommandBuffer, 0, 1, &buffer, offset.data());
-		vkCmdDraw(MainCommandBuffer, 6, 1, 0, 0);
+		vkCmdBindVertexBuffers(MainCommandBuffer, 0, 1, &vBuffer, offset.data());
+		vkCmdBindIndexBuffer(MainCommandBuffer, iBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(MainCommandBuffer, indexBuffer->GetNumberOfIndices(), 1, 0, 0, 0);
 	}
 
 	void VulkanContext::EndFrame() {

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
 
 #include "Platform/Vulkan/Buffer.h"

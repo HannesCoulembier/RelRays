@@ -1,8 +1,6 @@
 #include "lfpch.h"
 #include "Platform/OpenGL/OpenGLVertexBuffer.h"
 
-#include "LoFox/Renderer/VertexBuffer.h"
-
 namespace LoFox {
 
 	GLenum VertexAttributeToOpenGLBaseType(VertexAttributeType attribute) {

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
 
 #include <glad/glad.h>

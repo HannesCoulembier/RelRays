@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/RendererAPI.h"
 
 namespace LoFox {

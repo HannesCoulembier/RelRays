@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Pipeline.h"
 
 #include <glad/glad.h>
@@ -7,6 +6,8 @@
 #include "LoFox/Renderer/Resource.h"
 
 namespace LoFox {
+
+	GLenum TopologyToGLenum(Topology topology);
 
 	struct OpenGLGraphicsPipelineData {
 

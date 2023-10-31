@@ -15,9 +15,11 @@ namespace LoFox {
 		{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
 		{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
 		{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-		{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
 		{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	};
+
+	const std::vector<uint32_t> vertexIndices = {
+		0, 1, 2, 2, 3, 0,
 	};
 
 	struct UBO {
@@ -46,10 +48,12 @@ namespace LoFox {
 		Ref<Shader> m_FragmentShader;
 		Ref<GraphicsPipeline> m_Pipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
+		Ref<IndexBuffer> m_IndexBuffer;
 
 		Ref<UniformBuffer> m_CameraData;
 		Ref<StorageBuffer> m_ObjectTransforms;
 		Ref<Texture> m_RickTexture;
+		Ref<Texture> m_PolandTexture;
 		Ref<ResourceLayout> m_ResourceLayout;
 	};
 }

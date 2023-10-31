@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Resource.h"
 
 #include <vulkan/vulkan.h>

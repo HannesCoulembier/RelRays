@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Pipeline.h"
 
 #include <vulkan/vulkan.h>

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 
 #include <glad/glad.h>

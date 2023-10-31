@@ -6,6 +6,7 @@
 
 #include "Platform/OpenGL/OpenGLPipeline.h"
 #include "Platform/OpenGL/OpenGLVertexBuffer.h"
+#include "Platform/OpenGL/OpenGLIndexBuffer.h"
 #include "Platform/OpenGL/OpenGLResource.h"
 
 namespace LoFox {
@@ -61,12 +62,14 @@ namespace LoFox {
 		BindResourceLayout(pipelineData->ProgramID, pipelineData->ResourceLayout);
 	}
 
-	void OpenGLContext::Draw(Ref<VertexBuffer> vertexBuffer) {
+	void OpenGLContext::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
 
 		OpenGLVertexBufferData* vertexBufferData = static_cast<OpenGLVertexBufferData*>(vertexBuffer->GetData());
+		OpenGLIndexBufferData* indexBufferData = static_cast<OpenGLIndexBufferData*>(indexBuffer->GetData());
 		OpenGLGraphicsPipelineData* pipelineData = static_cast<OpenGLGraphicsPipelineData*>(m_ActivePipeline->GetData());
 
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferData->Buffer);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferData->Buffer);
 
 
 		VertexLayout layout = vertexBufferData->VertexLayout;
@@ -132,7 +135,7 @@ namespace LoFox {
 			}
 		}
 
-		glDrawArrays(pipelineData->PrimitiveTopology, 0, 6);
+		glDrawElements(pipelineData->PrimitiveTopology, indexBuffer->GetNumberOfIndices(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	void OpenGLContext::EndFrame() {

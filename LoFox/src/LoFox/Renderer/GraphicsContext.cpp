@@ -59,13 +59,13 @@ namespace LoFox {
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
 
-	void GraphicsContext::Draw(Ref<VertexBuffer> vertexBuffer) {
+	void GraphicsContext::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
 
 		#ifdef LF_RENDERAPI_OPENGL
-			OpenGLContext::Draw(vertexBuffer); return;
+			OpenGLContext::Draw(indexBuffer, vertexBuffer); return;
 		#endif
 		#ifdef LF_RENDERAPI_VULKAN
-			VulkanContext::Draw(vertexBuffer); return;
+			VulkanContext::Draw(indexBuffer, vertexBuffer); return;
 		#endif
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");

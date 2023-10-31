@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/Shader.h"
 
 #include <glad/glad.h>

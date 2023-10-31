@@ -1,8 +1,6 @@
 #include "lfpch.h"
 #include "Platform/Vulkan/VulkanVertexBuffer.h"
 
-#include "LoFox/Renderer/VertexBuffer.h"
-
 namespace LoFox {
 
 	namespace Utils {

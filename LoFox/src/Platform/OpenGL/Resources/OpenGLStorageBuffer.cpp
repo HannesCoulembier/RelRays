@@ -10,7 +10,7 @@ namespace LoFox {
 
 		glGenBuffers(1, &m_OpenGLData.RendererID);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_OpenGLData.RendererID);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, m_Size, nullptr, GL_DYNAMIC_DRAW); // TODO: investigate usage hint
+		glBufferData(GL_SHADER_STORAGE_BUFFER, m_Size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
 	void OpenGLStorageBuffer::Destroy() {

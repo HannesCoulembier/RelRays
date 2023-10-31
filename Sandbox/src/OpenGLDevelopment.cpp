@@ -6,13 +6,14 @@ namespace LoFox {
 
 		m_CameraData = UniformBuffer::Create(sizeof(UBO));
 		m_ObjectTransforms = StorageBuffer::Create(1000, sizeof(glm::mat4));
-		std::string test = "Assets/Textures/Rick.png";
-		m_RickTexture = Texture::Create(test);
+		m_RickTexture = Texture::Create("Assets/Textures/Rick.png");
+		m_PolandTexture = Texture::Create("Assets/Textures/poland.png");
 
 		m_ResourceLayout = ResourceLayout::Create({
 			{ ShaderType::Vertex, m_CameraData },
 			{ ShaderType::Vertex, m_ObjectTransforms },
 			{ ShaderType::Fragment, m_RickTexture },
+			{ ShaderType::Fragment, m_PolandTexture },
 		});
 		
 		m_FragmentShader = Shader::Create(ShaderType::Fragment, "Assets/Shaders/OpenGLDevelopment/FragmentShader.frag");
@@ -26,6 +27,7 @@ namespace LoFox {
 
 		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 		m_VertexBuffer = VertexBuffer::Create(vertexBufferSize, vertices.data(), layout);
+		m_IndexBuffer = IndexBuffer::Create(vertexIndices.size(), vertexIndices.data());
 
 		GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
 		graphicsPipelineCreateInfo.VertexShader = m_VertexShader;
@@ -44,7 +46,9 @@ namespace LoFox {
 		m_CameraData->Destroy();
 		m_ObjectTransforms->Destroy();
 		m_RickTexture->Destroy();
+		m_PolandTexture->Destroy();
 
+		m_IndexBuffer->Destroy();
 		m_VertexBuffer->Destroy();
 		m_VertexShader->Destroy();
 		m_FragmentShader->Destroy();
@@ -81,7 +85,7 @@ namespace LoFox {
 		Renderer::BeginFrame({ glm::abs(glm::sin(2.0f*m_Time)), 1.0f, 0.0f });
 
 		Renderer::SetActivePipeline(m_Pipeline);
-		Renderer::Draw(m_VertexBuffer);
+		Renderer::Draw(m_IndexBuffer, m_VertexBuffer);
 
 		Renderer::EndFrame();
 

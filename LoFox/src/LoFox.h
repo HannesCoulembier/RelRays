@@ -20,10 +20,9 @@
 
 // #include "LoFox/Renderer/RenderCommand.h"
 #include "LoFox/Renderer/Renderer.h"
-// #include "LoFox/Renderer/RenderContext.h"
 
 #include "LoFox/Renderer/VertexBuffer.h"
-// #include "LoFox/Renderer/IndexBuffer.h"
+#include "LoFox/Renderer/IndexBuffer.h"
 #include "LoFox/Renderer/Resources/Texture.h"
 // #include "LoFox/Renderer/Resources/TextureAtlas.h"
 #include "LoFox/Renderer/Resources/UniformBuffer.h"

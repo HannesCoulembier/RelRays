@@ -1,10 +1,11 @@
 #pragma once
-
 #include "LoFox/Renderer/GraphicsContext.h"
 
 #include <vulkan/vulkan.h>
 
 #include "Platform/Vulkan/DebugMessenger.h"
+#include "LoFox/Renderer/VertexBuffer.h"
+#include "LoFox/Renderer/IndexBuffer.h"
 
 // Forward declaration
 struct GLFWwindow;
@@ -21,7 +22,7 @@ namespace LoFox {
 
 		static void BeginFrame(glm::vec3 clearColor);
 		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
-		static void Draw(Ref<VertexBuffer> vertexBuffer);
+		static void Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer);
 		static void EndFrame();
 		static void PresentFrame();
 

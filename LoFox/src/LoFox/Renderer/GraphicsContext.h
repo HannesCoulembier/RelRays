@@ -1,6 +1,8 @@
 #pragma once
 
 #include "LoFox/Renderer/Pipeline.h"
+#include "LoFox/Renderer/VertexBuffer.h"
+#include "LoFox/Renderer/IndexBuffer.h"
 
 namespace LoFox {
 
@@ -12,7 +14,7 @@ namespace LoFox {
 
 		static void BeginFrame(glm::vec3 clearColor = { 0.0f, 0.0f, 0.0f });
 		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
-		static void Draw(Ref<VertexBuffer> vertexBuffer);
+		static void Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer);
 		static void EndFrame();
 		static void PresentFrame();
 

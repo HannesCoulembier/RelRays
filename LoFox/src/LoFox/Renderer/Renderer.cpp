@@ -64,9 +64,9 @@ namespace LoFox {
 		GraphicsContext::SetActivePipeline(pipeline);
 	}
 
-	void Renderer::Draw(Ref<VertexBuffer> vertexBuffer) {
+	void Renderer::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
 
-		GraphicsContext::Draw(vertexBuffer);
+		GraphicsContext::Draw(indexBuffer, vertexBuffer);
 	}
 
 	void Renderer::EndFrame() {

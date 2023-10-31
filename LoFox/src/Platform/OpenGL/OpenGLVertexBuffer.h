@@ -1,5 +1,4 @@
 #pragma once
-
 #include "LoFox/Renderer/VertexBuffer.h"
 
 #include <glad/glad.h>

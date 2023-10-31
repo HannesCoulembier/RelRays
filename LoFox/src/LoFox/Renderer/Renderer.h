@@ -14,7 +14,8 @@
 
 #include "LoFox/Renderer/Pipeline.h"
 #include "LoFox/Renderer/VertexBuffer.h"
-#include "LoFox/Events/RenderEvent.h"
+#include "LoFox/Renderer/IndexBuffer.h"
+// #include "LoFox/Events/RenderEvent.h"
 
 #include "LoFox/Utils/Time.h"
 
@@ -29,7 +30,7 @@ namespace LoFox {
 		static void BeginFrame(glm::vec3 clearColor = { 0.0f, 0.0f, 0.0f });
 
 		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
-		static void Draw(Ref<VertexBuffer> vertexBuffer);
+		static void Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer);
 
 		static void EndFrame();
 
