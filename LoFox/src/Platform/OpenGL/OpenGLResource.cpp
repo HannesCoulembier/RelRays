@@ -8,6 +8,7 @@
 #include "Platform/OpenGL/Resources/OpenGLUniformBuffer.h"
 #include "Platform/OpenGL/Resources/OpenGLStorageBuffer.h"
 #include "Platform/OpenGL/Resources/OpenGLTexture.h"
+#include "Platform/OpenGL/Resources/OpenGLStorageImage.h"
 
 namespace LoFox {
 
@@ -31,6 +32,16 @@ namespace LoFox {
 					glActiveTexture(GL_TEXTURE0 + binding);
 					glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLTextureData*>(resource.TextureRef->GetData())->RendererID);
 					break;
+				}
+				case ResourceType::StorageImageResource: {
+
+					glBindImageTexture(binding, static_cast<OpenGLStorageImageData*>(resource.StorageImageRef->GetData())->RendererID, 0, 0, 0, GL_READ_WRITE, GL_RGBA8);
+				}
+				case ResourceType::StorageImageAsTextureResource: {
+
+					glActiveTexture(GL_TEXTURE0 + binding);
+					glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLStorageImageData*>(resource.StorageImageRef->GetData())->RendererID);
+					break; 
 				}
 			}
 

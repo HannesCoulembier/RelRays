@@ -7,15 +7,18 @@
 #include "Platform/Vulkan/Resources/VulkanUniformBuffer.h"
 #include "Platform/Vulkan/Resources/VulkanStorageBuffer.h"
 #include "Platform/Vulkan/Resources/VulkanTexture.h"
+#include "Platform/Vulkan/Resources/VulkanStorageImage.h"
 
 namespace LoFox {
 
 	VkDescriptorType ResourceTypeToVulkanDescriptorType(ResourceType type) {
 
 		switch (type) {
-			case ResourceType::UniformBufferResource:	return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			case ResourceType::StorageBufferResource:	return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			case ResourceType::TextureResource:			return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			case ResourceType::UniformBufferResource:			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			case ResourceType::StorageBufferResource:			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			case ResourceType::TextureResource:					return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			case ResourceType::StorageImageResource:			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			case ResourceType::StorageImageAsTextureResource:	return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		}
 
 		LF_CORE_ASSERT(false, "Unknown ResourceType");
@@ -41,6 +44,11 @@ namespace LoFox {
 		if (resource.TextureRef) {
 			VulkanTextureData* textureData = static_cast<VulkanTextureData*>(resource.TextureRef->GetData());
 			return textureData->ImageInfo;
+		}
+
+		if (resource.StorageImageRef) {
+			VulkanStorageImageData* imageData = static_cast<VulkanStorageImageData*>(resource.StorageImageRef->GetData());
+			return imageData->ImageInfo;
 		}
 
 		LF_CORE_ASSERT(false, "Resource is not an image!");

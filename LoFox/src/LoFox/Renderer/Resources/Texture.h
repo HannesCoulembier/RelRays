@@ -8,6 +8,8 @@ namespace LoFox {
 		virtual void Destroy() = 0;
 
 		void* GetData() { return m_Data; }
+		uint32_t GetWidth() { return m_Width; }
+		uint32_t GetHeight() { return m_Height; }
 
 		static Ref<Texture> Create(const std::string& path);
 	protected:

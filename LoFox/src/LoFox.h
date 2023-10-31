@@ -27,7 +27,7 @@
 // #include "LoFox/Renderer/Resources/TextureAtlas.h"
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
-// #include "LoFox/Renderer/Resources/StorageImage.h"
+#include "LoFox/Renderer/Resources/StorageImage.h"
 #include "LoFox/Renderer/Shader.h"
 #include "LoFox/Renderer/Resource.h"
 #include "LoFox/Renderer/Pipeline.h"
