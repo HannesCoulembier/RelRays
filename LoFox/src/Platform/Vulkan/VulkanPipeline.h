@@ -31,4 +31,24 @@ namespace LoFox {
 		VkViewport m_Viewport;
 		VkRect2D m_Scissor;
 	};
+
+	struct VulkanComputePipelineData {
+
+		VkPipeline Pipeline = {};
+		VkPipelineLayout Layout = {};
+		VkDescriptorSet DescriptorSet;
+	};
+
+	class VulkanComputePipeline : public ComputePipeline {
+
+	public:
+		VulkanComputePipeline(ComputePipelineCreateInfo createInfo);
+
+		virtual void Destroy() override;
+
+		virtual void Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) override;
+	private:
+		ComputePipelineCreateInfo m_CreateInfo = {};
+		VulkanComputePipelineData m_VulkanData = {};
+	};
 }

@@ -66,6 +66,8 @@ namespace LoFox {
 
 	void VulkanContext::BeginFrame(glm::vec3 clearColor) {
 
+		m_FrameData.ClearColor = clearColor;
+
 		vkWaitForFences(LogicalDevice, 1, &m_RenderFence, VK_TRUE, UINT64_MAX);
 		vkResetFences(LogicalDevice, 1, &m_RenderFence);
 
@@ -79,33 +81,48 @@ namespace LoFox {
 		cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 		LF_CORE_ASSERT(vkBeginCommandBuffer(MainCommandBuffer, &cmdBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
-
-		VkClearValue clearValue = { { clearColor.r, clearColor.g, clearColor.b, 1.0f } };
-		std::vector<VkClearValue> clearValues = { clearValue };
-
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		renderPassInfo.framebuffer = m_Framebuffers[m_ThisFramesImageIndex];
-		renderPassInfo.pClearValues = clearValues.data();
-		renderPassInfo.pNext = nullptr;
-		renderPassInfo.renderArea.offset.x = 0;
-		renderPassInfo.renderArea.offset.y = 0;
-		renderPassInfo.renderArea.extent = SwapchainExtent;
-		renderPassInfo.renderPass = RenderPass;
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
-		vkCmdBeginRenderPass(MainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 	}
 
 	void VulkanContext::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
 
-		VulkanGraphicsPipelineData* pipelineData = static_cast<VulkanGraphicsPipelineData*>(pipeline->GetData());
-		vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
-		vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
+		m_ActivePipeline = pipeline;
+
+		if (m_HasActiveRenderPass && m_IsPipelineBound) {
+
+			VulkanGraphicsPipelineData* pipelineData = static_cast<VulkanGraphicsPipelineData*>(m_ActivePipeline->GetData());
+			vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
+			vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
+		}
 	}
 
 	void VulkanContext::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
+
+		if (!m_HasActiveRenderPass) {
+
+			VkClearValue clearValue = { { m_FrameData.ClearColor.r, m_FrameData.ClearColor.g, m_FrameData.ClearColor.b, 1.0f } };
+			std::vector<VkClearValue> clearValues = { clearValue };
+
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			renderPassInfo.framebuffer = m_Framebuffers[m_ThisFramesImageIndex];
+			renderPassInfo.pClearValues = clearValues.data();
+			renderPassInfo.pNext = nullptr;
+			renderPassInfo.renderArea.offset.x = 0;
+			renderPassInfo.renderArea.offset.y = 0;
+			renderPassInfo.renderArea.extent = SwapchainExtent;
+			renderPassInfo.renderPass = RenderPass;
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+			vkCmdBeginRenderPass(MainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			m_HasActiveRenderPass = true;
+		}
+		if (!m_IsPipelineBound) {
+
+			VulkanGraphicsPipelineData* pipelineData = static_cast<VulkanGraphicsPipelineData*>(m_ActivePipeline->GetData());
+			vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
+			vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
+			m_IsPipelineBound = true;
+		}
 
 		VkBuffer vBuffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
 		VkBuffer iBuffer = static_cast<VulkanIndexBufferData*>(indexBuffer->GetData())->Buffer->GetBuffer();
@@ -118,6 +135,7 @@ namespace LoFox {
 	void VulkanContext::EndFrame() {
 
 		vkCmdEndRenderPass(MainCommandBuffer);
+		m_HasActiveRenderPass = false;
 		LF_CORE_ASSERT(vkEndCommandBuffer(MainCommandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
 
 		VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -134,6 +152,7 @@ namespace LoFox {
 		submit.waitSemaphoreCount = 1;
 
 		LF_CORE_ASSERT(vkQueueSubmit(GraphicsQueueHandle, 1, &submit, m_RenderFence) == VK_SUCCESS, "Failed to submit draw commands!");
+		m_IsPipelineBound = false;
 	}
 
 	void VulkanContext::PresentFrame() {

@@ -7,14 +7,14 @@ layout (location = 2) in vec2 inUV;
 layout (location = 0) out vec3 outColor;
 layout (location = 1) out vec2 outUV;
 
-layout (set = 0, binding = 0) uniform CameraBuffer {
+layout (binding = 0) uniform CameraBuffer {
 	mat4 view;
 	mat4 proj;
 	mat4 invView;
 	mat4 invProj;
 } cameraData;
 
-layout (std140, set = 0, binding = 1) readonly buffer ObjectTransformsBuffer {
+layout (std140, binding = 1) readonly buffer ObjectTransformsBuffer {
 	mat4 transforms[];
 } objectTransforms;
 

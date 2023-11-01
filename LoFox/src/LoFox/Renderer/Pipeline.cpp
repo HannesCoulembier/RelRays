@@ -21,6 +21,18 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
+
+	Ref<ComputePipeline> ComputePipeline::Create(ComputePipelineCreateInfo createInfo) {
+
+		#ifdef LF_RENDERAPI_OPENGL
+			return CreateRef<OpenGLComputePipeline>(createInfo);
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			return CreateRef<VulkanComputePipeline>(createInfo);
+		#endif
+
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
+	}
 }
 
 // #include "LoFox/Renderer/Shader.h"
@@ -47,7 +59,7 @@ namespace LoFox {
 // 
 // 		return m_Pipeline;
 // 	}
-// 
+ 
 // 	void ComputePipelineBuilder::PreparePushConstant(uint32_t objectSize, ShaderType shaderStage) {
 // 
 // 		VkShaderStageFlags stage = ShaderTypeToVulkan(shaderStage);
@@ -64,9 +76,9 @@ namespace LoFox {
 // 		m_Pipeline->m_PushConstantsData.push_back(nullptr);
 // 		m_Pipeline->m_PushConstantsTotalOffset += objectSize;
 // 	}
-// 
+
 // 	void ComputePipeline::PushConstant(uint32_t index, const void* data) { m_PushConstantsData[index] = data; }
-// 
+
 // 	void ComputePipeline::InitLayout() {
 // 
 // 		VkDescriptorSetLayout descriptorSetLayout = CreateInfo.ResourceLayout->GetDescriptorSetLayout();
@@ -82,7 +94,7 @@ namespace LoFox {
 // 
 // 		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
 // 	}
-// 
+
 // 	void ComputePipeline::InitDescriptorSets() {
 // 
 // 		CreateDescriptorPool();
@@ -131,7 +143,7 @@ namespace LoFox {
 // 			}
 // 		}
 // 	}
-// 
+
 // 	void ComputePipeline::InitPipeline() {
 //
 //
@@ -150,7 +162,7 @@ namespace LoFox {
 //		VkResult r = vkCreateComputePipelines(VulkanContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &Pipeline);
 //		LF_CORE_ASSERT(r == VK_SUCCESS, "Failed to create compute pipeline!");
 //	}
-// 
+
 // 	void ComputePipeline::CreateDescriptorPool() {
 //
 //		std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {};
@@ -170,14 +182,14 @@ namespace LoFox {
 //
 //		LF_CORE_ASSERT(vkCreateDescriptorPool(VulkanContext::LogicalDevice, &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool) == VK_SUCCESS, "Failed to create descriptor pool!");
 //	}
-// 
+
 // 	void ComputePipeline::Destroy() {
 //
 //		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, Layout, nullptr);
 //		vkDestroyPipeline(VulkanContext::LogicalDevice, Pipeline, nullptr);
 //		vkDestroyDescriptorPool(VulkanContext::LogicalDevice, m_DescriptorPool, nullptr);
 //	}
-// 
+
 // 	void ComputePipeline::Bind() {
 // 
 // 		VkCommandBuffer commandBuffer = Renderer::GetCommandBuffer();
@@ -186,7 +198,7 @@ namespace LoFox {
 // 		// Bind descriptor sets
 // 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, Layout, 0, 1, &m_DescriptorSets[Renderer::GetCurrentFrame()], 0, nullptr);
 // 	}
-// 
+
 // 	void ComputePipeline::Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) {
 //
 //		VkCommandBuffer commandBuffer = Renderer::GetCommandBuffer();
@@ -200,14 +212,14 @@ namespace LoFox {
 //
 //		vkCmdDispatch(commandBuffer, (uint32_t)((float)width / (float)groupWidth),(uint32_t)((float)height / (float)groupHeight), 1);
 //	}
-// 
+
 // 	GraphicsPipelineBuilder::GraphicsPipelineBuilder(GraphicsPipelineCreateInfo createInfo)
 // 		: m_CreateInfo(createInfo) {
 // 
 // 		m_Pipeline = CreateRef<GraphicsPipeline>();
 // 		m_Pipeline->CreateInfo = m_CreateInfo;
 // 	}
-// 
+
 // 	Ref<GraphicsPipeline> GraphicsPipelineBuilder::CreateGraphicsPipeline() {
 // 
 // 		m_Pipeline->InitLayout();
@@ -216,7 +228,7 @@ namespace LoFox {
 // 
 // 		return m_Pipeline;
 // 	}
-// 
+
 // 	void GraphicsPipelineBuilder::PreparePushConstant(uint32_t objectSize, ShaderType shaderStage) {
 // 
 // 		VkShaderStageFlags stage = ShaderTypeToVulkan(shaderStage);

@@ -163,4 +163,89 @@ namespace LoFox {
 		vkDestroyPipeline(VulkanContext::LogicalDevice, m_VulkanData.Pipeline, nullptr);
 		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, m_VulkanData.Layout, nullptr);
 	}
+
+
+	VulkanComputePipeline::VulkanComputePipeline(ComputePipelineCreateInfo createInfo) {
+
+		m_Data = &m_VulkanData;
+		m_CreateInfo = createInfo;
+
+		VkDescriptorSetLayout setLayout = static_cast<VulkanResourceLayoutData*>(createInfo.ResourceLayout->GetData())->DescriptorSetLayout;
+		VkPipelineLayoutCreateInfo layoutCreateInfo = {};
+		layoutCreateInfo.flags = 0;
+		layoutCreateInfo.pNext = nullptr;
+		layoutCreateInfo.pPushConstantRanges = nullptr; // We will not support push constants as OpenGL does not have those (use uniform buffer)
+		layoutCreateInfo.pSetLayouts = &setLayout;
+		layoutCreateInfo.pushConstantRangeCount = 0; // We will not support push constants as OpenGL does not have those (use uniform buffer)
+		layoutCreateInfo.setLayoutCount = createInfo.ResourceLayout ? 1 : 0; // If ResourceLayout = nullptr, we set setLayoutCount to 0
+		layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		LF_CORE_ASSERT(vkCreatePipelineLayout(VulkanContext::LogicalDevice, &layoutCreateInfo, nullptr, &m_VulkanData.Layout) == VK_SUCCESS, "Failed to create pipeline layout!");
+		
+		// Allocate Descriptor sets
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {};
+		descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocInfo.descriptorPool = VulkanContext::MainDescriptorPool;
+		descriptorSetAllocInfo.descriptorSetCount = 1;
+		descriptorSetAllocInfo.pSetLayouts = &setLayout;
+		
+		LF_CORE_ASSERT(vkAllocateDescriptorSets(VulkanContext::LogicalDevice, &descriptorSetAllocInfo, &m_VulkanData.DescriptorSet) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+		
+		// Write to the descriptor sets
+		uint32_t binding = 0;
+		for (const auto& resource : m_CreateInfo.ResourceLayout->GetResources()) {
+
+			VkDescriptorBufferInfo bufferInfo = {};
+			if (resource.IsBuffer)
+				bufferInfo = GetVkDescriptorBufferInfoFromResource(resource);
+
+			VkDescriptorImageInfo imageInfo = {};
+			if (resource.IsImage)
+				imageInfo = GetVkDescriptorImageInfoFromResource(resource);
+
+			VkWriteDescriptorSet descriptorWrite = {};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = m_VulkanData.DescriptorSet;
+			descriptorWrite.dstBinding = binding;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = ResourceTypeToVulkanDescriptorType(resource.Type);
+			descriptorWrite.descriptorCount = resource.ItemCount;
+			descriptorWrite.pBufferInfo = (resource.IsBuffer) ? &bufferInfo : nullptr;
+			descriptorWrite.pImageInfo = (resource.IsImage) ? &imageInfo : nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+
+			binding++;
+
+			vkUpdateDescriptorSets(VulkanContext::LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+		}
+
+		VkShaderModule shaderModule = static_cast<VulkanShaderData*>(m_CreateInfo.ComputeShader->GetData())->ShaderModule;
+		VkPipelineShaderStageCreateInfo shaderStage = Utils::MakePipelineShaderStageCreateInfo(VK_SHADER_STAGE_COMPUTE_BIT, "main", shaderModule);
+		
+		VkComputePipelineCreateInfo pipelineCreateInfo = {};
+		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineCreateInfo.basePipelineIndex = -1;
+		pipelineCreateInfo.flags = 0;
+		pipelineCreateInfo.layout = m_VulkanData.Layout;
+		pipelineCreateInfo.pNext = nullptr;
+		pipelineCreateInfo.stage = shaderStage;
+		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		
+		LF_CORE_ASSERT(vkCreateComputePipelines(VulkanContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_VulkanData.Pipeline) == VK_SUCCESS, "Failed to create compute pipeline!");
+	}
+
+	void VulkanComputePipeline::Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) {
+
+		vkCmdBindPipeline(VulkanContext::MainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_VulkanData.Pipeline);
+		
+		vkCmdBindDescriptorSets(VulkanContext::MainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_VulkanData.Layout, 0, 1, &m_VulkanData.DescriptorSet, 0, nullptr);
+		
+		vkCmdDispatch(VulkanContext::MainCommandBuffer, (uint32_t)((float)width / (float)groupWidth),(uint32_t)((float)height / (float)groupHeight), 1);
+	}
+
+	void VulkanComputePipeline::Destroy() {
+
+		vkDestroyPipeline(VulkanContext::LogicalDevice, m_VulkanData.Pipeline, nullptr);
+		vkDestroyPipelineLayout(VulkanContext::LogicalDevice, m_VulkanData.Layout, nullptr);
+	}
 }

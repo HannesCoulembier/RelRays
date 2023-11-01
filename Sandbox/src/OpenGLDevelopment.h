@@ -46,7 +46,9 @@ namespace LoFox {
 		float m_Time = 0;
 		Ref<Shader> m_VertexShader;
 		Ref<Shader> m_FragmentShader;
-		Ref<GraphicsPipeline> m_Pipeline;
+		Ref<Shader> m_ComputeShader;
+		Ref<GraphicsPipeline> m_GraphicsPipeline;
+		Ref<ComputePipeline> m_ComputePipeline;
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 
@@ -56,5 +58,6 @@ namespace LoFox {
 		Ref<Texture> m_PolandTexture;
 		Ref<StorageImage> m_TestStorageImage;
 		Ref<ResourceLayout> m_ResourceLayout;
+		Ref<ResourceLayout> m_ComputeResourceLayout;
 	};
 }

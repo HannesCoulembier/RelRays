@@ -1,0 +1,16 @@
+#version 430
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (binding = 0) uniform sampler2D rickTex;
+layout (binding = 1, rgba8) uniform image2D rickColorBuffer;
+
+void main() {
+
+    ivec2 screenPos = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+    ivec2 screenSize = imageSize(rickColorBuffer);
+
+	vec2 uv = vec2(float(screenPos.x) / float(screenSize.x), float(screenPos.y) / float(screenSize.y)); // uv with 0,0 in bottom left corner
+
+    vec4 color = texture(rickTex, uv);
+    imageStore(rickColorBuffer, screenPos, color);
+}

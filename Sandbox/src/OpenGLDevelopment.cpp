@@ -8,18 +8,24 @@ namespace LoFox {
 		m_ObjectTransforms = StorageBuffer::Create(1000, sizeof(glm::mat4));
 		m_RickTexture = Texture::Create("Assets/Textures/Rick.png");
 		m_PolandTexture = Texture::Create("Assets/Textures/poland.png");
-		m_TestStorageImage = StorageImage::Create(m_PolandTexture->GetWidth(), m_PolandTexture->GetHeight());
+		m_TestStorageImage = StorageImage::Create(m_RickTexture->GetWidth(), m_RickTexture->GetHeight());
 
 		m_ResourceLayout = ResourceLayout::Create({
 			{ ShaderType::Vertex, m_CameraData },
 			{ ShaderType::Vertex, m_ObjectTransforms },
 			{ ShaderType::Fragment, m_RickTexture },
 			{ ShaderType::Fragment, m_PolandTexture },
-			{ ShaderType::Fragment, m_TestStorageImage },
+			{ ShaderType::Fragment, m_TestStorageImage, true },
+		});
+
+		m_ComputeResourceLayout = ResourceLayout::Create({
+			{ ShaderType::Compute, m_RickTexture },
+			{ ShaderType::Compute, m_TestStorageImage },
 		});
 		
 		m_FragmentShader = Shader::Create(ShaderType::Fragment, "Assets/Shaders/OpenGLDevelopment/FragmentShader.frag");
 		m_VertexShader = Shader::Create(ShaderType::Vertex, "Assets/Shaders/OpenGLDevelopment/VertexShader.vert");
+		m_ComputeShader = Shader::Create(ShaderType::Compute, "Assets/Shaders/OpenGLDevelopment/ComputeShader.comp");
 
 		VertexLayout layout = { // Must match QuadVertex
 			{ VertexAttributeType::Float3 }, // position
@@ -40,11 +46,19 @@ namespace LoFox {
 		graphicsPipelineCreateInfo.LineWidth = 10.0f;
 		graphicsPipelineCreateInfo.PointSize = 100.0f;
 
-		m_Pipeline = GraphicsPipeline::Create(graphicsPipelineCreateInfo);
+		m_GraphicsPipeline = GraphicsPipeline::Create(graphicsPipelineCreateInfo);
+
+
+		ComputePipelineCreateInfo computePipelineCreateInfo;
+		computePipelineCreateInfo.ComputeShader = m_ComputeShader;
+		computePipelineCreateInfo.ResourceLayout = m_ComputeResourceLayout;
+
+		m_ComputePipeline = ComputePipeline::Create(computePipelineCreateInfo);
 	}
 	void OpenGLDevLayer::OnDetach() {
 
 		m_ResourceLayout->Destroy();
+		m_ComputeResourceLayout->Destroy();
 		m_CameraData->Destroy();
 		m_ObjectTransforms->Destroy();
 
@@ -56,7 +70,9 @@ namespace LoFox {
 		m_VertexBuffer->Destroy();
 		m_VertexShader->Destroy();
 		m_FragmentShader->Destroy();
-		m_Pipeline->Destroy();
+		m_ComputeShader->Destroy();
+		m_ComputePipeline->Destroy();
+		m_GraphicsPipeline->Destroy();
 	}
 
 	void OpenGLDevLayer::OnUpdate(float ts) {
@@ -69,26 +85,31 @@ namespace LoFox {
 		avgFPS += (FPS - avgFPS) / (float)frames;
 		Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS (avg: " + std::to_string(avgFPS) + ")" + " Time: " + std::to_string(m_Time));
 
+		uint32_t width = Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
+		uint32_t height = Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
+
 		// TODO: move to function
 		UBO ubo = {};
 		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);
 		glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f); // Forward into the screen goes into the negative z-direction.
 		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)Application::GetInstance().GetActiveWindow()->GetWindowData().Width, (float)Application::GetInstance().GetActiveWindow()->GetWindowData().Width, 0.1f, 4000.0f);
+		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)width, (float)height, 0.1f, 4000.0f);
 		
 		ubo.invView = glm::inverse(ubo.view);
 		ubo.invProj = glm::inverse(ubo.proj);
 
 		m_CameraData->SetData(&ubo);
 
-		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(m_Time, 0.0f, 0.0f));
+		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f*glm::sin(m_Time), 0.0f, 0.0f));
 		std::vector<glm::mat4> translationMatrices = { translationMatrix, translationMatrix };
 		m_ObjectTransforms->SetData(1, translationMatrices.data());
 		// END TODO
 
 		Renderer::BeginFrame({ glm::abs(glm::sin(2.0f*m_Time)), 1.0f, 0.0f });
 
-		Renderer::SetActivePipeline(m_Pipeline);
+		m_ComputePipeline->Dispatch(m_RickTexture->GetWidth(), m_RickTexture->GetHeight(), 8, 8);
+
+		Renderer::SetActivePipeline(m_GraphicsPipeline);
 		Renderer::Draw(m_IndexBuffer, m_VertexBuffer);
 
 		Renderer::EndFrame();

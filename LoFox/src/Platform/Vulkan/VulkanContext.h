@@ -81,6 +81,16 @@ namespace LoFox {
 			VkCommandPool CommandPool;
 		};
 		inline static ImmediateSubmitBackBone m_ImmediateSubmitBackBone;
+		
+		struct FrameData {
+			glm::vec3 ClearColor;
+		};
+
+		inline static FrameData m_FrameData;
+
+		inline static Ref<GraphicsPipeline> m_ActivePipeline = nullptr;
+		inline static bool m_IsPipelineBound = false;
+		inline static bool m_HasActiveRenderPass = false;
 	};
 
 }

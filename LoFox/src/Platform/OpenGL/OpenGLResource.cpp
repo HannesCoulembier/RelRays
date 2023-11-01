@@ -21,11 +21,13 @@ namespace LoFox {
 			switch (resource.Type) {
 				case ResourceType::UniformBufferResource: {
 
-					glBindBufferBase(GL_UNIFORM_BUFFER, binding, static_cast<OpenGLUniformBufferData*>(resource.UniformBufferRef->GetData())->RendererID); break;
+					glBindBufferBase(GL_UNIFORM_BUFFER, binding, static_cast<OpenGLUniformBufferData*>(resource.UniformBufferRef->GetData())->RendererID);
+					break;
 				}
 				case ResourceType::StorageBufferResource: {
 
-					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, static_cast<OpenGLStorageBufferData*>(resource.StorageBufferRef->GetData())->RendererID); break;
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, static_cast<OpenGLStorageBufferData*>(resource.StorageBufferRef->GetData())->RendererID);
+					break;
 				}
 				case ResourceType::TextureResource: {
 
@@ -36,6 +38,7 @@ namespace LoFox {
 				case ResourceType::StorageImageResource: {
 
 					glBindImageTexture(binding, static_cast<OpenGLStorageImageData*>(resource.StorageImageRef->GetData())->RendererID, 0, 0, 0, GL_READ_WRITE, GL_RGBA8);
+					break;
 				}
 				case ResourceType::StorageImageAsTextureResource: {
 

@@ -34,6 +34,26 @@ namespace LoFox {
 	protected:
 		void* m_Data = nullptr;
 	};
+
+	struct ComputePipelineCreateInfo {
+
+		Ref<Shader> ComputeShader;
+		Ref<ResourceLayout> ResourceLayout = nullptr;
+	};
+
+	class ComputePipeline {
+
+	public:
+		virtual void Destroy() = 0;
+
+		virtual void Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) = 0;
+
+		void* GetData() { return m_Data; }
+
+		static Ref<ComputePipeline> Create(ComputePipelineCreateInfo createInfo);
+	protected:
+		void* m_Data = nullptr;
+	};
 }
 
 
