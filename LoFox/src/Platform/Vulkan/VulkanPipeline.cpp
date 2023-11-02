@@ -53,11 +53,11 @@ namespace LoFox {
 		uint32_t binding = 0;
 		for (const auto& resource : m_CreateInfo.ResourceLayout->GetResources()) {
 		
-			VkDescriptorBufferInfo bufferInfo = {};
+			std::vector<VkDescriptorBufferInfo> bufferInfo = {};
 			if (resource.IsBuffer)
 				bufferInfo = GetVkDescriptorBufferInfoFromResource(resource);
 		
-			VkDescriptorImageInfo imageInfo = {};
+			std::vector<VkDescriptorImageInfo> imageInfo = {};
 			if (resource.IsImage)
 				imageInfo = GetVkDescriptorImageInfoFromResource(resource);
 		
@@ -68,8 +68,8 @@ namespace LoFox {
 			descriptorWrite.dstArrayElement = 0;
 			descriptorWrite.descriptorType = ResourceTypeToVulkanDescriptorType(resource.Type);
 			descriptorWrite.descriptorCount = resource.ItemCount;
-			descriptorWrite.pBufferInfo = (resource.IsBuffer) ? &bufferInfo : nullptr;
-			descriptorWrite.pImageInfo = (resource.IsImage) ? &imageInfo : nullptr;
+			descriptorWrite.pBufferInfo = (resource.IsBuffer) ? bufferInfo.data() : nullptr;
+			descriptorWrite.pImageInfo = (resource.IsImage) ? imageInfo.data() : nullptr;
 			descriptorWrite.pTexelBufferView = nullptr;
 		
 			binding++;
@@ -195,11 +195,11 @@ namespace LoFox {
 		uint32_t binding = 0;
 		for (const auto& resource : m_CreateInfo.ResourceLayout->GetResources()) {
 
-			VkDescriptorBufferInfo bufferInfo = {};
+			std::vector<VkDescriptorBufferInfo> bufferInfo = {};
 			if (resource.IsBuffer)
 				bufferInfo = GetVkDescriptorBufferInfoFromResource(resource);
 
-			VkDescriptorImageInfo imageInfo = {};
+			std::vector<VkDescriptorImageInfo> imageInfo = {};
 			if (resource.IsImage)
 				imageInfo = GetVkDescriptorImageInfoFromResource(resource);
 
@@ -210,8 +210,8 @@ namespace LoFox {
 			descriptorWrite.dstArrayElement = 0;
 			descriptorWrite.descriptorType = ResourceTypeToVulkanDescriptorType(resource.Type);
 			descriptorWrite.descriptorCount = resource.ItemCount;
-			descriptorWrite.pBufferInfo = (resource.IsBuffer) ? &bufferInfo : nullptr;
-			descriptorWrite.pImageInfo = (resource.IsImage) ? &imageInfo : nullptr;
+			descriptorWrite.pBufferInfo = (resource.IsBuffer) ? bufferInfo.data() : nullptr;
+			descriptorWrite.pImageInfo = (resource.IsImage) ? imageInfo.data() : nullptr;
 			descriptorWrite.pTexelBufferView = nullptr;
 
 			binding++;

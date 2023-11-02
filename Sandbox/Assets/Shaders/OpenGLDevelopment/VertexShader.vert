@@ -21,7 +21,7 @@ layout (std140, binding = 1) readonly buffer ObjectTransformsBuffer {
 void main()
 {
 	//output the position of each vertex
-	gl_Position = cameraData.proj * cameraData.view * objectTransforms.transforms[0] * vec4(inPos, 1.0f);
+	gl_Position = cameraData.proj * cameraData.view * objectTransforms.transforms[1] * vec4(inPos, 1.0f);
 	// gl_Position = cameraData.proj * cameraData.view * vec4(inPos, 1.0f);
 	outColor = inColor;
 	outUV = inUV;

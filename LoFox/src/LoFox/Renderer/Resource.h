@@ -18,6 +18,7 @@ namespace LoFox {
 		TextureResource,
 		StorageImageResource,
 		StorageImageAsTextureResource,
+		// TextureAtlasResource,
 	};
 
 	struct Resource {
@@ -30,13 +31,13 @@ namespace LoFox {
 		Ref<StorageBuffer> StorageBufferRef = nullptr;
 		Ref<Texture> TextureRef = nullptr;
 		Ref<StorageImage> StorageImageRef = nullptr;
-		// Ref<TextureAtlas> TexAtlasRef = nullptr;
+		// Ref<TextureAtlas> TextureAtlasRef = nullptr;
 		uint32_t ItemCount = 1; // TexAtlas will have multiple textures -> multiple items
 
 		// std::vector<VkDescriptorBufferInfo> BufferDescriptorInfos;
 		// std::vector<VkDescriptorImageInfo> ImageDescriptorInfos;
 
-		// Resource(ShaderType shaderStage, Ref<LoFox::TextureAtlas> atlas);
+		// Resource(ShaderType shaderStage, Ref<TextureAtlas> atlas);
 		Resource(ShaderType shaderStage, Ref<UniformBuffer> uniformBuffer);
 		Resource(ShaderType shaderStage, Ref<StorageBuffer> storageBuffer);
 		Resource(ShaderType shaderStage, Ref<Texture> texture);

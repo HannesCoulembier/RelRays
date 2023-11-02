@@ -7,6 +7,7 @@
 #include "Platform/Vulkan/Resources/VulkanUniformBuffer.h"
 #include "Platform/Vulkan/Resources/VulkanStorageBuffer.h"
 #include "Platform/Vulkan/Resources/VulkanTexture.h"
+// #include "Platform/Vulkan/Resources/VulkanTextureAtlas.h"
 #include "Platform/Vulkan/Resources/VulkanStorageImage.h"
 
 namespace LoFox {
@@ -19,41 +20,46 @@ namespace LoFox {
 			case ResourceType::TextureResource:					return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			case ResourceType::StorageImageResource:			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			case ResourceType::StorageImageAsTextureResource:	return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			// case ResourceType::TextureAtlasResource:			return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		}
 
 		LF_CORE_ASSERT(false, "Unknown ResourceType");
 	}
 
-	VkDescriptorBufferInfo GetVkDescriptorBufferInfoFromResource(Resource resource) {
+	std::vector<VkDescriptorBufferInfo> GetVkDescriptorBufferInfoFromResource(Resource resource) {
 
 		if (resource.UniformBufferRef) {
 			VulkanUniformBufferData* uniformBufferData = static_cast<VulkanUniformBufferData*>(resource.UniformBufferRef->GetData());
-			return uniformBufferData->BufferInfo;
+			return { uniformBufferData->BufferInfo };
 		}
 
 		if (resource.StorageBufferRef) {
 			VulkanStorageBufferData* storageBufferData = static_cast<VulkanStorageBufferData*>(resource.StorageBufferRef->GetData());
-			return storageBufferData->BufferInfo;
+			return { storageBufferData->BufferInfo };
 		}
 
 		LF_CORE_ASSERT(false, "Resource is not a buffer!");
 	}
 
-	VkDescriptorImageInfo GetVkDescriptorImageInfoFromResource(Resource resource) {
+	std::vector<VkDescriptorImageInfo> GetVkDescriptorImageInfoFromResource(Resource resource) {
 
 		if (resource.TextureRef) {
 			VulkanTextureData* textureData = static_cast<VulkanTextureData*>(resource.TextureRef->GetData());
-			return textureData->ImageInfo;
+			return { textureData->ImageInfo };
 		}
 
 		if (resource.StorageImageRef) {
 			VulkanStorageImageData* imageData = static_cast<VulkanStorageImageData*>(resource.StorageImageRef->GetData());
-			return imageData->ImageInfo;
+			return { imageData->ImageInfo };
 		}
 
+		// if (resource.TextureAtlasRef) {
+		// 	VulkanTextureAtlasData* atlasData = static_cast<VulkanTextureAtlasData*>(resource.TextureAtlasRef->GetData());
+		// 	return atlasData->ImageInfos;
+		// }
+
 		LF_CORE_ASSERT(false, "Resource is not an image!");
-		VkDescriptorImageInfo error = {};
-		return error;
+		return {};
 	}
 
 	VulkanResourceLayout::VulkanResourceLayout(std::initializer_list<Resource> resources)

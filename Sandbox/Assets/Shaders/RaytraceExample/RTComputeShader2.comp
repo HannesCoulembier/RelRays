@@ -1,10 +1,10 @@
-#version 430
+#version 450
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
 
-layout(binding = 0) uniform CameraBlockAndScene {
+layout(binding = 0) uniform CameraBlock {
 
     mat4 view;
     mat4 proj;
@@ -12,7 +12,7 @@ layout(binding = 0) uniform CameraBlockAndScene {
     mat4 invProj;
     float uTime;
     int frameIndex;
-} cameraAndScene;
+} camera;
 
 struct Sphere {
     
@@ -41,6 +41,19 @@ layout(std140, binding = 2) readonly buffer MaterialBlock {
 
 layout (binding = 3, rgba8) uniform image2D colorBuffer;
 
+float Random(vec2 seed){
+    return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+vec3 RandomVecInUnitSphere() {
+
+    return normalize(vec3(
+        Random(vec2(camera.uTime * 0.3 * float(gl_GlobalInvocationID.x), 0.4 * float(gl_GlobalInvocationID.y))),
+        Random(vec2(0.1 * float(gl_GlobalInvocationID.x), camera.uTime * 0.3 * float(gl_GlobalInvocationID.y))),
+        Random(vec2(camera.uTime * 0.4 * float(gl_GlobalInvocationID.x), 0.2 * float(gl_GlobalInvocationID.y)))
+    ));
+}
+
 struct Ray {
     vec3 Origin;
     vec3 Direction;
@@ -68,31 +81,23 @@ void main() {
 
     // Scene stuff
     vec3 lightDirection = normalize(vec3(5.0, 1.0, 0.0));
-    vec3 lightColor = vec3(1.0f);
-    vec3 cameraPos = vec3(cameraAndScene.view[3][0], cameraAndScene.view[3][1], cameraAndScene.view[3][2]);
+    vec3 cameraPos = vec3(camera.view[3][0], camera.view[3][1], camera.view[3][2]);
 
     // Ray trace stuff
 	vec3 light = vec3(0.0);
-	vec3 contribution = vec3(0.8);
+	vec3 contribution = vec3(1.0);
 
     Ray ray;
     ray.Origin = cameraPos;
-    vec4 target = cameraAndScene.invProj * vec4(coord.x, coord.y, 1, 1);
-    ray.Direction = vec3(cameraAndScene.invView * vec4(normalize(vec3(target) / target.w), 0)); // World space
+    vec4 target = camera.invProj * vec4(coord.x, coord.y, 1, 1);
+    ray.Direction = vec3(camera.invView * vec4(normalize(vec3(target) / target.w), 0)); // World space
 
-    // TEST --------
-    vec3 testColor = vec3(0.0);
-    float testReflectance = 1.0;
-    // END TEST ----
-
-    int bounces = 10;
+    int bounces = 3;
 	for (int i = 0; i < bounces; i++) {
 
 		HitPayload payload = TraceRay(ray);
-		if (payload.HitDistance < 0.0) { // HitDistance < 0.0 means it missed
+		if (payload.HitDistance < 0.0) {
             
-            light += vec3(0.1, 0.2, 0.9);
-            testColor += vec3(0.1, 0.2, 0.4) * testReflectance;
 			break;
         }
 
@@ -100,27 +105,18 @@ void main() {
         Material mat = materials[sphere.MaterialIndex];
         
 		contribution *= mat.Albedo;
-
-        // TEST --------
-        testColor += (1.0-mat.Metallic) * testReflectance * mat.Albedo;
-        testColor += (1.0-mat.Metallic) * testReflectance * lightColor * dot(lightDirection, payload.WorldNormal);
-        testReflectance *= mat.Metallic;
-        // END TEST ----
-
-		// light += mat.EmissionColor * mat.EmissionPower;
+		light += mat.EmissionColor * mat.EmissionPower;
         // light += mat.Albedo * (dot(lightDirection, payload.WorldNormal));
 
 		ray.Origin = payload.WorldPos + payload.WorldNormal * 0.0001f;
-		// ray.Direction = normalize(RandomVecInUnitSphere() + payload.WorldNormal);
-        ray.Direction = normalize(reflect(ray.Direction, payload.WorldNormal));
+		ray.Direction = normalize(RandomVecInUnitSphere() + payload.WorldNormal);
+        // ray.Direction = normalize(reflect(ray.Direction, payload.WorldNormal));
 	}
 
-    // vec3 prevColor = imageLoad(colorBuffer, screenPos).xyz;
-    // vec3 finalColor = (float(cameraAndScene.frameIndex) * prevColor + light)/float(cameraAndScene.frameIndex+1);
-    
-    vec3 finalColor = testColor;
+    vec3 prevColor = imageLoad(colorBuffer, screenPos).xyz;
+    vec3 finalColor = (float(camera.frameIndex) * prevColor + light)/float(camera.frameIndex+1);
+    // vec3 finalColor = light;
     imageStore(colorBuffer, screenPos, vec4(finalColor, 1.0));
-    // imageStore(colorBuffer, screenPos, cameraAndScene.frameIndex * vec4(1.0, 1.0, 0.0, 1.0)/10000.0);
 }
 
 HitPayload TraceRay(Ray ray) {

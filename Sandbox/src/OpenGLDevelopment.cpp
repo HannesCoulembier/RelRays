@@ -6,8 +6,10 @@ namespace LoFox {
 
 		m_CameraData = UniformBuffer::Create(sizeof(UBO));
 		m_ObjectTransforms = StorageBuffer::Create(1000, sizeof(glm::mat4));
+
 		m_RickTexture = Texture::Create("Assets/Textures/Rick.png");
 		m_PolandTexture = Texture::Create("Assets/Textures/poland.png");
+		// m_TextureAtlas = TextureAtlas::Create(32, { m_RickTexture, m_PolandTexture });
 		m_TestStorageImage = StorageImage::Create(m_RickTexture->GetWidth(), m_RickTexture->GetHeight());
 
 		m_ResourceLayout = ResourceLayout::Create({
@@ -21,6 +23,7 @@ namespace LoFox {
 		m_ComputeResourceLayout = ResourceLayout::Create({
 			{ ShaderType::Compute, m_RickTexture },
 			{ ShaderType::Compute, m_TestStorageImage },
+			// { ShaderType::Compute, m_TextureAtlas },
 		});
 		
 		m_FragmentShader = Shader::Create(ShaderType::Fragment, "Assets/Shaders/OpenGLDevelopment/FragmentShader.frag");
@@ -65,6 +68,7 @@ namespace LoFox {
 		m_TestStorageImage->Destroy();
 		m_RickTexture->Destroy();
 		m_PolandTexture->Destroy();
+		// m_TextureAtlas->Destroy();
 
 		m_IndexBuffer->Destroy();
 		m_VertexBuffer->Destroy();
@@ -101,8 +105,8 @@ namespace LoFox {
 		m_CameraData->SetData(&ubo);
 
 		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f*glm::sin(m_Time), 0.0f, 0.0f));
-		std::vector<glm::mat4> translationMatrices = { translationMatrix, translationMatrix };
-		m_ObjectTransforms->SetData(1, translationMatrices.data());
+		std::vector<glm::mat4> translationMatrices = { glm::mat4(1.0f), translationMatrix};
+		m_ObjectTransforms->SetData(2, translationMatrices.data());
 		// END TODO
 
 		Renderer::BeginFrame({ glm::abs(glm::sin(2.0f*m_Time)), 1.0f, 0.0f });

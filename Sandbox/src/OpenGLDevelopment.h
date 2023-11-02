@@ -56,7 +56,9 @@ namespace LoFox {
 		Ref<StorageBuffer> m_ObjectTransforms;
 		Ref<Texture> m_RickTexture;
 		Ref<Texture> m_PolandTexture;
+		// Ref<TextureAtlas> m_TextureAtlas;
 		Ref<StorageImage> m_TestStorageImage;
+
 		Ref<ResourceLayout> m_ResourceLayout;
 		Ref<ResourceLayout> m_ComputeResourceLayout;
 	};

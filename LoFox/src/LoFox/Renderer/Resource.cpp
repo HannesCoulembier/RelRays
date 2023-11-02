@@ -14,10 +14,9 @@
 namespace LoFox {
 
 	// Resource::Resource(ShaderType shaderStage, Ref<LoFox::TextureAtlas> atlas)
-	// 	: Type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER), ShaderStage(shaderStage), TexAtlas(atlas) {
+	// 	: Type(ResourceType::TextureAtlasResource),		ShaderStage(shaderStage), IsImage(true), TextureAtlasRef(atlas) {
 	// 
-	// 	ImageDescriptorInfos = TexAtlas->GetDescriptorInfos();
-	// 	DescriptorCount = TexAtlas->GetTexCount();
+	// 	ItemCount = TextureAtlasRef->GetTextureCount();
 	// }
 
 	Resource::Resource(ShaderType shaderStage, Ref<LoFox::UniformBuffer> uniformBuffer)

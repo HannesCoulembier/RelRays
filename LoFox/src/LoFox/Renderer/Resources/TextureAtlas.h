@@ -9,15 +9,19 @@ namespace LoFox {
 	class TextureAtlas {
 
 	public:
-		TextureAtlas();
+		virtual void Destroy() = 0;
 
-		void AddTexture(Ref<Texture> texture);
+		// std::vector<VkDescriptorImageInfo> GetDescriptorInfos();
+		void* GetData() { return m_Data; }
+		uint32_t GetTextureCount() { return m_Textures.size(); }
 
-		std::vector<VkDescriptorImageInfo> GetDescriptorInfos();
-		uint32_t GetTexCount() { return m_Textures.size(); }
+		static Ref<TextureAtlas> Create(uint32_t space, std::vector<Ref<Texture>> textures);
+	protected:
+		TextureAtlas(uint32_t space, std::vector<Ref<Texture>> textures);
+	protected:
+		void* m_Data = nullptr;
 
-		static Ref<TextureAtlas> Create();
-	private:
+		uint32_t m_Space;
 		std::vector<Ref<Texture>> m_Textures;
 	};
 }

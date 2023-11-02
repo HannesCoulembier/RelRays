@@ -12,18 +12,20 @@ namespace LoFox {
 			glm::vec2 TexCoord;
 		};
 
-		struct PushConstantObject {
+		// struct PushConstantObject {
+		// 
+		// 	alignas(4) float Time;
+		// 	alignas(4) int FrameIndex;
+		// };
 
-			alignas(4) float Time;
-			alignas(4) int FrameIndex;
-		};
-
-		struct UBO { // Unused at the moment
+		struct UBO {
 
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 invView;
 			alignas(16) glm::mat4 invProj;
+			alignas(4) float Time;
+			alignas(4) int FrameIndex;
 		};
 
 		const std::vector<QuadVertex> vertices = {
@@ -64,6 +66,10 @@ namespace LoFox {
 		void OnEvent(LoFox::Event& event);
 	private:
 	private:
+		Ref<Shader> m_ComputeShader;
+		Ref<Shader> m_VertexShader;
+		Ref<Shader> m_FragmentShader;
+
 		Ref<ComputePipeline> m_RaytracePipeline;
 		Ref<ResourceLayout> m_RaytraceResourceLayout;
 		Ref<UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)

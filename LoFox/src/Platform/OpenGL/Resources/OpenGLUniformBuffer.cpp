@@ -20,6 +20,7 @@ namespace LoFox {
 
 	void OpenGLUniformBuffer::SetData(const void* data) {
 
+		glBindBuffer(GL_UNIFORM_BUFFER, m_OpenGLData.RendererID);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_Size, data);
 	}
 }

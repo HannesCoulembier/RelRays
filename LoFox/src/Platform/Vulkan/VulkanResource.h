@@ -6,8 +6,8 @@
 namespace LoFox {
 
 	VkDescriptorType ResourceTypeToVulkanDescriptorType(ResourceType type);
-	VkDescriptorBufferInfo GetVkDescriptorBufferInfoFromResource(Resource resource);
-	VkDescriptorImageInfo GetVkDescriptorImageInfoFromResource(Resource resource);
+	std::vector<VkDescriptorBufferInfo> GetVkDescriptorBufferInfoFromResource(Resource resource);
+	std::vector<VkDescriptorImageInfo> GetVkDescriptorImageInfoFromResource(Resource resource);
 
 	struct VulkanResourceLayoutData {
 

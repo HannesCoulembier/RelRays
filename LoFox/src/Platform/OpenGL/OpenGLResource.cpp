@@ -46,6 +46,13 @@ namespace LoFox {
 					glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLStorageImageData*>(resource.StorageImageRef->GetData())->RendererID);
 					break; 
 				}
+				// case ResourceType::TextureAtlasResource: {
+				// 
+				// 	for ()
+				// 	// glActiveTexture(GL_TEXTURE0 + binding);
+				// 	// glBindTexture(GL_TEXTURE_2D_ARRAY, static_cast<OpenGLStorageImageData*>(resource.TextureAtlasRef->GetData())->RendererID);
+				// 	break;
+				// }
 			}
 
 			binding++;
