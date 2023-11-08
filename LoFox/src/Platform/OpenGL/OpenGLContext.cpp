@@ -28,6 +28,10 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3), "LoFox requires at least OpenGL version 4.3");
 
+		// Debug messenger
+		m_DebugMessenger = OpenGLDebugMessenger::Create();
+
+		// Settings
 		glEnable(GL_FRAMEBUFFER_SRGB); // Transforms to correct colorspace when presenting framebuffer
 		glEnable(GL_LINE_SMOOTH); // Makes LineWidth mathematically correct
 		glEnable(GL_POINT_SMOOTH); // Makes points round

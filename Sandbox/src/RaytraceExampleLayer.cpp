@@ -34,8 +34,8 @@ namespace LoFox {
 
 		m_FragmentShader = Shader::Create(ShaderType::Fragment, "Assets/Shaders/RaytraceExample/RTFragmentShader.frag");
 		m_VertexShader = Shader::Create(ShaderType::Vertex, "Assets/Shaders/RaytraceExample/RTVertexShader.vert");
-		m_ComputeShader = Shader::Create(ShaderType::Compute, "Assets/Shaders/RaytraceExample/RTComputeShader2.comp");
-
+		m_ComputeShader = Shader::Create(ShaderType::Compute, "Assets/Shaders/RaytraceExample/RTComputeShader.comp");
+		// m_ComputeShader = Shader::Create(ShaderType::Compute, "Assets/Shaders/RaytraceExample/RTComputeShader2.comp");
 
 		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 		m_VertexBuffer = VertexBuffer::Create(vertexBufferSize, vertices.data(), vertexLayout);

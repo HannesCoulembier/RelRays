@@ -3,6 +3,8 @@
 
 #include <glad/glad.h>
 
+#include "Platform/OpenGL/OpenGLDebugMessenger.h"
+
 struct GLFWwindow;
 
 namespace LoFox {
@@ -23,6 +25,8 @@ namespace LoFox {
 		static void PresentFrame();
 	private:
 		inline static GLFWwindow* m_WindowHandle;
+
+		inline static Ref<OpenGLDebugMessenger> m_DebugMessenger;
 
 		inline static GLuint m_VertexArrayID;
 		inline static Ref<GraphicsPipeline> m_ActivePipeline;

@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Platform/Vulkan/DebugMessenger.h"
+#include "Platform/Vulkan/VulkanDebugMessenger.h"
 #include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Renderer/IndexBuffer.h"
 
@@ -60,7 +60,7 @@ namespace LoFox {
 		static void DestroySwapchain();
 	private:
 		inline static GLFWwindow* m_WindowHandle;
-		inline static Ref<DebugMessenger> m_DebugMessenger;
+		inline static Ref<VulkanDebugMessenger> m_DebugMessenger;
 
 		inline static VkSwapchainKHR m_Swapchain;
 		inline static VkFormat m_SwapchainImageFormat;

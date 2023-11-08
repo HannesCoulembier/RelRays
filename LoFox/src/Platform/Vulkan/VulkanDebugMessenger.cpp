@@ -1,5 +1,5 @@
 #include "lfpch.h"
-#include "Platform/vulkan/DebugMessenger.h"
+#include "Platform/Vulkan/VulkanDebugMessenger.h"
 
 #include "Platform/Vulkan/VulkanContext.h"
 
@@ -22,35 +22,35 @@ namespace LoFox {
 			func(instance, debugMessenger, pAllocator);
 	}
 
-	VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessenger::MessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
 
 		if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) // Filters all vulkan messages that have a severity lower than warning
 			return VK_FALSE;
 
 		switch (messageSeverity) {
 
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: { LF_CORE_INFO("Vulkan [INFO]: " + (std::string)pCallbackData->pMessage); break; }
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: { LF_CORE_INFO("Vulkan [VERBOSE]: " + (std::string)pCallbackData->pMessage); break; }
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: { LF_CORE_WARN("Vulkan [WARNING]: " + (std::string)pCallbackData->pMessage); break; }
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: { LF_CORE_ERROR("Vulkan [ERROR]: " + (std::string)pCallbackData->pMessage); break; }
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: { LF_CORE_INFO("Vulkan [INFO]: " + (std::string)pCallbackData->pMessage); break; }
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: { LF_CORE_INFO("Vulkan [VERBOSE]: " + (std::string)pCallbackData->pMessage); break; }
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: { LF_CORE_WARN("Vulkan [WARNING]: " + (std::string)pCallbackData->pMessage); break; }
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: { LF_CORE_ERROR("Vulkan [ERROR]: " + (std::string)pCallbackData->pMessage); break; }
 		}
 
 		return VK_FALSE; // When VK_TRUE is returned, Vulkan will abort the call that made this callback
 	}
 
 #ifdef LF_USE_VULKAN_VALIDATION_LAYERS
-	const std::vector<const char*> DebugMessenger::ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+	const std::vector<const char*> VulkanDebugMessenger::ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 #else
-	const std::vector<const char*> DebugMessenger::ValidationLayers = {};
+	const std::vector<const char*> VulkanDebugMessenger::ValidationLayers = {};
 #endif
 
-	DebugMessenger::DebugMessenger() {
+	VulkanDebugMessenger::VulkanDebugMessenger() {
 
 		LF_CORE_ASSERT(Utils::CheckVulkanValidationLayerSupport(ValidationLayers), "Validation layers requested, but not available!");
 		Init();
 	}
 
-	void DebugMessenger::Init() {
+	void VulkanDebugMessenger::Init() {
 
 #ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 
@@ -72,7 +72,7 @@ namespace LoFox {
 #endif
 	}
 
-	void DebugMessenger::Shutdown() {
+	void VulkanDebugMessenger::Shutdown() {
 
 #ifdef LF_USE_VULKAN_VALIDATION_LAYERS
 
@@ -81,8 +81,8 @@ namespace LoFox {
 #endif
 	}
 
-	Ref<DebugMessenger> DebugMessenger::Create() {
+	Ref<VulkanDebugMessenger> VulkanDebugMessenger::Create() {
 
-		return CreateRef<DebugMessenger>();
+		return CreateRef<VulkanDebugMessenger>();
 	}
 }

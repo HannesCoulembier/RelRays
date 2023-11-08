@@ -4,10 +4,10 @@
 
 namespace LoFox {
 
-	class DebugMessenger {
+	class VulkanDebugMessenger {
 
 	public:
-		DebugMessenger();
+		VulkanDebugMessenger();
 
 		inline VkDebugUtilsMessengerEXT GetDebugMessenger() { return m_DebugMessenger; }
 
@@ -15,7 +15,7 @@ namespace LoFox {
 
 		inline static PFN_vkDebugUtilsMessengerCallbackEXT GetMessageCallback() { return MessageCallback; }
 
-		static Ref<DebugMessenger> Create();
+		static Ref<VulkanDebugMessenger> Create();
 	public:
 		static const std::vector<const char*> ValidationLayers;
 	private:

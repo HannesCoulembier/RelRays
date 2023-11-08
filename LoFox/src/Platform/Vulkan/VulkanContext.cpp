@@ -26,7 +26,7 @@ namespace LoFox {
 		#endif
 
 		InitInstance();
-		m_DebugMessenger = DebugMessenger::Create();
+		m_DebugMessenger = VulkanDebugMessenger::Create();
 		InitSurface();
 		InitDevices();
 
@@ -254,13 +254,13 @@ namespace LoFox {
 		instanceCreateInfo.pApplicationInfo = &appInfo;
 		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
-		instanceCreateInfo.enabledLayerCount = (uint32_t)(DebugMessenger::ValidationLayers.size());
-		instanceCreateInfo.ppEnabledLayerNames = DebugMessenger::ValidationLayers.data();
+		instanceCreateInfo.enabledLayerCount = (uint32_t)(VulkanDebugMessenger::ValidationLayers.size());
+		instanceCreateInfo.ppEnabledLayerNames = VulkanDebugMessenger::ValidationLayers.data();
 		instanceCreateInfo.pNext = nullptr;
 
 		#ifdef LF_BE_OVERLYSPECIFIC
 		// Add debug messenger to instance creation and cleanup
-		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = Utils::MakeDebugMessageCreateInfo(DebugMessenger::GetMessageCallback());
+		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = Utils::MakeDebugMessageCreateInfo(VulkanDebugMessenger::GetMessageCallback());
 		instanceCreateInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreateInfo;
 		#endif
 
@@ -311,8 +311,8 @@ namespace LoFox {
 		logicalDeviceCreateInfo.pEnabledFeatures = &logicalDeviceFeatures;
 		logicalDeviceCreateInfo.enabledExtensionCount = (uint32_t)(Utils::requiredVulkanDeviceExtensions.size());
 		logicalDeviceCreateInfo.ppEnabledExtensionNames = Utils::requiredVulkanDeviceExtensions.data();
-		logicalDeviceCreateInfo.enabledLayerCount = (uint32_t)(DebugMessenger::ValidationLayers.size());
-		logicalDeviceCreateInfo.ppEnabledLayerNames = DebugMessenger::ValidationLayers.data();
+		logicalDeviceCreateInfo.enabledLayerCount = (uint32_t)(VulkanDebugMessenger::ValidationLayers.size());
+		logicalDeviceCreateInfo.ppEnabledLayerNames = VulkanDebugMessenger::ValidationLayers.data();
 		logicalDeviceCreateInfo.pNext = nullptr;
 
 		LF_CORE_ASSERT(vkCreateDevice(PhysicalDevice, &logicalDeviceCreateInfo, nullptr, &LogicalDevice) == VK_SUCCESS, "Failed to create logical device!");
