@@ -1,4 +1,8 @@
-# LoFox
+# RelRays
+# Sync with LoFox commits
+To sync your RelRays clone with any LoFox commits, you need to add LoFox as an upstream repository. This can be done using `git remote add upstream https://github.com/HannesCoulembier/LoFox`. To check if LoFox is correctly set as an upstream remote, use `git remove -v`.
+
+# LoFox (TODO: Update)
 LoFox is an engine that provides a simple renderer using Vulkan.
 ## How to install LoFox:
 ### Requirements:
