@@ -1,5 +1,5 @@
-project "Sandbox"
-	kind "ConsoleApp"
+project "RelRays"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "off"
@@ -10,7 +10,7 @@ project "Sandbox"
 	files {
 
 		"src/**.h",
-		"src/**.cpp"
+		"src/**.cpp",
 	}
 
 	includedirs {
@@ -19,14 +19,11 @@ project "Sandbox"
 		"%{wks.location}/LoFox/src",
 		"%{wks.location}/LoFox/vendor",
 		"%{IncludeDir.glm}",
-		"%{wks.location}/RelRays/src",
-		-- "%{IncludeDir.VulkanSDK}",
 	}
 
 	links {
 
-		"LoFox",
-		"RelRays"
+		"LoFox"
 	}
 
 	filter "system:windows"

@@ -1,6 +1,8 @@
 #include <LoFox.h>
 #include <LoFox/Core/EntryPoint.h>
 
+#include <RelRays.h>
+
 #include "RaytraceExampleLayer.h"
 // #include "InstancingExampleLayer.h"
 #include "OpenGLDevelopment.h"
@@ -13,6 +15,8 @@ namespace LoFox {
 		SandboxApp(const ApplicationSpec& spec)
 			: Application(spec) {
 			
+			RelRays::RelRaysLayer test = RelRays::RelRaysLayer();
+
 			// Examples: Only use 1 at a time!
 			PushLayer(CreateRef<RaytraceExampleLayer>());
 			// PushLayer(CreateRef<InstancingExampleLayer>());

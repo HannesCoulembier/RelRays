@@ -1,6 +1,6 @@
 include "dependencies.lua"
 
-workspace "LoFox"
+workspace "RelRays"
 	architecture "x86_64"
 	startproject "Sandbox"
 
@@ -25,4 +25,5 @@ group "Dependencies"
 group ""
 
 include "LoFox"
+include "RelRays"
 include "Sandbox"
