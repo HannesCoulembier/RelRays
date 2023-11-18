@@ -1,11 +1,10 @@
 #include <LoFox.h>
 #include <LoFox/Core/EntryPoint.h>
 
-#include <RelRays.h>
-
 #include "RaytraceExampleLayer.h"
 // #include "InstancingExampleLayer.h"
 #include "OpenGLDevelopment.h"
+#include "RelRaysDevLayer.h"
 
 namespace LoFox {
 
@@ -14,11 +13,10 @@ namespace LoFox {
 	public:
 		SandboxApp(const ApplicationSpec& spec)
 			: Application(spec) {
-			
-			RelRays::RelRaysLayer test = RelRays::RelRaysLayer();
 
 			// Examples: Only use 1 at a time!
-			PushLayer(CreateRef<RaytraceExampleLayer>());
+			// PushLayer(CreateRef<RaytraceExampleLayer>());
+			PushLayer(CreateRef<RelRaysDevLayer>());
 			// PushLayer(CreateRef<InstancingExampleLayer>());
 			// PushLayer(CreateRef<OpenGLDevLayer>());
 		}
