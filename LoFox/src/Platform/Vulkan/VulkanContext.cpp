@@ -134,7 +134,28 @@ namespace LoFox {
 
 	void VulkanContext::EndFrame() {
 
+		if (!m_HasActiveRenderPass) { // If there is no renderpass, create one to clear the screen to the right color
+
+			VkClearValue clearValue = { { m_FrameData.ClearColor.r, m_FrameData.ClearColor.g, m_FrameData.ClearColor.b, 1.0f } };
+			std::vector<VkClearValue> clearValues = { clearValue };
+
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			renderPassInfo.framebuffer = m_Framebuffers[m_ThisFramesImageIndex];
+			renderPassInfo.pClearValues = clearValues.data();
+			renderPassInfo.pNext = nullptr;
+			renderPassInfo.renderArea.offset.x = 0;
+			renderPassInfo.renderArea.offset.y = 0;
+			renderPassInfo.renderArea.extent = SwapchainExtent;
+			renderPassInfo.renderPass = RenderPass;
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+			vkCmdBeginRenderPass(MainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			m_HasActiveRenderPass = true;
+		}
+
 		vkCmdEndRenderPass(MainCommandBuffer);
+
 		m_HasActiveRenderPass = false;
 		LF_CORE_ASSERT(vkEndCommandBuffer(MainCommandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
 
