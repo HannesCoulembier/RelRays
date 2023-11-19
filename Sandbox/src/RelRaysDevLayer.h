@@ -19,6 +19,7 @@ namespace LoFox {
 	private:
 	private:
 		Ref<RelRays::World> m_World;
+		Ref<RelRays::Object> m_TestObject;
 		float m_Time = 0;
 	};
 }

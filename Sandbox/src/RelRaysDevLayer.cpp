@@ -6,7 +6,7 @@ namespace LoFox {
 
 		m_World = RelRays::World::Create();
 
-		Ref<RelRays::Object> object = m_World->CreateObject();
+		m_TestObject = m_World->CreateObject();
 	}
 	void RelRaysDevLayer::OnDetach() {
 
