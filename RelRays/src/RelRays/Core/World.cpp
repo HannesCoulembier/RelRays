@@ -2,7 +2,7 @@
 
 namespace RelRays {
 
-	World::World() {
+	void World::Init() {
 
 	}
 
@@ -10,6 +10,7 @@ namespace RelRays {
 
 		LoFox::Ref<World> world = LoFox::CreateRef<World>();
 		world->SetSelf(world);
+		world->Init();
 		return world;
 	}
 
@@ -24,7 +25,7 @@ namespace RelRays {
 
 	void World::RenderFrame() {
 
-		LoFox::Renderer::BeginFrame({ 0.0f, 0.0f, 0.0f });
+		LoFox::Renderer::BeginFrame({ 1.0f, 0.0f, 1.0f });
 
 		// m_ComputePipeline->Dispatch(m_RickTexture->GetWidth(), m_RickTexture->GetHeight(), 8, 8);
 

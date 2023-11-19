@@ -9,7 +9,7 @@ namespace RelRays {
 	class World {
 
 	public:
-		World();
+		World() {}
 		void OnUpdate(float ts);
 		void RenderFrame();
 		void Destroy();
@@ -19,6 +19,7 @@ namespace RelRays {
 		static LoFox::Ref<World> Create();
 	private:
 		void SetSelf(LoFox::Ref<World> world);
+		void Init();
 	private:
 		LoFox::Ref<World> m_Self;
 		std::vector<LoFox::Ref<Object>> m_Objects;
