@@ -18,7 +18,7 @@ namespace LoFox {
 		void OnEvent(LoFox::Event& event);
 	private:
 	private:
-		Ref<RelRays::World> m_World;
+		Ref<RelRays::Environment> m_Env;
 		Ref<RelRays::Object> m_TestObject;
 		float m_Time = 0;
 	};

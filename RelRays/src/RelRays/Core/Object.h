@@ -4,13 +4,13 @@
 
 namespace RelRays {
 
-	class World; // Forward declaration
+	class Environment; // Forward declaration
 
 	class Object {
 
 	public:
-		Object(LoFox::Ref<World> origin);
+		Object(LoFox::Ref<Environment> origin);
 	private:
-		LoFox::Ref<World> m_Origin;
+		LoFox::Ref<Environment> m_Origin;
 	};
 }

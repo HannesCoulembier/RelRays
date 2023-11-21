@@ -1,4 +1,4 @@
-#include "World.h"
+#include "Environment.h"
 
 namespace RelRays {
 
@@ -44,7 +44,7 @@ namespace RelRays {
 		alignas(4) float EmissionPower;
 	};
 
-	void World::Init() {
+	void Environment::Init() {
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
@@ -101,25 +101,25 @@ namespace RelRays {
 
 	}
 
-	LoFox::Ref<World> World::Create() {
+	LoFox::Ref<Environment> Environment::Create() {
 
-		LoFox::Ref<World> world = LoFox::CreateRef<World>();
-		world->SetSelf(world);
-		world->Init();
-		return world;
+		LoFox::Ref<Environment> env = LoFox::CreateRef<Environment>();
+		env->SetSelf(env);
+		env->Init();
+		return env;
 	}
 
-	void World::SetSelf(LoFox::Ref<World> world) {
+	void Environment::SetSelf(LoFox::Ref<Environment> env) {
 
-		m_Self = world;
+		m_Self = env;
 	}
 
-	void World::OnUpdate(float ts) {
+	void Environment::OnUpdate(float ts) {
 
 		m_Time += ts;
 	}
 
-	void World::RenderFrame() {
+	void Environment::RenderFrame() {
 
 		UpdateUniformBuffer();
 		SetStorageBuffers();
@@ -138,7 +138,7 @@ namespace RelRays {
 		m_FrameIndex++;
 	}
 
-	void World::Destroy() {
+	void Environment::Destroy() {
 
 		m_VertexShader->Destroy();
 		m_FragmentShader->Destroy();
@@ -157,12 +157,12 @@ namespace RelRays {
 		m_RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
 		m_GraphicsPipeline->Destroy();
 
-		// Empty the whole world (this way any shared_ptrs should get released)
+		// Empty the whole environment (this way any shared_ptrs should get released)
 		m_Self = nullptr;
 		m_Objects = {};
 	}
 
-	LoFox::Ref<Object> World::CreateObject() {
+	LoFox::Ref<Object> Environment::CreateObject() {
 
 		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self);
 		m_Objects.push_back(object);
@@ -171,7 +171,7 @@ namespace RelRays {
 
 
 	// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-	void World::UpdateUniformBuffer() {
+	void Environment::UpdateUniformBuffer() {
 
 		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
 		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
@@ -193,7 +193,7 @@ namespace RelRays {
 		m_UniformBuffer->SetData(&ubo);
 	}
 
-	void World::SetStorageBuffers() {
+	void Environment::SetStorageBuffers() {
 
 		// Spheres
 		std::vector<Sphere> spheres = {};

@@ -1,10 +1,10 @@
 #include "Object.h"
 
-#include "World.h"
+#include "Environment.h"
 
 namespace RelRays {
 
-	Object::Object(LoFox::Ref<World> origin) {
+	Object::Object(LoFox::Ref<Environment> origin) {
 
 		m_Origin = origin;
 	}

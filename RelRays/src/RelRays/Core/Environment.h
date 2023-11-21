@@ -6,7 +6,7 @@
 
 namespace RelRays {
 
-	class World {
+	class Environment {
 
 	public:
 		void OnUpdate(float ts);
@@ -15,16 +15,16 @@ namespace RelRays {
 
 		LoFox::Ref<Object> CreateObject();
 
-		static LoFox::Ref<World> Create();
+		static LoFox::Ref<Environment> Create();
 	private:
-		void SetSelf(LoFox::Ref<World> world);
+		void SetSelf(LoFox::Ref<Environment> env);
 		void Init();
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		void UpdateUniformBuffer();
 		void SetStorageBuffers();
 	private:
-		LoFox::Ref<World> m_Self;
+		LoFox::Ref<Environment> m_Self;
 		std::vector<LoFox::Ref<Object>> m_Objects;
 
 
