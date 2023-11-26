@@ -29,15 +29,15 @@ namespace LoFox {
 	}
 }
 
-#define BG_MOUSE_BUTTON_1         ::LoFox::Mouse::Button0
-#define BG_MOUSE_BUTTON_2         ::LoFox::Mouse::Button1
-#define BG_MOUSE_BUTTON_3         ::LoFox::Mouse::Button2
-#define BG_MOUSE_BUTTON_4         ::LoFox::Mouse::Button3
-#define BG_MOUSE_BUTTON_5         ::LoFox::Mouse::Button4
-#define BG_MOUSE_BUTTON_6         ::LoFox::Mouse::Button5
-#define BG_MOUSE_BUTTON_7         ::LoFox::Mouse::Button6
-#define BG_MOUSE_BUTTON_8         ::LoFox::Mouse::Button7
-#define BG_MOUSE_BUTTON_LAST      ::LoFox::Mouse::ButtonLast	
-#define BG_MOUSE_BUTTON_LEFT      ::LoFox::Mouse::ButtonLeft	
-#define BG_MOUSE_BUTTON_RIGHT     ::LoFox::Mouse::ButtonRight	
-#define BG_MOUSE_BUTTON_MIDDLE    ::LoFox::Mouse::ButtonMiddle
+#define LF_MOUSE_BUTTON_1         ::LoFox::Mouse::Button0
+#define LF_MOUSE_BUTTON_2         ::LoFox::Mouse::Button1
+#define LF_MOUSE_BUTTON_3         ::LoFox::Mouse::Button2
+#define LF_MOUSE_BUTTON_4         ::LoFox::Mouse::Button3
+#define LF_MOUSE_BUTTON_5         ::LoFox::Mouse::Button4
+#define LF_MOUSE_BUTTON_6         ::LoFox::Mouse::Button5
+#define LF_MOUSE_BUTTON_7         ::LoFox::Mouse::Button6
+#define LF_MOUSE_BUTTON_8         ::LoFox::Mouse::Button7
+#define LF_MOUSE_BUTTON_LAST      ::LoFox::Mouse::ButtonLast	
+#define LF_MOUSE_BUTTON_LEFT      ::LoFox::Mouse::ButtonLeft	
+#define LF_MOUSE_BUTTON_RIGHT     ::LoFox::Mouse::ButtonRight	
+#define LF_MOUSE_BUTTON_MIDDLE    ::LoFox::Mouse::ButtonMiddle
