@@ -2,51 +2,70 @@
 
 #include <LoFox.h>
 
-#include "Object.h"
+#include "RelRays/Core/Object.h"
+
+#include "RelRays/Physics/Units.h"
+#include "RelRays/Physics/Constants.h"
 
 namespace RelRays {
+
+	struct EnvironmentCreateInfo {
+		bool UseConstantTimeStep = false; // When set to false, the timestep per OnUpdate call will depend on the time between calls. When set to true, the timestep is constant (see ConstantTimeStepValue).
+		float ConstantTimeStepValue = 1.0f / 60.0f; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
+	};
 
 	class Environment {
 
 	public:
-		void OnUpdate(float ts);
+		void OnUpdate();
 		void RenderFrame();
 		void Destroy();
 
 		LoFox::Ref<Object> CreateObject();
 
-		static LoFox::Ref<Environment> Create();
+		float GetSimulationTime() { return m_SimulationTime; }
+
+		static LoFox::Ref<Environment> Create(EnvironmentCreateInfo createInfo);
 	private:
 		void SetSelf(LoFox::Ref<Environment> env);
-		void Init();
+		void Init(EnvironmentCreateInfo createInfo);
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		void UpdateUniformBuffer();
 		void SetStorageBuffers();
 	private:
 		LoFox::Ref<Environment> m_Self;
+		EnvironmentCreateInfo m_CreateInfo;
+
 		std::vector<LoFox::Ref<Object>> m_Objects;
 
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-		LoFox::Ref<LoFox::Shader> m_ComputeShader;
-		LoFox::Ref<LoFox::Shader> m_VertexShader;
-		LoFox::Ref<LoFox::Shader> m_FragmentShader;
-
-		LoFox::Ref<LoFox::ComputePipeline> m_RaytracePipeline;
-		LoFox::Ref<LoFox::ResourceLayout> m_RaytraceResourceLayout;
 		LoFox::Ref<LoFox::UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)
-		LoFox::Ref<LoFox::StorageImage> m_FinalImage;
-
-		// After the image is rendered by the compute shader, we present it via a graphics pipeline
-		LoFox::Ref<LoFox::GraphicsPipeline> m_GraphicsPipeline;
-		LoFox::Ref<LoFox::ResourceLayout> m_GraphicsResourceLayout;
-		LoFox::Ref<LoFox::VertexBuffer> m_VertexBuffer;
-		LoFox::Ref<LoFox::IndexBuffer> m_IndexBuffer;
 
 		LoFox::Ref<LoFox::StorageBuffer> m_SphereBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_MaterialBuffer;
-		float m_Time = 0;
 		int m_FrameIndex = 0;
+
+		struct RaytraceRendererData {
+			LoFox::Ref<LoFox::Shader>			ComputeShader;
+			LoFox::Ref<LoFox::ComputePipeline>	RaytracePipeline;
+			LoFox::Ref<LoFox::ResourceLayout>	RaytraceResourceLayout;
+		};
+		RaytraceRendererData m_RaytraceRendererData = {};
+
+		struct FinalImageRenderData {
+			LoFox::Ref<LoFox::StorageImage>		FinalImage;
+			LoFox::Ref<LoFox::Shader>			VertexShader;
+			LoFox::Ref<LoFox::Shader>			FragmentShader;
+			LoFox::Ref<LoFox::GraphicsPipeline>	GraphicsPipeline;
+			LoFox::Ref<LoFox::ResourceLayout>	GraphicsResourceLayout;
+			LoFox::Ref<LoFox::VertexBuffer>		VertexBuffer;
+			LoFox::Ref<LoFox::IndexBuffer>		IndexBuffer;
+		};
+		FinalImageRenderData m_FinalImageRenderData = {};
+
+		float m_SimulationTime = 0.0f;
+		float m_LastOnUpdateTime = 0.0f;
 	};
 }

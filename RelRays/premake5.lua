@@ -18,6 +18,7 @@ project "RelRays"
 		"%{wks.location}/LoFox/vendor/spdlog/include",
 		"%{wks.location}/LoFox/src",
 		"%{wks.location}/LoFox/vendor",
+		"%{wks.location}/RelRays/src",
 		"%{IncludeDir.glm}",
 	}
 

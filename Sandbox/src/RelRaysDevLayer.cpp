@@ -4,7 +4,8 @@ namespace LoFox {
 
 	void RelRaysDevLayer::OnAttach() {
 
-		m_Env = RelRays::Environment::Create();
+		RelRays::EnvironmentCreateInfo envCreateInfo = {}; // Defaults are good
+		m_Env = RelRays::Environment::Create(envCreateInfo);
 
 		m_TestObject = m_Env->CreateObject();
 	}
@@ -21,9 +22,9 @@ namespace LoFox {
 		frames++;
 		float FPS = 1.0f / ts;
 		avgFPS += (FPS - avgFPS) / (float)frames;
-		Application::GetInstance().GetActiveWindow()->SetTitle("RelRays Dev Application: " + std::to_string(FPS) + " FPS (avg: " + std::to_string(avgFPS) + ")" + " Time: " + std::to_string(m_Time));
+		Application::GetInstance().GetActiveWindow()->SetTitle("RelRays Dev Application: " + std::to_string(FPS) + " FPS (avg: " + std::to_string(avgFPS) + ")" + " Time: " + std::to_string(m_Time) + " | Simulation Time: " + std::to_string(m_Env->GetSimulationTime()));
 	
-		m_Env->OnUpdate(ts);
+		m_Env->OnUpdate();
 		m_Env->RenderFrame();
 	}
 
