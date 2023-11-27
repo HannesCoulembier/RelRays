@@ -3,23 +3,6 @@
 namespace RelRays {
 
 	// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-	struct QuadVertex {
-
-		glm::vec3 Position;
-		glm::vec2 TexCoord;
-	};
-
-	const std::vector<QuadVertex> vertices = {
-			{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
-			{{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-			{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-	};
-
-	const std::vector<uint32_t> vertexIndices = {
-		0, 1, 2, 2, 3, 0,
-	};
-
 	struct UBO {
 
 		alignas(16) glm::mat4 view;
@@ -61,14 +44,14 @@ namespace RelRays {
 
 		m_FinalImageRenderData.GraphicsResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Fragment, m_FinalImageRenderData.FinalImage	, true},
-			});
+		});
 
 		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
 			{ LoFox::ShaderType::Compute,	m_SphereBuffer },
 			{ LoFox::ShaderType::Compute,	m_MaterialBuffer },
 			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false},
-			});
+		});
 
 		LoFox::VertexLayout vertexLayout = { // Must match QuadVertex
 			{ LoFox::VertexAttributeType::Float3 }, // position
@@ -80,9 +63,9 @@ namespace RelRays {
 		m_RaytraceRendererData.ComputeShader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/MainComputeShader.comp");
 		// m_ComputeShader = Shader::Create(ShaderType::Compute, "Assets/Shaders/RaytraceExample/RTComputeShader2.comp");
 
-		uint32_t vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-		m_FinalImageRenderData.VertexBuffer = LoFox::VertexBuffer::Create(vertexBufferSize, vertices.data(), vertexLayout);
-		m_FinalImageRenderData.IndexBuffer = LoFox::IndexBuffer::Create(vertexIndices.size(), vertexIndices.data());
+		uint32_t vertexBufferSize = sizeof(m_FinalImageRenderData.vertices[0]) * m_FinalImageRenderData.vertices.size();
+		m_FinalImageRenderData.VertexBuffer = LoFox::VertexBuffer::Create(vertexBufferSize, m_FinalImageRenderData.vertices.data(), vertexLayout);
+		m_FinalImageRenderData.IndexBuffer = LoFox::IndexBuffer::Create(m_FinalImageRenderData.vertexIndices.size(), m_FinalImageRenderData.vertexIndices.data());
 
 		// Create Compute Pipeline
 		LoFox::ComputePipelineCreateInfo computePipelineCreateInfo = {};
@@ -119,14 +102,15 @@ namespace RelRays {
 	void Environment::OnUpdate() {
 
 		float ts;
-		if (m_CreateInfo.UseConstantTimeStep)
+		if (m_CreateInfo.UseConstantTimeStep) {
 			ts = m_CreateInfo.ConstantTimeStepValue;
+			m_SimulationTime += ts;
+		}
 		else {
 			float time = LoFox::Time::GetTime();
-			ts = time - m_LastOnUpdateTime;
-			m_LastOnUpdateTime = time;
+			ts = time - m_SimulationTime;
+			m_SimulationTime = time;
 		}
-		m_SimulationTime += ts;
 	}
 
 	void Environment::RenderFrame() {

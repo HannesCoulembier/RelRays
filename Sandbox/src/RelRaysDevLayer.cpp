@@ -17,12 +17,8 @@ namespace LoFox {
 	void RelRaysDevLayer::OnUpdate(float ts) {
 
 		m_Time += ts;
-		static float avgFPS = 0;
-		static uint32_t frames = 0;
-		frames++;
-		float FPS = 1.0f / ts;
-		avgFPS += (FPS - avgFPS) / (float)frames;
-		Application::GetInstance().GetActiveWindow()->SetTitle("RelRays Dev Application: " + std::to_string(FPS) + " FPS (avg: " + std::to_string(avgFPS) + ")" + " Time: " + std::to_string(m_Time) + " | Simulation Time: " + std::to_string(m_Env->GetSimulationTime()));
+		float FPS = GetFPS(ts);
+		Application::GetInstance().GetActiveWindow()->SetTitle("RelRays Dev Application: " + std::to_string(FPS) + " FPS" + " Time: " + std::to_string(m_Time) + " | Simulation Time: " + std::to_string(m_Env->GetSimulationTime()));
 	
 		m_Env->OnUpdate();
 		m_Env->RenderFrame();
@@ -30,5 +26,20 @@ namespace LoFox {
 
 	void RelRaysDevLayer::OnEvent(LoFox::Event& event) {
 
+	}
+
+	float RelRaysDevLayer::GetFPS(float ts) {
+
+		static float batchTime = 0.0f;
+		static uint32_t batchFrames = 0;
+		batchFrames++;
+		batchTime += ts;
+		static float FPS = batchFrames / batchTime;
+		if (batchTime >= 0.5f) {
+			FPS = batchFrames / batchTime;
+			batchTime = 0.0f;
+			batchFrames = 0;
+		}
+		return FPS;
 	}
 }
