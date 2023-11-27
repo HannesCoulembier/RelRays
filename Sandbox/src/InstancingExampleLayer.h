@@ -1,3 +1,6 @@
+
+// LEGACY CODE
+/*
 #pragma once
 
 #include <LoFox.h>
@@ -69,3 +72,4 @@ namespace LoFox {
 		float m_Time = 0;
 	};
 }
+*/

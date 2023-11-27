@@ -1,3 +1,6 @@
+
+// LEGACY CODE
+/*
 #include "InstancingExampleLayer.h"
 
 namespace LoFox {
@@ -127,7 +130,7 @@ namespace LoFox {
 		LF_INFO("{0}", LoFox::Input::IsKeyPressed(LoFox::KeyCode::A));
 		LF_INFO("{0}", LoFox::Input::GetMousePosition());
 		LF_INFO("{0}", LoFox::Input::IsMouseButtonPressed(LoFox::MouseCode::Button0));
-		*/
+		*\/
 	}
 
 	void InstancingExampleLayer::OnEvent(Event& event) {
@@ -138,7 +141,7 @@ namespace LoFox {
 		/*
 		if (event.GetEventType() == LoFox::EventType::KeyPressed)
 			LF_INFO("Pressed key {0}", static_cast<LoFox::KeyPressedEvent&>(event).GetKeyCode());
-		*/
+		*\/
 	}
 
 	void InstancingExampleLayer::UpdateUniformBuffer() {
@@ -166,3 +169,4 @@ namespace LoFox {
 		m_StorageBuffer->SetData(models.data(), models.size());
 	}
 }
+*/

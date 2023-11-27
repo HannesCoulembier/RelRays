@@ -1,3 +1,6 @@
+
+// LEGACY CODE
+/*
 #pragma once
 
 #include "LoFox/Core/Core.h"
@@ -25,3 +28,4 @@ namespace LoFox {
 		std::vector<Ref<Texture>> m_Textures;
 	};
 }
+*/

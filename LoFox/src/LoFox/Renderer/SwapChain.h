@@ -1,3 +1,6 @@
+
+// LEGACY CODE
+/*
 #pragma once
 
 #include <vulkan/vulkan.h>
@@ -68,3 +71,4 @@ namespace LoFox {
 		int m_CurrentFrame = 0;
 	};
 }
+*/
