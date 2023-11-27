@@ -100,7 +100,10 @@ namespace LoFox {
 		if (!m_HasActiveRenderPass) {
 
 			VkClearValue clearValue = { { m_FrameData.ClearColor.r, m_FrameData.ClearColor.g, m_FrameData.ClearColor.b, 1.0f } };
-			std::vector<VkClearValue> clearValues = { clearValue };
+			std::vector<VkClearValue> clearValues = {
+				clearValue,		// Image clearcolor
+				{ 1.0f, 0 },	// Depth buffer clearcolor
+			};
 
 			VkRenderPassBeginInfo renderPassInfo = {};
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());

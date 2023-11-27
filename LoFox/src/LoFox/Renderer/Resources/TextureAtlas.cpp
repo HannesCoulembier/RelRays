@@ -1,4 +1,7 @@
 #include "lfpch.h"
+
+// LEGACY CODE
+/*
 #include "LoFox/Renderer/Resources/TextureAtlas.h"
 
 #include "LoFox/Renderer/Renderer.h"
@@ -50,3 +53,4 @@ namespace LoFox {
 	// 	return imageDescriptorInfos;
 	// }
 }
+*/

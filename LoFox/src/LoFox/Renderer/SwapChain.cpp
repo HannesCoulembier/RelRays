@@ -1,4 +1,7 @@
 #include "lfpch.h"
+
+// LEGACY CODE
+/*
 #include "LoFox/Renderer/SwapChain.h"
 
 #include "LoFox/Renderer/Renderer.h"
@@ -254,3 +257,4 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkAllocateCommandBuffers(VulkanContext::LogicalDevice, &commandBufferAllocInfo, m_CommandBuffers.data()) == VK_SUCCESS, "Failed to allocate command buffers!");
 	}
 }
+*/
