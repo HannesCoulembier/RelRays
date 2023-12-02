@@ -21,9 +21,10 @@ namespace RelRays {
 		void RenderFrame();
 		void Destroy();
 
-		LoFox::Ref<Object> CreateObject();
+		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius);
 
 		float GetSimulationTime() { return m_SimulationTime; }
+		float GetProperTime() { return m_ProperTime; }
 
 		static LoFox::Ref<Environment> Create(EnvironmentCreateInfo createInfo);
 	private:
@@ -39,11 +40,13 @@ namespace RelRays {
 
 		std::vector<LoFox::Ref<Object>> m_Objects;
 
+		LoFox::Ref<LoFox::StorageBuffer> m_ObjectDescriptionBuffer;
+		LoFox::Ref<LoFox::StorageBuffer> m_ObjectFragmentsBuffer;
+
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		LoFox::Ref<LoFox::UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)
 
-		LoFox::Ref<LoFox::StorageBuffer> m_SphereBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_MaterialBuffer;
 		int m_FrameIndex = 0;
 
@@ -77,7 +80,8 @@ namespace RelRays {
 		};
 		FinalImageRenderData m_FinalImageRenderData = {};
 
-		float m_SimulationTime = 0.0f;
-		float m_LastOnUpdateTime = 0.0f;
+		float m_SimulationTime = 0.0f; // Time measured by the camera (or sum of the times measured by multiple cameras)
+		float m_LastOnUpdateTime = 0.0f; // Used to calculate FPS
+		float m_ProperTime = 0.0f; // Time measured by the never moving origin
 	};
 }

@@ -7,7 +7,9 @@ namespace LoFox {
 		RelRays::EnvironmentCreateInfo envCreateInfo = {}; // Defaults are good
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
-		m_TestObject = m_Env->CreateObject();
+		m_TestObject = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, 0.0f) * Units::m, 1.0f * Units::m);
+		m_TestObject = m_Env->CreateObject(glm::vec3(0.0f, -0.135f, 0.0f) * Units::m, 1.0f * Units::m);
+		m_TestObject = m_Env->CreateObject(glm::vec3(1.0f, -101.0f, -5.0f) * Units::m, 100.0f * Units::m);
 	}
 	void RelRaysDevLayer::OnDetach() {
 

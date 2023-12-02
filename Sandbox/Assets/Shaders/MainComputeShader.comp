@@ -5,7 +5,6 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #define FLT_MIN 1.175494351e-38
 
 layout(binding = 0) uniform CameraBlockAndScene {
-
     mat4 view;
     mat4 proj;
     mat4 invView;
@@ -14,17 +13,18 @@ layout(binding = 0) uniform CameraBlockAndScene {
     int frameIndex;
 } cameraAndScene;
 
-struct Sphere {
-    
-    vec3 Pos;
+struct ObjectDescription {
+    int LatestFragmentIndex;
+    int NumberOfFragments;
     float Radius;
+};
+layout(std140, binding = 1) readonly buffer ObjectDescriptionBlock { ObjectDescription objectDescriptions[]; };
+
+struct ObjectFragment {
+    vec3 Pos;
     int MaterialIndex;
 };
-
-layout(std140, binding = 1) readonly buffer SphereBlock {
-
-    Sphere spheres[];
-};
+layout(std140, binding = 2) readonly buffer ObjectFragmentBlock { ObjectFragment objectFragments[]; };
 
 struct Material {
 	vec3 Albedo;
@@ -33,13 +33,9 @@ struct Material {
 	vec3 EmissionColor;
 	float EmissionPower;
 };
+layout(std140, binding = 3) readonly buffer MaterialBlock { Material materials[]; };
 
-layout(std140, binding = 2) readonly buffer MaterialBlock {
-    
-    Material materials[];
-};
-
-layout (binding = 3, rgba8) uniform image2D colorBuffer;
+layout (binding = 4, rgba8) uniform image2D colorBuffer;
 
 struct Ray {
     vec3 Origin;
@@ -47,15 +43,15 @@ struct Ray {
 };
 
 struct HitPayload {
-    
     float HitDistance;
     vec3 WorldPos;
     vec3 WorldNormal;
-    int ObjectIndex;
+    int ObjectDescriptionIndex;
+    int ObjectFragmentIndex;
 };
 
 HitPayload TraceRay(Ray ray);
-HitPayload ClosestHit(Ray ray, float hitDistance, int sphereIndex);
+HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex);
 HitPayload Miss(Ray ray);
 
 void main() {
@@ -96,8 +92,9 @@ void main() {
 			break;
         }
 
-        Sphere sphere = spheres[payload.ObjectIndex];
-        Material mat = materials[sphere.MaterialIndex];
+        ObjectDescription objectDescription = objectDescriptions[payload.ObjectDescriptionIndex];
+        ObjectFragment objectFragment = objectFragments[payload.ObjectFragmentIndex];
+        Material mat = materials[objectFragment.MaterialIndex];
         
 		contribution *= mat.Albedo;
 
@@ -125,18 +122,21 @@ void main() {
 
 HitPayload TraceRay(Ray ray) {
 
-	int closestSphere = -1;
+	int closestObjectDescription = -1;
+    int closestObjectFragment = -1;
+
 	float hitDistance = FLT_MAX;
 
-	for (int i = 0; i < spheres.length(); i++) {
+	for (int i = 0; i < objectDescriptions.length(); i++) {
         
-        Sphere sphere = spheres[i];
+        ObjectDescription objectDescription = objectDescriptions[i];
+        ObjectFragment objectFragment = objectFragments[objectDescription.LatestFragmentIndex];
 
-        vec3 origin = ray.Origin - sphere.Pos;
+        vec3 origin = ray.Origin - objectFragment.Pos;
 
 	    float a = dot(ray.Direction, ray.Direction);
 	    float b = 2.0f * dot(ray.Direction, origin);
-	    float c = dot(origin, origin) - sphere.Radius * sphere.Radius;
+	    float c = dot(origin, origin) - objectDescription.Radius * objectDescription.Radius;
 
 	    float discriminant = b * b - 4 * a * c;
 
@@ -147,15 +147,16 @@ HitPayload TraceRay(Ray ray) {
 	    
         if (t > 0.0f && t < hitDistance) {
             hitDistance = t;
-	        closestSphere = i;
+	        closestObjectDescription = i;
+            closestObjectFragment = objectDescription.LatestFragmentIndex;
         }
     }
     
-	if (closestSphere < 0) {
+	if (closestObjectDescription < 0) {
 		return Miss(ray);
     }
 
-	return ClosestHit(ray, hitDistance, closestSphere);
+	return ClosestHit(ray, hitDistance, closestObjectDescription, closestObjectFragment);
 }
 
 HitPayload Miss(Ray ray) {
@@ -165,18 +166,20 @@ HitPayload Miss(Ray ray) {
     return payload;
 }
 
-HitPayload ClosestHit(Ray ray, float hitDistance, int sphereIndex) {
+HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex) {
     
-    Sphere sphere = spheres[sphereIndex];
+    ObjectDescription objectDescription = objectDescriptions[objectDescriptionIndex];
+    ObjectFragment objectFragment = objectFragments[objectFragmentIndex];
 
     HitPayload payload;
 
 	payload.HitDistance = hitDistance;
-	vec3 origin = ray.Origin - sphere.Pos;
+	vec3 origin = ray.Origin - objectFragment.Pos;
 	vec3 relPos = origin + ray.Direction * hitDistance;
-	payload.WorldPos = relPos + sphere.Pos;
+	payload.WorldPos = relPos + objectFragment.Pos;
 	payload.WorldNormal = normalize(relPos);
-    payload.ObjectIndex = sphereIndex;
+    payload.ObjectDescriptionIndex = objectDescriptionIndex;
+    payload.ObjectFragmentIndex = objectFragmentIndex;
 
     return payload;
 }

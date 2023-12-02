@@ -19,6 +19,21 @@ namespace RelRays {
 		alignas(4) int MaterialIndex = 0;
 	};
 
+	struct GPUObjectDescription {
+
+		alignas(8) int LatestFragmentIndex;
+		alignas(4) int NumberOfFragments;
+
+		alignas(4) float Radius; // To be replaced with mesh ID
+	};
+
+	struct GPUObjectFragment {
+
+		alignas(16) glm::vec3 Pos; // To be extended
+
+		alignas(4) int MaterialIndex;
+	};
+
 	struct Material {
 		alignas(16) glm::vec3 Albedo;
 		alignas(4) float Roughness;
@@ -34,7 +49,9 @@ namespace RelRays {
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
 
-		m_SphereBuffer = LoFox::StorageBuffer::Create(1000, sizeof(Sphere));
+		m_ObjectDescriptionBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectDescription));
+		m_ObjectFragmentsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectFragment));
+
 		m_MaterialBuffer = LoFox::StorageBuffer::Create(1000, sizeof(Material));
 
 		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
@@ -48,7 +65,8 @@ namespace RelRays {
 
 		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
-			{ LoFox::ShaderType::Compute,	m_SphereBuffer },
+			{ LoFox::ShaderType::Compute,	m_ObjectDescriptionBuffer },
+			{ LoFox::ShaderType::Compute,	m_ObjectFragmentsBuffer },
 			{ LoFox::ShaderType::Compute,	m_MaterialBuffer },
 			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false},
 		});
@@ -134,20 +152,25 @@ namespace RelRays {
 
 	void Environment::Destroy() {
 
+		// Shaders
 		m_FinalImageRenderData.VertexShader->Destroy();
 		m_FinalImageRenderData.FragmentShader->Destroy();
 		m_RaytraceRendererData.ComputeShader->Destroy();
 
+		// Render stuff
 		m_FinalImageRenderData.VertexBuffer->Destroy();
 		m_FinalImageRenderData.IndexBuffer->Destroy();
 		m_FinalImageRenderData.GraphicsResourceLayout->Destroy();
 		m_RaytraceRendererData.RaytraceResourceLayout->Destroy();
-
-		m_UniformBuffer->Destroy();
-		m_SphereBuffer->Destroy();
-		m_MaterialBuffer->Destroy();
 		m_FinalImageRenderData.FinalImage->Destroy();
 
+		// Buffers
+		m_UniformBuffer->Destroy();
+		m_ObjectDescriptionBuffer->Destroy();
+		m_ObjectFragmentsBuffer->Destroy();
+		m_MaterialBuffer->Destroy();
+
+		// Pipelines
 		m_RaytraceRendererData.RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
 		m_FinalImageRenderData.GraphicsPipeline->Destroy();
 
@@ -156,9 +179,9 @@ namespace RelRays {
 		m_Objects = {};
 	}
 
-	LoFox::Ref<Object> Environment::CreateObject() {
+	LoFox::Ref<Object> Environment::CreateObject(glm::vec3 pos, float radius) {
 
-		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self);
+		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self, pos, radius);
 		m_Objects.push_back(object);
 		return object;
 	}
@@ -189,22 +212,31 @@ namespace RelRays {
 
 	void Environment::SetStorageBuffers() {
 
-		// Spheres
-		std::vector<Sphere> spheres = {};
-		spheres.resize(3);
-		spheres[0].Position = glm::vec3(0.0f, -0.135f, 0.0f);
-		spheres[0].Radius = 1.0f;
-		spheres[0].MaterialIndex = 0;
+		std::vector<GPUObjectDescription> objectDescriptions = {};
+		std::vector<GPUObjectFragment> objectFragments = {};
+		for (auto object : m_Objects) {
 
-		spheres[1].Position = glm::vec3(2.0f, 1.0f + 1.5f * glm::cos(m_SimulationTime), 0.0f);
-		spheres[1].Radius = 1.0f;
-		spheres[1].MaterialIndex = 2;
+			GPUObjectDescription description = {};
+			description.LatestFragmentIndex = objectFragments.size();
 
-		spheres[2].Position = glm::vec3(1.0f, -101.0f, -5.0f);
-		spheres[2].Radius = 100.0f;
-		spheres[2].MaterialIndex = 1;
+			{
+				GPUObjectFragment fragment = {};
+				fragment.MaterialIndex = 2;
+				fragment.Pos = object->m_Pos / Units::m; // GPU shader uses meters
 
-		m_SphereBuffer->SetData(spheres.size(), spheres.data());
+				objectFragments.push_back(fragment);
+			}
+
+			description.NumberOfFragments = 1;
+			description.Radius = object->m_Radius / Units::m; // GPU shader uses meters
+
+			objectDescriptions.push_back(description);
+		}
+
+		m_ObjectDescriptionBuffer->SetData(objectDescriptions.size(), objectDescriptions.data());
+		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
+
+
 
 		// Materials
 		std::vector<Material> materials = {};
