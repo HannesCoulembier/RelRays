@@ -20,7 +20,8 @@ namespace LoFox {
 		float GetFPS(float ts);
 	private:
 		Ref<RelRays::Environment> m_Env;
-		Ref<RelRays::Object> m_TestObject;
+		Ref<RelRays::Material> m_PurpleMaterial, m_YellowMaterial;
+		Ref<RelRays::Object> m_TestObject1, m_TestObject2, m_TestObject3;
 		float m_Time = 0;
 	};
 }

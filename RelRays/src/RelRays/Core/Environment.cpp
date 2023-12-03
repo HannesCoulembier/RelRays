@@ -10,7 +10,6 @@ namespace RelRays {
 		alignas(16) glm::mat4 invView;
 		alignas(16) glm::mat4 invProj;
 		alignas(4) float Time;
-		alignas(4) int FrameIndex;
 	};
 
 	struct Sphere {
@@ -34,12 +33,12 @@ namespace RelRays {
 		alignas(4) int MaterialIndex;
 	};
 
-	struct Material {
+	struct GPUMaterial {
 		alignas(16) glm::vec3 Albedo;
-		alignas(4) float Roughness;
+		// alignas(4) float Roughness;
 		alignas(4) float Metallic;
-		alignas(16) glm::vec3 EmissionColor;
-		alignas(4) float EmissionPower;
+		// alignas(16) glm::vec3 EmissionColor;
+		// alignas(4) float EmissionPower;
 	};
 
 	void Environment::Init(EnvironmentCreateInfo createInfo) {
@@ -52,7 +51,7 @@ namespace RelRays {
 		m_ObjectDescriptionBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectDescription));
 		m_ObjectFragmentsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectFragment));
 
-		m_MaterialBuffer = LoFox::StorageBuffer::Create(1000, sizeof(Material));
+		m_MaterialsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUMaterial));
 
 		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
 		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
@@ -67,7 +66,7 @@ namespace RelRays {
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
 			{ LoFox::ShaderType::Compute,	m_ObjectDescriptionBuffer },
 			{ LoFox::ShaderType::Compute,	m_ObjectFragmentsBuffer },
-			{ LoFox::ShaderType::Compute,	m_MaterialBuffer },
+			{ LoFox::ShaderType::Compute,	m_MaterialsBuffer },
 			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false},
 		});
 
@@ -147,7 +146,6 @@ namespace RelRays {
 		LoFox::Renderer::Draw(m_FinalImageRenderData.IndexBuffer, m_FinalImageRenderData.VertexBuffer);
 
 		LoFox::Renderer::EndFrame();
-		m_FrameIndex++;
 	}
 
 	void Environment::Destroy() {
@@ -168,7 +166,7 @@ namespace RelRays {
 		m_UniformBuffer->Destroy();
 		m_ObjectDescriptionBuffer->Destroy();
 		m_ObjectFragmentsBuffer->Destroy();
-		m_MaterialBuffer->Destroy();
+		m_MaterialsBuffer->Destroy();
 
 		// Pipelines
 		m_RaytraceRendererData.RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
@@ -177,13 +175,22 @@ namespace RelRays {
 		// Empty the whole environment (this way any shared_ptrs should get released)
 		m_Self = nullptr;
 		m_Objects = {};
+		m_Materials = {};
 	}
 
-	LoFox::Ref<Object> Environment::CreateObject(glm::vec3 pos, float radius) {
+	LoFox::Ref<Object> Environment::CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material) {
 
-		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self, pos, radius);
+		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self, pos, radius, material);
 		m_Objects.push_back(object);
 		return object;
+	}
+
+	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec3 color, float metallic) {
+
+		uint32_t matIndex = m_Materials.size();
+		LoFox::Ref<Material> mat = LoFox::CreateRef<Material>(m_Self, matIndex, color, metallic);
+		m_Materials.push_back(mat);
+		return mat;
 	}
 
 
@@ -194,24 +201,22 @@ namespace RelRays {
 		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
 
 		UBO ubo = {};
-		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f - 2.0f * glm::sin(m_SimulationTime));
+		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
 		glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f); // Forward into the screen goes into the negative z-direction.
 		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)width, (float)height, 0.1f, 4000.0f);
-		// Next line is not nescessary as we are using the projection matrix in our own compute shader instead of in vulkan directly
-		// ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
 
 		ubo.invView = glm::inverse(ubo.view);
 		ubo.invProj = glm::inverse(ubo.proj);
 
 		ubo.Time = m_SimulationTime;
-		ubo.FrameIndex = m_FrameIndex;
 
 		m_UniformBuffer->SetData(&ubo);
 	}
 
 	void Environment::SetStorageBuffers() {
 
+		// Objects
 		std::vector<GPUObjectDescription> objectDescriptions = {};
 		std::vector<GPUObjectFragment> objectFragments = {};
 		for (auto object : m_Objects) {
@@ -221,7 +226,7 @@ namespace RelRays {
 
 			{
 				GPUObjectFragment fragment = {};
-				fragment.MaterialIndex = 2;
+				fragment.MaterialIndex = object->m_Material->m_Name;
 				fragment.Pos = object->m_Pos / Units::m; // GPU shader uses meters
 
 				objectFragments.push_back(fragment);
@@ -236,29 +241,35 @@ namespace RelRays {
 		m_ObjectDescriptionBuffer->SetData(objectDescriptions.size(), objectDescriptions.data());
 		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
 
-
-
 		// Materials
-		std::vector<Material> materials = {};
-		materials.resize(3);
-		materials[0].Albedo = glm::vec3(1.0f, 1.0f, 0.0f);
-		materials[0].Roughness = 0.05f;
-		materials[0].Metallic = 0.2f;
-		materials[0].EmissionColor = glm::vec3(1.0f, 1.0f, 0.0f);
-		materials[0].EmissionPower = 0.0f;
+		std::vector<GPUMaterial> materials = {};
+		for (auto mat : m_Materials) {
 
-		materials[1].Albedo = glm::vec3(1.0f, 0.0f, 1.0f);
-		materials[1].Roughness = 0.1f;
-		materials[1].Metallic = 0.2f;
-		materials[1].EmissionColor = glm::vec3(1.0f, 0.0f, 1.0f);
-		materials[1].EmissionPower = 0.0f;
+			GPUMaterial gpuMat = {};
+			gpuMat.Albedo = mat->m_Color;
+			gpuMat.Metallic = mat->m_Metallic;
 
-		materials[2].Albedo = glm::vec3(0.0f, 1.0f, 1.0f);
-		materials[2].Roughness = 0.1f;
-		materials[2].Metallic = 0.2f;
-		materials[2].EmissionColor = glm::vec3(1.0f, 0.7f, 0.3f);
-		materials[2].EmissionPower = 1.0f;
+			materials.push_back(gpuMat);
+		}
+		// materials.resize(3);
+		// materials[0].Albedo = glm::vec3(1.0f, 1.0f, 0.0f);
+		// materials[0].Roughness = 0.05f;
+		// materials[0].Metallic = 0.2f;
+		// materials[0].EmissionColor = glm::vec3(1.0f, 1.0f, 0.0f);
+		// materials[0].EmissionPower = 0.0f;
+		// 
+		// materials[1].Albedo = glm::vec3(1.0f, 0.0f, 1.0f);
+		// materials[1].Roughness = 0.1f;
+		// materials[1].Metallic = 0.2f;
+		// materials[1].EmissionColor = glm::vec3(1.0f, 0.0f, 1.0f);
+		// materials[1].EmissionPower = 0.0f;
+		// 
+		// materials[2].Albedo = glm::vec3(0.0f, 1.0f, 1.0f);
+		// materials[2].Roughness = 0.1f;
+		// materials[2].Metallic = 0.2f;
+		// materials[2].EmissionColor = glm::vec3(1.0f, 0.7f, 0.3f);
+		// materials[2].EmissionPower = 1.0f;
 
-		m_MaterialBuffer->SetData(materials.size(), materials.data());
+		m_MaterialsBuffer->SetData(materials.size(), materials.data());
 	}
 }

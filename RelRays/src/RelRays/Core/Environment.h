@@ -10,6 +10,7 @@
 namespace RelRays {
 
 	struct EnvironmentCreateInfo {
+
 		bool UseConstantTimeStep = false; // When set to false, the timestep per OnUpdate call will depend on the time between calls. When set to true, the timestep is constant (see ConstantTimeStepValue).
 		float ConstantTimeStepValue = 1.0f / 60.0f; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
 	};
@@ -21,7 +22,8 @@ namespace RelRays {
 		void RenderFrame();
 		void Destroy();
 
-		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius);
+		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material);
+		LoFox::Ref<Material> CreateMaterial(glm::vec3 color, float metallic);
 
 		float GetSimulationTime() { return m_SimulationTime; }
 		float GetProperTime() { return m_ProperTime; }
@@ -39,16 +41,16 @@ namespace RelRays {
 		EnvironmentCreateInfo m_CreateInfo;
 
 		std::vector<LoFox::Ref<Object>> m_Objects;
+		std::vector<LoFox::Ref<Material>> m_Materials;
 
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectDescriptionBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectFragmentsBuffer;
+		LoFox::Ref<LoFox::StorageBuffer> m_MaterialsBuffer;
 
 
-		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
+		// BEGIN TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		LoFox::Ref<LoFox::UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)
-
-		LoFox::Ref<LoFox::StorageBuffer> m_MaterialBuffer;
-		int m_FrameIndex = 0;
+		// END   TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 
 		struct RaytraceRendererData {
 			LoFox::Ref<LoFox::Shader>			ComputeShader;

@@ -2,6 +2,8 @@
 
 #include <LoFox.h>
 
+#include "RelRays/Core/Material.h"
+
 namespace RelRays {
 
 	class Environment; // Forward declaration
@@ -9,7 +11,7 @@ namespace RelRays {
 	class Object {
 
 	public:
-		Object(LoFox::Ref<Environment> origin, glm::vec3 pos, float radius);
+		Object(LoFox::Ref<Environment> origin, glm::vec3 pos, float radius, LoFox::Ref<Material> material);
 	private:
 		LoFox::Ref<Environment> m_Origin;
 		float m_ProperTime = 0.0f;
@@ -18,6 +20,7 @@ namespace RelRays {
 		// Temporary dev data
 		glm::vec3 m_Pos;
 		float m_Radius;
+		LoFox::Ref<Material> m_Material;
 
 		friend Environment;
 	};
