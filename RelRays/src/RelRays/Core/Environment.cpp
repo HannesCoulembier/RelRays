@@ -71,6 +71,8 @@ namespace RelRays {
 	void Environment::Init(EnvironmentCreateInfo createInfo) {
 
 		m_CreateInfo = createInfo;
+		m_FinalImageRenderData.FinalImageWidth = int((float)(m_CreateInfo.RenderTargetWidth)/8.0f)*8;
+		m_FinalImageRenderData.FinalImageHeight = int((float)(m_CreateInfo.RenderTargetHeight)/8.0f)*8;
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
@@ -83,10 +85,17 @@ namespace RelRays {
 
 		m_SpectraBuffer = LoFox::StorageBuffer::Create(1000, sizeof(float));
 
-		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
-		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
+		m_FinalImageRenderData.FinalImage = LoFox::StorageImage::Create(m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
 
-		m_FinalImageRenderData.FinalImage = LoFox::StorageImage::Create(width, height);
+		LoFox::FramebufferCreateInfo framebufferCreateInfo = {};
+		framebufferCreateInfo.Width = m_FinalImageRenderData.FinalImageWidth;
+		framebufferCreateInfo.Height = m_FinalImageRenderData.FinalImageHeight;
+		framebufferCreateInfo.SwapChainTarget = false;
+		framebufferCreateInfo.Attachments = {
+
+			LoFox::FramebufferTextureFormat::RGBA8,
+		};
+		m_FinalImageRenderData.Framebuffer = LoFox::Framebuffer::Create(framebufferCreateInfo);
 
 		m_FinalImageRenderData.GraphicsResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Fragment, m_FinalImageRenderData.FinalImage	, true},
@@ -131,7 +140,7 @@ namespace RelRays {
 		graphicsPipelineCreateInfo.VertexLayout = vertexLayout;
 		m_FinalImageRenderData.GraphicsPipeline = LoFox::GraphicsPipeline::Create(graphicsPipelineCreateInfo);
 
-		UpdateBuffers();
+		UpdateBuffers(m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
 	}
 
 	LoFox::Ref<Environment> Environment::Create(EnvironmentCreateInfo createInfo) {
@@ -161,21 +170,20 @@ namespace RelRays {
 		}
 	}
 
-	void Environment::RenderFrame() {
+	void Environment::RenderFrame(uint32_t viewportWidth, uint32_t viewportHeight) {
 
-		UpdateBuffers();
+		UpdateBuffers(viewportWidth, viewportHeight);
 
-		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
-		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
-
-		LoFox::Renderer::BeginFrame({ 1.0f, 0.0f, 1.0f });
-
+		uint32_t width = m_FinalImageRenderData.Framebuffer->GetWidth();
+		uint32_t height = m_FinalImageRenderData.Framebuffer->GetHeight();
 		m_RaytraceRendererData.RaytracePipeline->Dispatch(width, height, 8, 8);
+
+		LoFox::Renderer::BeginFramebuffer(m_FinalImageRenderData.Framebuffer, { 1.0f, 0.0f, 1.0f });
 
 		LoFox::Renderer::SetActivePipeline(m_FinalImageRenderData.GraphicsPipeline);
 		LoFox::Renderer::Draw(m_FinalImageRenderData.IndexBuffer, m_FinalImageRenderData.VertexBuffer);
 
-		LoFox::Renderer::EndFrame();
+		LoFox::Renderer::EndFramebuffer();
 	}
 
 	void Environment::Destroy() {
@@ -204,6 +212,9 @@ namespace RelRays {
 		m_RaytraceRendererData.RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
 		m_FinalImageRenderData.GraphicsPipeline->Destroy();
 
+		// Framebuffers
+		m_FinalImageRenderData.Framebuffer->Destroy();
+
 		// Empty the whole environment (this way any shared_ptrs should get released)
 		m_Self = nullptr;
 		m_Objects = {};
@@ -225,10 +236,10 @@ namespace RelRays {
 		return mat;
 	}
 
-	void Environment::UpdateBuffers() {
+	void Environment::UpdateBuffers(uint32_t viewportWidth, uint32_t viewportHeight) {
 
-		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
-		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
+		uint32_t width = viewportWidth;
+		uint32_t height = viewportHeight;
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		UBO ubo = {};

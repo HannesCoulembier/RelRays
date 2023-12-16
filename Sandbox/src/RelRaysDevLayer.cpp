@@ -1,10 +1,13 @@
 #include "RelRaysDevLayer.h"
+#include <ImGui/imgui.h>
 
 namespace LoFox {
 
 	void RelRaysDevLayer::OnAttach() {
 
 		RelRays::EnvironmentCreateInfo envCreateInfo = {}; // Defaults are good
+		// envCreateInfo.RenderTargetWidth = 100;
+		// envCreateInfo.RenderTargetHeight = 50;
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
 		m_PurpleMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 0.0f, 1.0f }, 0.2f);
@@ -26,7 +29,36 @@ namespace LoFox {
 		Application::GetInstance().GetActiveWindow()->SetTitle("RelRays Dev Application: " + std::to_string(FPS) + " FPS" + " Time: " + std::to_string(m_Time) + " | Simulation Time: " + std::to_string(m_Env->GetSimulationTime()));
 	
 		m_Env->OnUpdate();
-		m_Env->RenderFrame();
+		if (!m_ViewportWidth == 0 && !m_ViewportHeight == 0) // Only render when viewport is non-zero (minimizing viewport, ...)
+			m_Env->RenderFrame(m_ViewportWidth, m_ViewportHeight);
+	}
+
+	void RelRaysDevLayer::OnImGuiRender() {
+
+		{ // Settings
+			ImGui::Begin("Settings");
+			ImGui::Text("This is the settings window");
+
+			ImGui::Separator();
+
+			ImGui::End();
+		}
+
+		{ // Viewport
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+			ImGui::Begin("Viewport");
+
+			ImVec2 extent = ImGui::GetContentRegionAvail();
+			m_ViewportWidth = extent.x;
+			m_ViewportHeight = extent.y;
+
+			uint64_t textureID = m_Env->GetFinalImageImTextureID();
+			ImGui::Image((void*)textureID, extent, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+			ImGui::PopStyleVar();
+
+			ImGui::End();
+		}
 	}
 
 	void RelRaysDevLayer::OnEvent(LoFox::Event& event) {

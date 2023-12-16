@@ -11,6 +11,9 @@ namespace RelRays {
 
 	struct EnvironmentCreateInfo {
 
+		uint32_t RenderTargetWidth = 2000;
+		uint32_t RenderTargetHeight = 1000;
+
 		bool UseConstantTimeStep = false; // When set to false, the timestep per OnUpdate call will depend on the time between calls. When set to true, the timestep is constant (see ConstantTimeStepValue).
 		float ConstantTimeStepValue = 1.0f / 60.0f; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
 	};
@@ -19,7 +22,7 @@ namespace RelRays {
 
 	public:
 		void OnUpdate();
-		void RenderFrame();
+		void RenderFrame(uint32_t viewportWidth, uint32_t viewportHeight);
 		void Destroy();
 
 		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material);
@@ -27,13 +30,14 @@ namespace RelRays {
 
 		float GetSimulationTime() { return m_SimulationTime; }
 		float GetProperTime() { return m_ProperTime; }
+		uint64_t GetFinalImageImTextureID() { return *(uint64_t*)m_FinalImageRenderData.Framebuffer->GetAttachmentImTextureID(0); }
 
 		static LoFox::Ref<Environment> Create(EnvironmentCreateInfo createInfo);
 	private:
 		void SetSelf(LoFox::Ref<Environment> env);
 		void Init(EnvironmentCreateInfo createInfo);
 
-		void UpdateBuffers();
+		void UpdateBuffers(uint32_t viewportWidth, uint32_t viewportHeight);
 	private:
 		LoFox::Ref<Environment> m_Self;
 		EnvironmentCreateInfo m_CreateInfo;
@@ -47,7 +51,6 @@ namespace RelRays {
 		LoFox::Ref<LoFox::StorageBuffer> m_SpectraBuffer;
 
 		LoFox::Ref<LoFox::UniformBuffer> m_CameraUniformBuffer;
-
 
 		// BEGIN TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		LoFox::Ref<LoFox::UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)
@@ -68,6 +71,7 @@ namespace RelRays {
 			LoFox::Ref<LoFox::ResourceLayout>	GraphicsResourceLayout;
 			LoFox::Ref<LoFox::VertexBuffer>		VertexBuffer;
 			LoFox::Ref<LoFox::IndexBuffer>		IndexBuffer;
+			LoFox::Ref<LoFox::Framebuffer>		Framebuffer;
 
 			struct QuadVertex {
 				glm::vec3 Position;
@@ -80,6 +84,8 @@ namespace RelRays {
 					{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
 			};
 			const std::vector<uint32_t> vertexIndices = { 0, 1, 2, 2, 3, 0, };
+
+			uint32_t FinalImageWidth, FinalImageHeight;
 		};
 		FinalImageRenderData m_FinalImageRenderData = {};
 
