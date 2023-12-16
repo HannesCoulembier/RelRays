@@ -1,4 +1,5 @@
 #include "RaytraceExampleLayer.h"
+#include <imgui/imgui.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -56,6 +57,16 @@ namespace LoFox {
 		graphicsPipelineCreateInfo.VertexLayout = vertexLayout;
 		m_GraphicsPipeline = GraphicsPipeline::Create(graphicsPipelineCreateInfo);
 
+		FramebufferCreateInfo framebufferCreateInfo = {};
+		framebufferCreateInfo.Width = width;
+		framebufferCreateInfo.Height = height;
+		framebufferCreateInfo.SwapChainTarget = false;
+		framebufferCreateInfo.Attachments = {
+
+			FramebufferTextureFormat::RGBA8,
+		};
+		m_Framebuffer = Framebuffer::Create(framebufferCreateInfo);
+
 		SetStorageBuffers();
 	}
 
@@ -77,6 +88,8 @@ namespace LoFox {
 
 		m_RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
 		m_GraphicsPipeline->Destroy();
+
+		m_Framebuffer->Destroy();
 	}
 
 	void RaytraceExampleLayer::OnUpdate(float ts) {
@@ -89,45 +102,24 @@ namespace LoFox {
 		avgFPS += (FPS - avgFPS) / (float)frames;
 		Application::GetInstance().GetActiveWindow()->SetTitle("Sandbox Application: " + std::to_string(FPS) + " FPS (avg: " + std::to_string(avgFPS) + ")" + " Time: " + std::to_string(m_Time));
 
-		if (!Application::GetInstance().GetActiveWindow()->IsMinimized()) {
+		if (!m_ViewportWidth == 0 && !m_ViewportHeight == 0) { // Only render when viewport is non-zero (minimizing viewport, ...)
 
-			// Can also be done set OnAttach, as long as it is before Renderer::StartFrame
-			// RenderCommand::SetClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
-			// RenderCommand::SetViewport({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height });
-			// RenderCommand::SetScissor({ 0.0f, 0.0f }, { Renderer::GetSwapChainExtent().width, Renderer::GetSwapChainExtent().height });
-			// Should be set before Renderer::StartFrame ----------------------------------
 			UpdateUniformBuffer();
 			SetStorageBuffers();
-			// ----------------------------------------------------------------------------
 
-			uint32_t width = Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
-			uint32_t height = Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
-
-			Renderer::BeginFrame({ 0.0f, 0.0f, 0.0f });
+			uint32_t width = m_Framebuffer->GetWidth();
+			uint32_t height = m_Framebuffer->GetHeight();
 
 			m_RaytracePipeline->Dispatch(width, height, 8, 8);
 
+			Renderer::BeginFramebuffer(m_Framebuffer, { 1.0f, 0.0f, 0.0f });
+			
+			
 			Renderer::SetActivePipeline(m_GraphicsPipeline);
 			Renderer::Draw(m_IndexBuffer, m_VertexBuffer);
+			
+			Renderer::EndFramebuffer();
 
-			Renderer::EndFrame();
-
-			// m_RaytracePipeline->Bind();
-
-			// PushConstantObject pushConstant;
-			// pushConstant.Time = m_Time;
-			// pushConstant.FrameIndex = m_FrameIndex;
-			// m_RaytracePipeline->PushConstant(0, &pushConstant);
-			// m_RaytracePipeline->Dispatch(width, height, 8, 8);
-
-			// Renderer::StartFrame();
-
-			// RenderCommand::SubmitVertexBuffer(m_VertexBuffer);
-			// RenderCommand::SubmitIndexBuffer(m_IndexBuffer);
-			// 
-			// Renderer::Draw(1);
-			// 
-			// Renderer::SubmitFrame();
 			m_FrameIndex++;
 		}
 
@@ -154,6 +146,89 @@ namespace LoFox {
 		*/
 	}
 
+	void RaytraceExampleLayer::OnImGuiRender() {
+
+		static bool dockspaceOpen = true;
+		static bool opt_fullscreen_persistant = true;
+		bool opt_fullscreen = opt_fullscreen_persistant;
+		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+		// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+		// because it would be confusing to have two docking targets within each others.
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		if (opt_fullscreen)
+		{
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos);
+			ImGui::SetNextWindowSize(viewport->Size);
+			ImGui::SetNextWindowViewport(viewport->ID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+		}
+
+		// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background and handle the pass-thru hole, so we ask Begin() to not render a background.
+		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+			window_flags |= ImGuiWindowFlags_NoBackground;
+
+
+		{ // DockSpace
+			// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+			// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive, 
+			// all active windows docked into it will lose their parent and become undocked.
+			// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise 
+			// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+			ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
+			ImGui::PopStyleVar();
+
+			if (opt_fullscreen)
+				ImGui::PopStyleVar(2);
+
+			ImGuiIO& io = ImGui::GetIO();
+			ImGuiStyle& style = ImGui::GetStyle();
+			float minWinSizeX = style.WindowMinSize.x;
+			style.WindowMinSize.x = 370.0f;
+			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+			{
+				ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+				ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+			}
+			style.WindowMinSize.x = minWinSizeX;
+
+			if (ImGui::BeginMenuBar()) {
+				ImGui::EndMenuBar();
+			}
+			ImGui::End();
+		}
+
+		{ // Settings
+			ImGui::Begin("Settings");
+			ImGui::Text("This is the settings window");
+
+			ImGui::Separator();
+
+			ImGui::End();
+		}
+
+		{ // Viewport
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+			ImGui::Begin("Viewport");
+
+			ImVec2 extent = ImGui::GetContentRegionAvail();
+			m_ViewportWidth = extent.x;
+			m_ViewportHeight = extent.y;
+
+			uint64_t textureID = *(uint64_t*)m_Framebuffer->GetAttachmentImTextureID(0);
+			ImGui::Image((void*)textureID, extent, ImVec2{0, 1}, ImVec2{1, 0});
+
+			ImGui::PopStyleVar();
+
+			ImGui::End();
+		}
+	}
+
 	void RaytraceExampleLayer::OnEvent(Event& event) {
 
 		LoFox::EventDispatcher dispatcher(event);
@@ -167,16 +242,14 @@ namespace LoFox {
 
 	void RaytraceExampleLayer::UpdateUniformBuffer() {
 
-		uint32_t width = Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
-		uint32_t height = Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
+		uint32_t width = m_ViewportWidth;
+		uint32_t height = m_ViewportHeight;
 
 		UBO ubo = {};
 		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
 		glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f); // Forward into the screen goes into the negative z-direction.
 		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
 		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)width, (float)height, 0.1f, 4000.0f);
-		// Next line is not nescessary as we are using the projection matrix in our own compute shader instead of in vulkan directly
-		// ubo.proj[1][1] *= -1; // glm was designed for OpenGL, where the y-axis is flipped. This unflips it for Vulkan
 
 		ubo.invView = glm::inverse(ubo.view);
 		ubo.invProj = glm::inverse(ubo.proj);

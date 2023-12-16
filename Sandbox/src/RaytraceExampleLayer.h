@@ -57,10 +57,11 @@ namespace LoFox {
 		RaytraceExampleLayer() {}
 		~RaytraceExampleLayer() {}
 
-		void OnAttach();
-		void OnDetach();
+		virtual void OnAttach() override;
+		virtual void OnDetach() override;
 
-		void OnUpdate(float ts);
+		virtual void OnUpdate(float ts) override;
+		virtual void OnImGuiRender() override;
 		void UpdateUniformBuffer();
 		void SetStorageBuffers();
 		void OnEvent(LoFox::Event& event);
@@ -81,8 +82,12 @@ namespace LoFox {
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 
+		Ref<Framebuffer> m_Framebuffer;
+
 		Ref<StorageBuffer> m_SphereBuffer;
 		Ref<StorageBuffer> m_MaterialBuffer;
+
+		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 		float m_Time = 0;
 		int m_FrameIndex = 0;

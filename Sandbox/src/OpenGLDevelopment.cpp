@@ -57,6 +57,16 @@ namespace LoFox {
 		computePipelineCreateInfo.ResourceLayout = m_ComputeResourceLayout;
 
 		m_ComputePipeline = ComputePipeline::Create(computePipelineCreateInfo);
+
+		FramebufferCreateInfo framebufferCreateInfo = {};
+		framebufferCreateInfo.Width = m_RickTexture->GetWidth();
+		framebufferCreateInfo.Height = m_RickTexture->GetHeight();
+		framebufferCreateInfo.SwapChainTarget = true;
+		framebufferCreateInfo.Attachments = {
+
+			FramebufferTextureFormat::RGBA8,
+		};
+		m_Framebuffer = Framebuffer::Create(framebufferCreateInfo);
 	}
 	void OpenGLDevLayer::OnDetach() {
 
@@ -77,6 +87,8 @@ namespace LoFox {
 		m_ComputeShader->Destroy();
 		m_ComputePipeline->Destroy();
 		m_GraphicsPipeline->Destroy();
+
+		m_Framebuffer->Destroy();
 	}
 
 	void OpenGLDevLayer::OnUpdate(float ts) {
@@ -109,14 +121,14 @@ namespace LoFox {
 		m_ObjectTransforms->SetData(2, translationMatrices.data());
 		// END TODO
 
-		Renderer::BeginFrame({ glm::abs(glm::sin(2.0f*m_Time)), 1.0f, 0.0f });
+		Renderer::BeginFramebuffer(m_Framebuffer, { glm::abs(glm::sin(2.0f*m_Time)), 1.0f, 0.0f });
 
 		m_ComputePipeline->Dispatch(m_RickTexture->GetWidth(), m_RickTexture->GetHeight(), 8, 8);
 
 		Renderer::SetActivePipeline(m_GraphicsPipeline);
 		Renderer::Draw(m_IndexBuffer, m_VertexBuffer);
 
-		Renderer::EndFrame();
+		Renderer::EndFramebuffer();
 
 	}
 	void OpenGLDevLayer::OnEvent(LoFox::Event& event) {

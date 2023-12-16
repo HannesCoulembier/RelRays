@@ -11,13 +11,13 @@
 
 namespace LoFox {
 
-	void GraphicsContext::Init(void* window) {
+	void GraphicsContext::Init(Ref<Window> window) {
 
 		#ifdef LF_RENDERAPI_OPENGL
-			OpenGLContext::Init(static_cast<GLFWwindow*>(window)); return;
+			OpenGLContext::Init(window); return;
 		#endif
 		#ifdef LF_RENDERAPI_VULKAN
-			VulkanContext::Init(static_cast<GLFWwindow*>(window)); return;
+			VulkanContext::Init(window); return;
 		#endif
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -35,13 +35,25 @@ namespace LoFox {
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
 
-	void GraphicsContext::BeginFrame(glm::vec3 clearColor) {
+	void GraphicsContext::BeginFrame() {
 
 		#ifdef LF_RENDERAPI_OPENGL
-			OpenGLContext::BeginFrame(clearColor); return;
+			OpenGLContext::BeginFrame(); return;
 		#endif
 		#ifdef LF_RENDERAPI_VULKAN
-			VulkanContext::BeginFrame(clearColor); return;
+			VulkanContext::BeginFrame(); return;
+		#endif
+
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
+	}
+
+	void GraphicsContext::BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor) {
+
+		#ifdef LF_RENDERAPI_OPENGL
+			OpenGLContext::BeginFramebuffer(framebuffer, clearColor); return;
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			VulkanContext::BeginFramebuffer(framebuffer, clearColor); return;
 		#endif
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -71,6 +83,18 @@ namespace LoFox {
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
 
+	void GraphicsContext::EndFramebuffer() {
+
+		#ifdef LF_RENDERAPI_OPENGL
+			OpenGLContext::EndFramebuffer(); return;
+		#endif
+		#ifdef LF_RENDERAPI_VULKAN
+			VulkanContext::EndFramebuffer(); return;
+		#endif
+
+		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
+	}
+	
 	void GraphicsContext::EndFrame() {
 
 		#ifdef LF_RENDERAPI_OPENGL
@@ -82,7 +106,7 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
-	
+
 	void GraphicsContext::PresentFrame() {
 
 		#ifdef LF_RENDERAPI_OPENGL

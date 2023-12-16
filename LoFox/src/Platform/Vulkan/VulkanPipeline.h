@@ -50,5 +50,6 @@ namespace LoFox {
 	private:
 		ComputePipelineCreateInfo m_CreateInfo = {};
 		VulkanComputePipelineData m_VulkanData = {};
+		VkCommandBuffer m_CommandBuffer = {};
 	};
 }

@@ -91,15 +91,17 @@ namespace LoFox {
 		m_ColorBlendAttachmentState = Utils::MakePipelineColorBlendAttachmentState(); // TODO: investigate adding more parameters to this function?
 
 		// TODO: add user control over viewport(s) min and max depth, x-y offset and width and height (should be like OpenGL for user, so corrections we do here, stay here)
-		m_Viewport.height = -(float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
+		// m_Viewport.height = -(float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
+		m_Viewport.height = (float)VulkanContext::Swapchain->GetExtent().height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
 		m_Viewport.maxDepth = 1.0f;
 		m_Viewport.minDepth = 0.0f;
-		m_Viewport.width = (float)VulkanContext::SwapchainExtent.width;
+		m_Viewport.width = (float)VulkanContext::Swapchain->GetExtent().width;
 		m_Viewport.x = 0.0f;
-		m_Viewport.y = (float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
+		//m_Viewport.y = (float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
+		m_Viewport.y = 0.0f; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
 
 		// TODO: investigate if this exists in OpenGL and if so, add user control over scissor(s)
-		m_Scissor.extent = VulkanContext::SwapchainExtent;
+		m_Scissor.extent = VulkanContext::Swapchain->GetExtent();
 		m_Scissor.offset = { 0, 0 };
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
@@ -232,15 +234,39 @@ namespace LoFox {
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 		
 		LF_CORE_ASSERT(vkCreateComputePipelines(VulkanContext::LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_VulkanData.Pipeline) == VK_SUCCESS, "Failed to create compute pipeline!");
+		
+		VkCommandBufferAllocateInfo commandBufferAllocInfo = {};
+		commandBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocInfo.commandBufferCount = 1;
+		commandBufferAllocInfo.commandPool = VulkanContext::CommandPool;
+		commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocInfo.pNext = nullptr;
+		LF_CORE_ASSERT(vkAllocateCommandBuffers(VulkanContext::LogicalDevice, &commandBufferAllocInfo, &m_CommandBuffer) == VK_SUCCESS, "Failed to allocate main command buffer!");
 	}
 
 	void VulkanComputePipeline::Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) {
 
-		vkCmdBindPipeline(VulkanContext::MainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_VulkanData.Pipeline);
+		VkCommandBufferBeginInfo cmdBeginInfo = {};
+		cmdBeginInfo.flags = 0;
+		cmdBeginInfo.pInheritanceInfo = nullptr;
+		cmdBeginInfo.pNext = nullptr;
+		cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		vkBeginCommandBuffer(m_CommandBuffer, &cmdBeginInfo);
+
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_VulkanData.Pipeline);
 		
-		vkCmdBindDescriptorSets(VulkanContext::MainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_VulkanData.Layout, 0, 1, &m_VulkanData.DescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_VulkanData.Layout, 0, 1, &m_VulkanData.DescriptorSet, 0, nullptr);
 		
-		vkCmdDispatch(VulkanContext::MainCommandBuffer, (uint32_t)((float)width / (float)groupWidth),(uint32_t)((float)height / (float)groupHeight), 1);
+		vkCmdDispatch(m_CommandBuffer, (uint32_t)((float)width / (float)groupWidth),(uint32_t)((float)height / (float)groupHeight), 1);
+
+		vkEndCommandBuffer(m_CommandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_CommandBuffer;
+
+		vkQueueSubmit(VulkanContext::GraphicsQueueHandle, 1, &submitInfo, VK_NULL_HANDLE);
 	}
 
 	void VulkanComputePipeline::Destroy() {

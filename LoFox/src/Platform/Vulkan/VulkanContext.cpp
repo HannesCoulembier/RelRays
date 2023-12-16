@@ -7,6 +7,7 @@
 #include "Platform/Vulkan/VulkanShader.h"
 #include "Platform/Vulkan/VulkanVertexBuffer.h"
 #include "Platform/Vulkan/VulkanIndexBuffer.h"
+#include "Platform/Vulkan/VulkanFramebuffer.h"
 #include "Platform/Vulkan/VulkanPipeline.h"
 
 #include "LoFox/Core/Application.h"
@@ -14,10 +15,10 @@
 
 namespace LoFox {
 
-	void VulkanContext::Init(GLFWwindow* windowHandle) {
+	void VulkanContext::Init(Ref<Window> window) {
 
-		LF_CORE_ASSERT(windowHandle, "Window handle is null!");
-		m_WindowHandle = windowHandle;
+		LF_CORE_ASSERT(window, "Window is null!");
+		m_Window = window;
 
 		LF_OVERSPECIFY("Creating Vulkan instance");
 		#ifdef LF_BE_OVERLYSPECIFIC
@@ -30,9 +31,8 @@ namespace LoFox {
 		InitSurface();
 		InitDevices();
 
-		InitSwapchain();
+		Swapchain = Swapchain::Create(m_Window);
 		InitDefaultRenderPass();
-		InitFramebuffers();
 
 		InitSyncStructures();
 		InitDescriptorPool();
@@ -40,20 +40,16 @@ namespace LoFox {
 
 	void VulkanContext::Shutdown() {
 
-		vkWaitForFences(LogicalDevice, 1, &m_RenderFence, VK_TRUE, UINT64_MAX); // Wait for the rendering to finish
+		// vkWaitForFences(LogicalDevice, 1, &m_RenderFence, VK_TRUE, UINT64_MAX); // Wait for the rendering to finish
+		WaitIdle();
 
 		vkDestroyDescriptorPool(LogicalDevice, MainDescriptorPool, nullptr);
 
-		vkDestroyFence(LogicalDevice, m_RenderFence, nullptr);
 		vkDestroyFence(LogicalDevice, m_ImmediateSubmitBackBone.SubmitFinishedFence, nullptr);
-		vkDestroySemaphore(LogicalDevice, m_RenderSemaphore, nullptr);
-		vkDestroySemaphore(LogicalDevice, m_PresentSemaphore, nullptr);
 
-		for (VkFramebuffer framebuffer : m_Framebuffers)
-			vkDestroyFramebuffer(LogicalDevice, framebuffer, nullptr);
 		vkDestroyRenderPass(LogicalDevice, RenderPass, nullptr);
 
-		DestroySwapchain();
+		Swapchain->Destroy();
 
 		vkDestroyCommandPool(LogicalDevice, m_ImmediateSubmitBackBone.CommandPool, nullptr);
 		vkDestroyCommandPool(LogicalDevice, CommandPool, nullptr);
@@ -63,24 +59,51 @@ namespace LoFox {
 		vkDestroyInstance(Instance, nullptr);
 	}
 
+	void VulkanContext::BeginFrame() {
 
-	void VulkanContext::BeginFrame(glm::vec3 clearColor) {
+		Swapchain->BeginFrame();
+	}
 
+	void VulkanContext::BeginFramebuffer(Ref<Framebuffer> framebuffer, VkCommandBuffer commandBuffer, VkRenderPass renderPass, glm::vec3 clearColor) {
+
+		m_ActiveFramebuffer = framebuffer;
 		m_FrameData.ClearColor = clearColor;
+		m_ActiveCommandBuffer = commandBuffer;
+		m_ActiveRenderpass = renderPass;
 
-		vkWaitForFences(LogicalDevice, 1, &m_RenderFence, VK_TRUE, UINT64_MAX);
-		vkResetFences(LogicalDevice, 1, &m_RenderFence);
-
-		LF_CORE_ASSERT(vkAcquireNextImageKHR(LogicalDevice, m_Swapchain, UINT64_MAX, m_PresentSemaphore, nullptr, &m_ThisFramesImageIndex) == VK_SUCCESS, "Failed to acquire new image index!"); // This will immediately return the next image index, but it will only signal m_PresentSemaphore when the image is actually available
-		
-		vkResetCommandBuffer(MainCommandBuffer, 0);
+		vkResetCommandBuffer(m_ActiveCommandBuffer, 0);
 		VkCommandBufferBeginInfo cmdBeginInfo = {};
-		cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // We will reset the MainCommandBuffer every frame
+		cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // We will reset the commandBuffer every frame
 		cmdBeginInfo.pInheritanceInfo = nullptr;
 		cmdBeginInfo.pNext = nullptr;
 		cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-		LF_CORE_ASSERT(vkBeginCommandBuffer(MainCommandBuffer, &cmdBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
+		LF_CORE_ASSERT(vkBeginCommandBuffer(m_ActiveCommandBuffer, &cmdBeginInfo) == VK_SUCCESS, "Failed to begin recording command buffer!");
+
+		VkClearValue clearValue = { { m_FrameData.ClearColor.r, m_FrameData.ClearColor.g, m_FrameData.ClearColor.b, 1.0f } };
+		std::vector<VkClearValue> clearValues = {
+			clearValue,		// Image clearcolor
+			{ 1.0f, 0 },	// Depth buffer clearcolor
+		};
+
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+		renderPassInfo.framebuffer = static_cast<VulkanFramebufferData*>(m_ActiveFramebuffer->GetData())->Framebuffer;
+		renderPassInfo.pClearValues = clearValues.data();
+		renderPassInfo.pNext = nullptr;
+		renderPassInfo.renderArea.offset.x = 0;
+		renderPassInfo.renderArea.offset.y = 0;
+		renderPassInfo.renderArea.extent.width = m_ActiveFramebuffer->GetWidth();
+		renderPassInfo.renderArea.extent.height = m_ActiveFramebuffer->GetHeight();
+		renderPassInfo.renderPass = m_ActiveRenderpass;
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+		vkCmdBeginRenderPass(m_ActiveCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	void VulkanContext::BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor) {
+
+		BeginFramebuffer(framebuffer, MainCommandBuffer, RenderPass, clearColor);
 	}
 
 	void VulkanContext::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
@@ -90,110 +113,62 @@ namespace LoFox {
 		if (m_HasActiveRenderPass && m_IsPipelineBound) {
 
 			VulkanGraphicsPipelineData* pipelineData = static_cast<VulkanGraphicsPipelineData*>(m_ActivePipeline->GetData());
-			vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
-			vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
+			vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
+			vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
 		}
 	}
 
 	void VulkanContext::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
 
-		if (!m_HasActiveRenderPass) {
-
-			VkClearValue clearValue = { { m_FrameData.ClearColor.r, m_FrameData.ClearColor.g, m_FrameData.ClearColor.b, 1.0f } };
-			std::vector<VkClearValue> clearValues = {
-				clearValue,		// Image clearcolor
-				{ 1.0f, 0 },	// Depth buffer clearcolor
-			};
-
-			VkRenderPassBeginInfo renderPassInfo = {};
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.framebuffer = m_Framebuffers[m_ThisFramesImageIndex];
-			renderPassInfo.pClearValues = clearValues.data();
-			renderPassInfo.pNext = nullptr;
-			renderPassInfo.renderArea.offset.x = 0;
-			renderPassInfo.renderArea.offset.y = 0;
-			renderPassInfo.renderArea.extent = SwapchainExtent;
-			renderPassInfo.renderPass = RenderPass;
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
-			vkCmdBeginRenderPass(MainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			m_HasActiveRenderPass = true;
-		}
 		if (!m_IsPipelineBound) {
 
 			VulkanGraphicsPipelineData* pipelineData = static_cast<VulkanGraphicsPipelineData*>(m_ActivePipeline->GetData());
-			vkCmdBindPipeline(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
-			vkCmdBindDescriptorSets(MainCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
+			vkCmdBindPipeline(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Pipeline);
+			vkCmdBindDescriptorSets(m_ActiveCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->Layout, 0, 1, &pipelineData->DescriptorSet, 0, nullptr);
 			m_IsPipelineBound = true;
 		}
 
 		VkBuffer vBuffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
 		VkBuffer iBuffer = static_cast<VulkanIndexBufferData*>(indexBuffer->GetData())->Buffer->GetBuffer();
 		std::vector<VkDeviceSize> offset = { 0 };
-		vkCmdBindVertexBuffers(MainCommandBuffer, 0, 1, &vBuffer, offset.data());
-		vkCmdBindIndexBuffer(MainCommandBuffer, iBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(MainCommandBuffer, indexBuffer->GetNumberOfIndices(), 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(m_ActiveCommandBuffer, 0, 1, &vBuffer, offset.data());
+		vkCmdBindIndexBuffer(m_ActiveCommandBuffer, iBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(m_ActiveCommandBuffer, indexBuffer->GetNumberOfIndices(), 1, 0, 0, 0);
 	}
 
-	void VulkanContext::EndFrame() {
+	void VulkanContext::EndFramebuffer() {
 
-		if (!m_HasActiveRenderPass) { // If there is no renderpass, create one to clear the screen to the right color
-
-			VkClearValue clearValue = { { m_FrameData.ClearColor.r, m_FrameData.ClearColor.g, m_FrameData.ClearColor.b, 1.0f } };
-			std::vector<VkClearValue> clearValues = { clearValue };
-
-			VkRenderPassBeginInfo renderPassInfo = {};
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.framebuffer = m_Framebuffers[m_ThisFramesImageIndex];
-			renderPassInfo.pClearValues = clearValues.data();
-			renderPassInfo.pNext = nullptr;
-			renderPassInfo.renderArea.offset.x = 0;
-			renderPassInfo.renderArea.offset.y = 0;
-			renderPassInfo.renderArea.extent = SwapchainExtent;
-			renderPassInfo.renderPass = RenderPass;
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
-			vkCmdBeginRenderPass(MainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			m_HasActiveRenderPass = true;
-		}
-
-		vkCmdEndRenderPass(MainCommandBuffer);
-
+		vkCmdEndRenderPass(m_ActiveCommandBuffer);
 		m_HasActiveRenderPass = false;
-		LF_CORE_ASSERT(vkEndCommandBuffer(MainCommandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
+
+		LF_CORE_ASSERT(vkEndCommandBuffer(m_ActiveCommandBuffer) == VK_SUCCESS, "Failed to record command buffer!");
 
 		VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 		VkSubmitInfo submit = {};
 		submit.commandBufferCount = 1;
-		submit.pCommandBuffers = &MainCommandBuffer;
+		submit.pCommandBuffers = &m_ActiveCommandBuffer;
 		submit.pNext = nullptr;
-		submit.pSignalSemaphores = &m_RenderSemaphore; // Signal m_RenderSemaphore when rendering is finished
-		submit.pWaitDstStageMask = &waitStage;
-		submit.pWaitSemaphores = &m_PresentSemaphore; // Wait for the next image to be available
-		submit.signalSemaphoreCount = 1;
+		// submit.pSignalSemaphores = &m_RenderSemaphore; // Signal m_RenderSemaphore when rendering is finished
+		// submit.pWaitDstStageMask = &waitStage;
+		// submit.pWaitSemaphores = &m_PresentSemaphore; // Wait for the next image to be available
+		// submit.signalSemaphoreCount = 1;
 		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit.waitSemaphoreCount = 1;
+		// submit.waitSemaphoreCount = 1;
 
-		LF_CORE_ASSERT(vkQueueSubmit(GraphicsQueueHandle, 1, &submit, m_RenderFence) == VK_SUCCESS, "Failed to submit draw commands!");
+		LF_CORE_ASSERT(vkQueueSubmit(GraphicsQueueHandle, 1, &submit, VK_NULL_HANDLE) == VK_SUCCESS, "Failed to submit draw commands!");
 		m_IsPipelineBound = false;
+	}
+
+	void VulkanContext::EndFrame() {
+
+		Swapchain->EndFrame();
 	}
 
 	void VulkanContext::PresentFrame() {
 
-		VkPresentInfoKHR presentInfo = {};
-		presentInfo.pImageIndices = &m_ThisFramesImageIndex;
-		presentInfo.pNext = nullptr;
-		// presentInfo.pResults = 
-		presentInfo.pSwapchains = &m_Swapchain;
-		presentInfo.pWaitSemaphores = &m_RenderSemaphore; // Wait for the rendering to finish
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.swapchainCount = 1;
-		presentInfo.waitSemaphoreCount = 1;
-
-		LF_CORE_ASSERT(vkQueuePresentKHR(GraphicsQueueHandle, &presentInfo) == VK_SUCCESS, "Failed to present image!");
+		Swapchain->PresentFrame();
 	}
-
 
 	VkCommandBuffer VulkanContext::BeginSingleTimeCommandBuffer() {
 
@@ -293,21 +268,21 @@ namespace LoFox {
 
 	void VulkanContext::InitSurface() {
 
-		LF_CORE_ASSERT(glfwCreateWindowSurface(Instance, m_WindowHandle, nullptr, &Surface) == VK_SUCCESS, "Failed to create window surface!");
+		LF_CORE_ASSERT(glfwCreateWindowSurface(Instance, static_cast<GLFWwindow*>(m_Window->GetWindowHandle()), nullptr, &Surface) == VK_SUCCESS, "Failed to create window surface!");
 	}
 
 	void VulkanContext::InitDevices() {
 
 		// Pick physical device (= GPU to use)
 		#ifdef LF_BE_OVERLYSPECIFIC
-		Utils::ListVulkanPhysicalDevices(VulkanContext::Instance);
+		Utils::ListVulkanPhysicalDevices(Instance);
 		#endif
 
-		PhysicalDevice = Utils::PickVulkanPhysicalDevice(VulkanContext::Instance, VulkanContext::Surface);
+		PhysicalDevice = Utils::PickVulkanPhysicalDevice(Instance, Surface);
 
 		// Create logical device
 		// Figuring out what queues we want
-		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, VulkanContext::Surface);
+		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, Surface);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
@@ -382,73 +357,12 @@ namespace LoFox {
 
 	}
 
-	void VulkanContext::InitSwapchain() {
-
-		// Create Swapchain
-		Utils::QueueFamilyIndices indices = Utils::IdentifyVulkanQueueFamilies(PhysicalDevice, Surface);
-
-		Utils::SwapChainSupportDetails swapChainSupport = Utils::GetSwapchainSupportDetails(PhysicalDevice, Surface);
-
-		VkSurfaceFormatKHR surfaceFormat = Utils::ChooseSwapchainSurfaceFormat(swapChainSupport.Formats);
-		m_SwapchainImageFormat = surfaceFormat.format;
-		VkPresentModeKHR presentMode = Utils::ChooseSwapchainPresentMode(swapChainSupport.PresentModes);
-
-		int width, height;
-		glfwGetFramebufferSize(m_WindowHandle, &width, &height);
-		SwapchainExtent = Utils::ChooseSwapchainExtent(swapChainSupport.Capabilities, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-
-		uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
-		if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) // when maxImageCount = 0, there is no limit
-			imageCount = swapChainSupport.Capabilities.maxImageCount;
-
-		uint32_t queueFamilyIndices[] = { indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
-
-		VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
-		swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapchainCreateInfo.surface = Surface;
-		swapchainCreateInfo.minImageCount = imageCount;
-		swapchainCreateInfo.imageFormat = surfaceFormat.format;
-		swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapchainCreateInfo.imageExtent = SwapchainExtent;
-		swapchainCreateInfo.imageArrayLayers = 1;
-		swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
-
-			swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			swapchainCreateInfo.queueFamilyIndexCount = 2; // Specifies there are 2 (graphics and present) families that will need to share the swapchain images
-			swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
-		}
-		else {
-			swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		}
-		swapchainCreateInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
-		swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		swapchainCreateInfo.presentMode = presentMode;
-		swapchainCreateInfo.clipped = VK_TRUE; // Pixels obscured by another window are ignored
-		swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-
-		LF_CORE_ASSERT(vkCreateSwapchainKHR(LogicalDevice, &swapchainCreateInfo, nullptr, &m_Swapchain) == VK_SUCCESS, "Failed to create swap chain!");
-		
-		// Create image(view)s
-		vkGetSwapchainImagesKHR(LogicalDevice, m_Swapchain, &imageCount, nullptr); // We only specified minImageCount, so swapchain might have created more. We reset imageCount to the actual number of images created.
-		
-		m_SwapchainImages.resize(imageCount);
-		m_SwapchainImageViews.resize(imageCount);
-		vkGetSwapchainImagesKHR(LogicalDevice, m_Swapchain, &imageCount, m_SwapchainImages.data());
-
-		// Creating the imageViews
-		for (size_t i = 0; i < imageCount; i++) {
-
-			m_SwapchainImageViews[i] = Utils::CreateImageViewFromImage(LogicalDevice, m_SwapchainImages[i], m_SwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-		}
-	}
-
 	void VulkanContext::InitDefaultRenderPass() {
 
 		VkAttachmentDescription colorAttachment = {}; // The image we will render into
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // After the renderpass ends, the image will be displayed to the screen.
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // After the renderpass ends, the image will be written to by ImGui
 		// colorAttachment.flags = 
-		colorAttachment.format = m_SwapchainImageFormat; // Use the format of the swapchain
+		colorAttachment.format = Swapchain->GetImageFormat(); // Use the format of the swapchain
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // We don't know nor care about the starting layout
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // Clear the attachment when loading in
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // We don't use MSAA
@@ -492,50 +406,14 @@ namespace LoFox {
 		LF_CORE_ASSERT(vkCreateRenderPass(LogicalDevice, &renderPassInfo, nullptr, &RenderPass) == VK_SUCCESS, "Failed to create renderpass!");
 	}
 
-	void VulkanContext::InitFramebuffers() {
-
-		uint32_t swapchainImageCount = m_SwapchainImages.size();
-		m_Framebuffers = std::vector<VkFramebuffer>(swapchainImageCount);
-
-		for (int i = 0; i < swapchainImageCount; i++) {
-
-			VkFramebufferCreateInfo framebufferInfo = {};
-			framebufferInfo.attachmentCount = 1;
-			// framebufferInfo.flags = 
-			framebufferInfo.height = SwapchainExtent.height;
-			framebufferInfo.layers = 1;
-			framebufferInfo.pAttachments = &m_SwapchainImageViews[i];
-			// framebufferInfo.pNext = 
-			framebufferInfo.renderPass = RenderPass;
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.width = SwapchainExtent.width;
-
-			LF_CORE_ASSERT(vkCreateFramebuffer(LogicalDevice, &framebufferInfo, nullptr, &m_Framebuffers[i]) == VK_SUCCESS, "Failed to create framebuffers!");
-		}
-	}
-
 	void VulkanContext::InitSyncStructures() {
-
-		VkFenceCreateInfo fenceCreateInfo = {};
-		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // Fixes waiting on the fence in the first frame
-		fenceCreateInfo.pNext = nullptr;
-		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-		LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &m_RenderFence) == VK_SUCCESS, "Failed to create render fence!");
 		
+		VkFenceCreateInfo fenceCreateInfo = {};
 		fenceCreateInfo.flags = 0;
 		fenceCreateInfo.pNext = nullptr;
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
 		LF_CORE_ASSERT(vkCreateFence(LogicalDevice, &fenceCreateInfo, nullptr, &m_ImmediateSubmitBackBone.SubmitFinishedFence) == VK_SUCCESS, "Failed to create immediate submit fence!");
-
-		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-		semaphoreCreateInfo.flags = 0;
-		semaphoreCreateInfo.pNext = nullptr;
-		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &m_PresentSemaphore) == VK_SUCCESS, "Failed to create present semaphore!");
-		LF_CORE_ASSERT(vkCreateSemaphore(LogicalDevice, &semaphoreCreateInfo, nullptr, &m_RenderSemaphore) == VK_SUCCESS, "Failed to create render semaphore!");
 	}
 
 	void VulkanContext::InitDescriptorPool() {
@@ -555,14 +433,5 @@ namespace LoFox {
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 
 		LF_CORE_ASSERT(vkCreateDescriptorPool(LogicalDevice, &poolCreateInfo, nullptr, &MainDescriptorPool) == VK_SUCCESS, "Failed to create main descriptor pool!");
-	}
-
-	void VulkanContext::DestroySwapchain() {
-
-		for (auto imageView : m_SwapchainImageViews) {
-
-			vkDestroyImageView(LogicalDevice, imageView, nullptr);
-		}
-		vkDestroySwapchainKHR(LogicalDevice, m_Swapchain, nullptr);
 	}
 }

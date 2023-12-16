@@ -25,6 +25,9 @@ namespace LoFox {
 
 		Renderer::Init(m_Window);
 
+		m_ImGuiLayer = ImGuiLayer::Create();
+		PushLayer(m_ImGuiLayer);
+
 		LF_OVERSPECIFY("Creation of application \"{0}\" complete.\n", m_Spec.Name);
 	}
 
@@ -33,10 +36,10 @@ namespace LoFox {
 		m_IsRunning = true;
 		while (m_IsRunning) {
 
-			m_Window->OnUpdate(); // Processes events from the window (minimizing, resizing, closing, ...).
 
 			if (!m_Window->IsMinimized()) // Trying to render something when the window is minimized causes a crash.
 				OnUpdate(); // Keeps track of the timestep and updates all the layers.
+			m_Window->OnUpdate(); // Processes events from the window (minimizing, resizing, closing, ...).
 		}
 	}
 
@@ -46,8 +49,21 @@ namespace LoFox {
 		float timestep = time - m_LastFrameTime;
 		m_LastFrameTime = time;
 
-		for (auto& layer : m_LayerStack)
-			layer->OnUpdate(timestep);
+		Renderer::BeginFrame();
+		m_ImGuiLayer->Begin();
+		{
+		
+			for (Ref<Layer> layer : m_LayerStack)
+				layer->OnImGuiRender();
+		}
+		m_ImGuiLayer->End();
+
+		{
+
+			for (Ref<Layer> layer : m_LayerStack)
+				layer->OnUpdate(timestep);
+		}
+		Renderer::EndFrame();
 	}
 
 	Application::~Application() {

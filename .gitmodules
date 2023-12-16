@@ -7,3 +7,6 @@
 [submodule "LoFox/vendor/glm"]
 	path = LoFox/vendor/glm
 	url = https://github.com/g-truc/glm
+[submodule "LoFox/vendor/ImGui"]
+	path = LoFox/vendor/ImGui
+	url = https://github.com/HannesCoulembier/ImGui

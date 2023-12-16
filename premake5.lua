@@ -22,6 +22,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 group "Dependencies"
 	include "LoFox/vendor/GLFW"
 	include "LoFox/vendor/Glad"
+	include "LoFox/vendor/imgui"
 group ""
 
 include "LoFox"

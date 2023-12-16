@@ -14,10 +14,10 @@ namespace LoFox {
 
 		switch (severity) {
 
-		case GL_DEBUG_SEVERITY_HIGH:		 LF_CORE_CRITICAL(message); return;
-		case GL_DEBUG_SEVERITY_MEDIUM:		 LF_CORE_ERROR(message); return;
-		case GL_DEBUG_SEVERITY_LOW:			 LF_CORE_WARN(message); return;
-		case GL_DEBUG_SEVERITY_NOTIFICATION: LF_CORE_TRACE(message); return;
+			case GL_DEBUG_SEVERITY_HIGH:		 LF_CORE_CRITICAL(message); return;
+			case GL_DEBUG_SEVERITY_MEDIUM:		 LF_CORE_ERROR(message); return;
+			case GL_DEBUG_SEVERITY_LOW:			 LF_CORE_WARN(message); return;
+			case GL_DEBUG_SEVERITY_NOTIFICATION: LF_CORE_TRACE(message); return;
 		}
 
 		LF_CORE_ASSERT(false, "Unknown severity level!");
@@ -30,7 +30,7 @@ namespace LoFox {
 
 	OpenGLDebugMessenger::OpenGLDebugMessenger() {
 
-		#ifdef LF_DEBUG
+		//#ifdef LF_DEBUG
 
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -38,6 +38,7 @@ namespace LoFox {
 
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE); // Enable all debuge messages
 			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE); // But disable notifications
-		#endif
+			glDebugMessageControl(GL_DONT_CARE, GL_DEBUG_TYPE_OTHER, GL_DEBUG_SEVERITY_LOW, 0, NULL, GL_FALSE); // Also disable notifications of type "other" with a low severity (useless information, see what happens when turning it off)
+		//#endif
 	}
 }
