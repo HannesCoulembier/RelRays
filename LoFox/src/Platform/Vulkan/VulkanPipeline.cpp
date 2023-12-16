@@ -90,25 +90,23 @@ namespace LoFox {
 		m_MultisampleStateCreateInfo = Utils::MakePipelineMultisampleStateCreateInfo(); // TODO: investigate adding more parameters to this function?
 		m_ColorBlendAttachmentState = Utils::MakePipelineColorBlendAttachmentState(); // TODO: investigate adding more parameters to this function?
 
-		// TODO: add user control over viewport(s) min and max depth, x-y offset and width and height (should be like OpenGL for user, so corrections we do here, stay here)
-		// m_Viewport.height = -(float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
-		m_Viewport.height = (float)VulkanContext::Swapchain->GetExtent().height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
-		m_Viewport.maxDepth = 1.0f;
-		m_Viewport.minDepth = 0.0f;
-		m_Viewport.width = (float)VulkanContext::Swapchain->GetExtent().width;
-		m_Viewport.x = 0.0f;
-		//m_Viewport.y = (float)VulkanContext::SwapchainExtent.height; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
-		m_Viewport.y = 0.0f; // Makes (-1, -1) left bottom, (1, 1) top right, like OpenGL does
+		std::vector<VkDynamicState> dynamicStates = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR,
+		};
 
-		// TODO: investigate if this exists in OpenGL and if so, add user control over scissor(s)
-		m_Scissor.extent = VulkanContext::Swapchain->GetExtent();
-		m_Scissor.offset = { 0, 0 };
+		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+		dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+		dynamicStateCreateInfo.flags = 0;
+		dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+		dynamicStateCreateInfo.pNext = nullptr;
+		dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
 		viewportState.flags = 0;
 		viewportState.pNext = nullptr;
-		viewportState.pScissors = &m_Scissor;
-		viewportState.pViewports = &m_Viewport;
+		viewportState.pScissors = nullptr;	// Dynamic state doesn't need predefined scissors
+		viewportState.pViewports = nullptr;	// Dynamic state doesn't need predefined viewports
 		viewportState.scissorCount = 1;
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
@@ -139,7 +137,7 @@ namespace LoFox {
 		pipelineCreateInfo.layout = m_VulkanData.Layout;
 		pipelineCreateInfo.pColorBlendState = &colorBlending;
 		pipelineCreateInfo.pDepthStencilState = nullptr; // TODO: add depth and stencil buffers
-		pipelineCreateInfo.pDynamicState = nullptr; // TODO: add dynamic states (where compatible with OpenGL)
+		pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 		pipelineCreateInfo.pInputAssemblyState = &m_InputAssemblyStateCreateInfo;
 		pipelineCreateInfo.pMultisampleState = &m_MultisampleStateCreateInfo;
 		pipelineCreateInfo.pNext = nullptr;

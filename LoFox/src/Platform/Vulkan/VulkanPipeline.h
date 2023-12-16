@@ -27,9 +27,6 @@ namespace LoFox {
 		VkPipelineRasterizationStateCreateInfo m_RasterizationStateCreateInfo = {};
 		VkPipelineMultisampleStateCreateInfo m_MultisampleStateCreateInfo = {};
 		VkPipelineColorBlendAttachmentState m_ColorBlendAttachmentState = {};
-
-		VkViewport m_Viewport;
-		VkRect2D m_Scissor;
 	};
 
 	struct VulkanComputePipelineData {

@@ -128,6 +128,22 @@ namespace LoFox {
 			m_IsPipelineBound = true;
 		}
 
+		VkViewport viewport = {};
+		viewport.height = m_ActiveFramebuffer->GetHeight();
+		viewport.maxDepth = 1.0f;
+		viewport.minDepth = 0.0f;
+		viewport.width = m_ActiveFramebuffer->GetWidth();
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		vkCmdSetViewport(m_ActiveCommandBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor = {};
+		scissor.extent.width = m_ActiveFramebuffer->GetWidth();
+		scissor.extent.height = m_ActiveFramebuffer->GetHeight();
+		scissor.offset.x = 0.0f;
+		scissor.offset.y = 0.0f;
+		vkCmdSetScissor(m_ActiveCommandBuffer, 0, 1, &scissor);
+
 		VkBuffer vBuffer = static_cast<VulkanVertexBufferData*>(vertexBuffer->GetData())->Buffer->GetBuffer();
 		VkBuffer iBuffer = static_cast<VulkanIndexBufferData*>(indexBuffer->GetData())->Buffer->GetBuffer();
 		std::vector<VkDeviceSize> offset = { 0 };
