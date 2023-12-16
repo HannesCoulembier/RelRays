@@ -2,6 +2,8 @@
 
 #include <LoFox.h>
 
+#include "RelRays/Physics/Spectrum.h"
+
 namespace RelRays {
 
 	class Environment; // Forward declaration
@@ -9,12 +11,13 @@ namespace RelRays {
 	class Material {
 
 	public:
-		Material(LoFox::Ref<Environment> origin, uint32_t name, glm::vec3 color, float metallic);
+		Material(LoFox::Ref<Environment> origin, uint32_t name, glm::vec4 color, float metallic);
 	private:
 		LoFox::Ref<Environment> m_Origin;
 		uint32_t m_Name;
 
-		glm::vec3 m_Color;
+		glm::vec4 m_Color;
+		LoFox::Ref<ColorSpectra> m_ColorSpectra;
 		float m_Metallic;
 
 		friend Environment;

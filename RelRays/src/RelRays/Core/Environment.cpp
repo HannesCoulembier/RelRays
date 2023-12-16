@@ -1,5 +1,7 @@
 #include "RelRays/Core/Environment.h"
 
+#include "RelRays/Core/Defaults.h"
+
 namespace RelRays {
 
 	// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
@@ -12,10 +14,34 @@ namespace RelRays {
 		alignas(4) float Time;
 	};
 
-	struct Sphere {
-		alignas(16) glm::vec3 Position;
-		alignas(4) float Radius;
-		alignas(4) int MaterialIndex = 0;
+	struct GPUColorSpectraDescription {
+
+		alignas(4) int		InfraredSpectrumIndex;
+		alignas(4) int		InfraredSpectrumSize;
+		alignas(4) float	InfraredSpectrumMinWaveLength;
+		alignas(4) float	InfraredSpectrumMaxWaveLength;
+
+		alignas(4) int		RedSpectrumIndex;
+		alignas(4) int		RedSpectrumSize;
+		alignas(4) float	RedSpectrumMinWaveLength;
+		alignas(4) float	RedSpectrumMaxWaveLength;
+
+		alignas(4) int		GreenSpectrumIndex;
+		alignas(4) int		GreenSpectrumSize;
+		alignas(4) float	GreenSpectrumMinWaveLength;
+		alignas(4) float	GreenSpectrumMaxWaveLength;
+
+		alignas(4) int		BlueSpectrumIndex;
+		alignas(4) int		BlueSpectrumSize;
+		alignas(4) float	BlueSpectrumMinWaveLength;
+		alignas(4) float	BlueSpectrumMaxWaveLength;
+
+		alignas(16) glm::vec4 RelativeWeights;
+	};
+
+	struct GPUCameraUBO {
+
+		GPUColorSpectraDescription ColorSpectraDescription;
 	};
 
 	struct GPUObjectDescription {
@@ -34,11 +60,12 @@ namespace RelRays {
 	};
 
 	struct GPUMaterial {
-		alignas(16) glm::vec3 Albedo;
+		alignas(16) glm::vec4 Albedo;
 		// alignas(4) float Roughness;
 		alignas(4) float Metallic;
 		// alignas(16) glm::vec3 EmissionColor;
 		// alignas(4) float EmissionPower;
+		alignas(16) GPUColorSpectraDescription ColorSpectraDescription;
 	};
 
 	void Environment::Init(EnvironmentCreateInfo createInfo) {
@@ -47,11 +74,14 @@ namespace RelRays {
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
+		m_CameraUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUCameraUBO));
 
 		m_ObjectDescriptionBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectDescription));
 		m_ObjectFragmentsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectFragment));
 
 		m_MaterialsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUMaterial));
+
+		m_SpectraBuffer = LoFox::StorageBuffer::Create(1000, sizeof(float));
 
 		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
 		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
@@ -64,9 +94,11 @@ namespace RelRays {
 
 		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
+			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer	},
 			{ LoFox::ShaderType::Compute,	m_ObjectDescriptionBuffer },
 			{ LoFox::ShaderType::Compute,	m_ObjectFragmentsBuffer },
 			{ LoFox::ShaderType::Compute,	m_MaterialsBuffer },
+			{ LoFox::ShaderType::Compute,	m_SpectraBuffer },
 			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false},
 		});
 
@@ -99,8 +131,7 @@ namespace RelRays {
 		graphicsPipelineCreateInfo.VertexLayout = vertexLayout;
 		m_FinalImageRenderData.GraphicsPipeline = LoFox::GraphicsPipeline::Create(graphicsPipelineCreateInfo);
 
-		SetStorageBuffers();
-
+		UpdateBuffers();
 	}
 
 	LoFox::Ref<Environment> Environment::Create(EnvironmentCreateInfo createInfo) {
@@ -132,8 +163,7 @@ namespace RelRays {
 
 	void Environment::RenderFrame() {
 
-		UpdateUniformBuffer();
-		SetStorageBuffers();
+		UpdateBuffers();
 
 		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
 		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
@@ -164,9 +194,11 @@ namespace RelRays {
 
 		// Buffers
 		m_UniformBuffer->Destroy();
+		m_CameraUniformBuffer->Destroy();
 		m_ObjectDescriptionBuffer->Destroy();
 		m_ObjectFragmentsBuffer->Destroy();
 		m_MaterialsBuffer->Destroy();
+		m_SpectraBuffer->Destroy();
 
 		// Pipelines
 		m_RaytraceRendererData.RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
@@ -185,7 +217,7 @@ namespace RelRays {
 		return object;
 	}
 
-	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec3 color, float metallic) {
+	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec4 color, float metallic) {
 
 		uint32_t matIndex = m_Materials.size();
 		LoFox::Ref<Material> mat = LoFox::CreateRef<Material>(m_Self, matIndex, color, metallic);
@@ -193,13 +225,12 @@ namespace RelRays {
 		return mat;
 	}
 
-
-	// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-	void Environment::UpdateUniformBuffer() {
+	void Environment::UpdateBuffers() {
 
 		uint32_t width = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Width;
 		uint32_t height = LoFox::Application::GetInstance().GetActiveWindow()->GetWindowData().Height;
 
+		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		UBO ubo = {};
 		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
 		glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f); // Forward into the screen goes into the negative z-direction.
@@ -212,13 +243,55 @@ namespace RelRays {
 		ubo.Time = m_SimulationTime;
 
 		m_UniformBuffer->SetData(&ubo);
-	}
+		// END OF TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 
-	void Environment::SetStorageBuffers() {
-
-		// Objects
+		std::vector<float> spectra = {};
 		std::vector<GPUObjectDescription> objectDescriptions = {};
 		std::vector<GPUObjectFragment> objectFragments = {};
+		std::vector<GPUMaterial> materials = {};
+
+		auto FillInAndUploadColorSpectraDescription = [&](LoFox::Ref<ColorSpectra> colorSpectra, GPUColorSpectraDescription& description) {
+
+			description.RelativeWeights = colorSpectra->GetRelativeWeights();
+
+			LoFox::Ref<Spectrum> infraredSpectrum = colorSpectra->GetInfraredColorSpectrum();
+			description.InfraredSpectrumIndex = spectra.size();
+			description.InfraredSpectrumSize =			infraredSpectrum->GetWaveLengthCount();
+			description.InfraredSpectrumMinWaveLength = infraredSpectrum->GetMinWaveLength() / Units::nm;
+			description.InfraredSpectrumMaxWaveLength = infraredSpectrum->GetMaxWaveLength() / Units::nm;
+			for (float wl : infraredSpectrum->GetWaveLengths())
+				spectra.push_back(wl);
+
+			LoFox::Ref<Spectrum> redSpectrum = colorSpectra->GetRedColorSpectrum();
+			description.RedSpectrumIndex = spectra.size();
+			description.RedSpectrumSize =			redSpectrum->GetWaveLengthCount();
+			description.RedSpectrumMinWaveLength =	redSpectrum->GetMinWaveLength() / Units::nm;
+			description.RedSpectrumMaxWaveLength =	redSpectrum->GetMaxWaveLength() / Units::nm;
+			for (float wl : redSpectrum->GetWaveLengths())
+				spectra.push_back(wl);
+
+			description.GreenSpectrumIndex = spectra.size();
+			LoFox::Ref<Spectrum> greenSpectrum = colorSpectra->GetGreenColorSpectrum();
+			description.GreenSpectrumSize =				greenSpectrum->GetWaveLengthCount();
+			description.GreenSpectrumMinWaveLength =	greenSpectrum->GetMinWaveLength() / Units::nm;
+			description.GreenSpectrumMaxWaveLength =	greenSpectrum->GetMaxWaveLength() / Units::nm;
+			for (float wl : greenSpectrum->GetWaveLengths())
+				spectra.push_back(wl);
+
+			description.BlueSpectrumIndex = spectra.size();
+			LoFox::Ref<Spectrum> blueSpectrum = colorSpectra->GetBlueColorSpectrum();
+			description.BlueSpectrumSize =			blueSpectrum->GetWaveLengthCount();
+			description.BlueSpectrumMinWaveLength =	blueSpectrum->GetMinWaveLength() / Units::nm;
+			description.BlueSpectrumMaxWaveLength =	blueSpectrum->GetMaxWaveLength() / Units::nm;
+			for (float wl : blueSpectrum->GetWaveLengths())
+				spectra.push_back(wl);
+		};
+
+		GPUCameraUBO cameraData = {};
+		FillInAndUploadColorSpectraDescription(Defaults::EyeCamera::SensorColorSpectra, cameraData.ColorSpectraDescription);
+		m_CameraUniformBuffer->SetData(&cameraData);
+
+		// Objects
 		for (auto object : m_Objects) {
 
 			GPUObjectDescription description = {};
@@ -238,16 +311,13 @@ namespace RelRays {
 			objectDescriptions.push_back(description);
 		}
 
-		m_ObjectDescriptionBuffer->SetData(objectDescriptions.size(), objectDescriptions.data());
-		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
-
 		// Materials
-		std::vector<GPUMaterial> materials = {};
 		for (auto mat : m_Materials) {
 
 			GPUMaterial gpuMat = {};
 			gpuMat.Albedo = mat->m_Color;
 			gpuMat.Metallic = mat->m_Metallic;
+			FillInAndUploadColorSpectraDescription(mat->m_ColorSpectra, gpuMat.ColorSpectraDescription);
 
 			materials.push_back(gpuMat);
 		}
@@ -270,6 +340,9 @@ namespace RelRays {
 		// materials[2].EmissionColor = glm::vec3(1.0f, 0.7f, 0.3f);
 		// materials[2].EmissionPower = 1.0f;
 
+		m_ObjectDescriptionBuffer->SetData(objectDescriptions.size(), objectDescriptions.data());
+		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
 		m_MaterialsBuffer->SetData(materials.size(), materials.data());
+		m_SpectraBuffer->SetData(spectra.size(), spectra.data());
 	}
 }

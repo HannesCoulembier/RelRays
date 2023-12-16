@@ -23,7 +23,7 @@ namespace RelRays {
 		void Destroy();
 
 		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material);
-		LoFox::Ref<Material> CreateMaterial(glm::vec3 color, float metallic);
+		LoFox::Ref<Material> CreateMaterial(glm::vec4 color, float metallic);
 
 		float GetSimulationTime() { return m_SimulationTime; }
 		float GetProperTime() { return m_ProperTime; }
@@ -33,9 +33,7 @@ namespace RelRays {
 		void SetSelf(LoFox::Ref<Environment> env);
 		void Init(EnvironmentCreateInfo createInfo);
 
-		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-		void UpdateUniformBuffer();
-		void SetStorageBuffers();
+		void UpdateBuffers();
 	private:
 		LoFox::Ref<Environment> m_Self;
 		EnvironmentCreateInfo m_CreateInfo;
@@ -46,6 +44,9 @@ namespace RelRays {
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectDescriptionBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectFragmentsBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_MaterialsBuffer;
+		LoFox::Ref<LoFox::StorageBuffer> m_SpectraBuffer;
+
+		LoFox::Ref<LoFox::UniformBuffer> m_CameraUniformBuffer;
 
 
 		// BEGIN TEMPORARY STUFF FROM RAYTRACE EXAMPLE

@@ -44,6 +44,7 @@ namespace Units {
 		inline float Candela	= 1.0f;
 	}
 
+	inline float nm		= Prefix::n	* Base::Meter;
 	inline float mm		= Prefix::m	* Base::Meter;
 	inline float cm		= Prefix::c * Base::Meter;
 	inline float dm		= Prefix::d * Base::Meter;
