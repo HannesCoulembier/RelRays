@@ -196,6 +196,8 @@ namespace LoFox {
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		SetupViewport();
 	}
 
 	void VulkanImGuiLayer::End() {

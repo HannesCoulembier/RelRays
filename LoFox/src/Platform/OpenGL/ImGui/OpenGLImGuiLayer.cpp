@@ -62,6 +62,8 @@ namespace LoFox {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		SetupViewport();
 	}
 
 	void OpenGLImGuiLayer::End() {

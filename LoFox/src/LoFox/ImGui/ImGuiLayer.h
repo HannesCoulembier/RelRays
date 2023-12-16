@@ -23,6 +23,8 @@ namespace LoFox {
 
 		static Ref<ImGuiLayer> Create();
 	protected:
+		void SetupViewport();
+	protected:
 		bool m_BlockEvents = true;
 	};
 }
