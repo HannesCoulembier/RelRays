@@ -32,6 +32,7 @@ project "LoFox"
 		"vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.Glad}",
+		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.VulkanSDK}",
@@ -40,6 +41,7 @@ project "LoFox"
 	links {
 
 		"GLFW",
+		"ImGui",
 	}
 
 	filter "system:windows"

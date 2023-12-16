@@ -4,11 +4,9 @@
 #include <vulkan/vulkan.h>
 
 #include "Platform/Vulkan/VulkanDebugMessenger.h"
+#include "Platform/Vulkan/Swapchain.h"
 #include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Renderer/IndexBuffer.h"
-
-// Forward declaration
-struct GLFWwindow;
 
 namespace LoFox {
 
@@ -17,12 +15,15 @@ namespace LoFox {
 	class VulkanContext : public GraphicsContext {
 
 	public:
-		static void Init(GLFWwindow* windowHandle);
+		static void Init(Ref<Window> window);
 		static void Shutdown();
 
-		static void BeginFrame(glm::vec3 clearColor);
+		static void BeginFrame();
+		static void BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor);
+		static void BeginFramebuffer(Ref<Framebuffer> framebuffer, VkCommandBuffer commandBuffer, VkRenderPass renderPass, glm::vec3 clearColor);
 		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
 		static void Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer);
+		static void EndFramebuffer();
 		static void EndFrame();
 		static void PresentFrame();
 
@@ -46,33 +47,17 @@ namespace LoFox {
 		inline static VkDescriptorPool MainDescriptorPool;
 
 		inline static VkRenderPass RenderPass;
-		inline static VkExtent2D SwapchainExtent;
+		inline static Ref<Swapchain> Swapchain;
 	private:
 		static void InitInstance();
 		static void InitSurface();
 		static void InitDevices();
-		static void InitSwapchain();
 		static void InitDefaultRenderPass();
-		static void InitFramebuffers();
 		static void InitSyncStructures();
 		static void InitDescriptorPool();
-
-		static void DestroySwapchain();
 	private:
-		inline static GLFWwindow* m_WindowHandle;
+		inline static Ref<Window> m_Window;
 		inline static Ref<VulkanDebugMessenger> m_DebugMessenger;
-
-		inline static VkSwapchainKHR m_Swapchain;
-		inline static VkFormat m_SwapchainImageFormat;
-		inline static std::vector<VkImage> m_SwapchainImages;
-		inline static std::vector<VkImageView> m_SwapchainImageViews;
-		inline static uint32_t m_ThisFramesImageIndex = 0;
-
-		inline static std::vector<VkFramebuffer> m_Framebuffers;
-
-		inline static VkFence m_RenderFence;
-		inline static VkSemaphore m_PresentSemaphore;
-		inline static VkSemaphore m_RenderSemaphore;
 
 		struct ImmediateSubmitBackBone {
 
@@ -89,6 +74,9 @@ namespace LoFox {
 		inline static FrameData m_FrameData;
 
 		inline static Ref<GraphicsPipeline> m_ActivePipeline = nullptr;
+		inline static Ref<Framebuffer> m_ActiveFramebuffer = nullptr;
+		inline static VkCommandBuffer m_ActiveCommandBuffer = {};
+		inline static VkRenderPass m_ActiveRenderpass = {};
 		inline static bool m_IsPipelineBound = false;
 		inline static bool m_HasActiveRenderPass = false;
 	};

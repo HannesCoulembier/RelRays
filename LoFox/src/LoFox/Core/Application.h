@@ -8,6 +8,8 @@
 #include "LoFox/Events/Event.h"
 #include "LoFox/Events/ApplicationEvent.h"
 
+#include "LoFox/ImGui/ImGuiLayer.h"
+
 int main(int argc, char** argv); // Forward declaration (see EntryPoint.h).
 
 namespace LoFox {
@@ -35,6 +37,7 @@ namespace LoFox {
 
 		inline Ref<Window> GetActiveWindow() { return m_Window; } // We currently only support 1 window, so that's the 'Active' window.
 		inline ApplicationSpec GetSpec() { return m_Spec; }
+		Ref<ImGuiLayer> GetImGuiLayer() { return m_ImGuiLayer; }
 
 		static Application& GetInstance() { return *s_Instance; } // Consequence of having only 1 Application at a time.
 	private:
@@ -44,6 +47,7 @@ namespace LoFox {
 		ApplicationSpec m_Spec;
 		Ref<Window> m_Window;
 		std::vector<Ref<Layer>> m_LayerStack;
+		Ref<ImGuiLayer> m_ImGuiLayer;
 
 		float m_LastFrameTime = 0.0f;
 		bool m_IsRunning = false;

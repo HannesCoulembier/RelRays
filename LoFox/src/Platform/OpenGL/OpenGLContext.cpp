@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
+#include "Platform/OpenGL/OpenGLFramebuffer.h"
 #include "Platform/OpenGL/OpenGLPipeline.h"
 #include "Platform/OpenGL/OpenGLVertexBuffer.h"
 #include "Platform/OpenGL/OpenGLIndexBuffer.h"
@@ -11,12 +12,12 @@
 
 namespace LoFox {
 
-	void OpenGLContext::Init(GLFWwindow* windowHandle) {
+	void OpenGLContext::Init(Ref<Window> window) {
 
-		LF_CORE_ASSERT(windowHandle, "Window handle is null!");
-		m_WindowHandle = windowHandle;
+		LF_CORE_ASSERT(window, "Window is null!");
+		m_Window = window;
 
-		glfwMakeContextCurrent(m_WindowHandle);
+		glfwMakeContextCurrent(static_cast<GLFWwindow*>(m_Window->GetWindowHandle()));
 		glfwSwapInterval(0); // Disables VSync
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		LF_CORE_ASSERT(status, "Failed to initialize Glad");
@@ -32,7 +33,7 @@ namespace LoFox {
 		m_DebugMessenger = OpenGLDebugMessenger::Create();
 
 		// Settings
-		glEnable(GL_FRAMEBUFFER_SRGB); // Transforms to correct colorspace when presenting framebuffer
+		// glEnable(GL_FRAMEBUFFER_SRGB); // Transforms to correct colorspace when presenting framebuffer
 		glEnable(GL_LINE_SMOOTH); // Makes LineWidth mathematically correct
 		glEnable(GL_POINT_SMOOTH); // Makes points round
 
@@ -43,6 +44,37 @@ namespace LoFox {
 
 		glGenVertexArrays(1, &m_VertexArrayID);
 		glBindVertexArray(m_VertexArrayID);
+
+
+		// Framebuffer
+		glGenFramebuffers(1, &m_FramebufferID);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferID);
+
+		
+		glGenTextures(1, &m_FramebufferColorAttachmentID);
+		glBindTexture(GL_TEXTURE_2D, m_FramebufferColorAttachmentID);
+		// Attach color texture
+		int width, height;
+		glfwGetFramebufferSize(static_cast<GLFWwindow*>(m_Window->GetWindowHandle()), &width, &height);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_FramebufferColorAttachmentID, 0);
+		
+		glGenRenderbuffers(1, &m_RenderbufferID);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_RenderbufferID);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RenderbufferID);
+
+		LF_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete!");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	}
 
 	void OpenGLContext::Shutdown() {
@@ -50,8 +82,17 @@ namespace LoFox {
 		glDeleteVertexArrays(1, &m_VertexArrayID);
 	}
 
-	void OpenGLContext::BeginFrame(glm::vec3 clearColor) {
+	void OpenGLContext::BeginFrame() {
 
+	}
+
+	void OpenGLContext::BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor) {
+
+		OpenGLFramebufferData* framebufferData = static_cast<OpenGLFramebufferData*>(framebuffer->GetData());
+		glBindFramebuffer(GL_FRAMEBUFFER, framebufferData->RendererID);
+		// int width, height;
+		// glfwGetFramebufferSize(m_WindowHandle, &width, &height);
+		// glViewport(0, 0, width, height);
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
@@ -142,13 +183,18 @@ namespace LoFox {
 		glDrawElements(pipelineData->PrimitiveTopology, indexBuffer->GetNumberOfIndices(), GL_UNSIGNED_INT, nullptr);
 	}
 
-	void OpenGLContext::EndFrame() {
+	void OpenGLContext::EndFramebuffer() {
 		
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	void OpenGLContext::EndFrame() {
+
 	}
 
 	void OpenGLContext::PresentFrame() {
 
-		glfwSwapBuffers(m_WindowHandle);
+		glfwSwapBuffers(static_cast<GLFWwindow*>(m_Window->GetWindowHandle()));
 	}
 
 }

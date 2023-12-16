@@ -16,6 +16,7 @@ namespace LoFox {
 
 		virtual EventType GetEventType() const override { return EventType::MouseMoved; }
 		static EventType GetStaticEventType() { return EventType::MouseMoved; }
+		virtual int GetCategoryFlags() const override { return EventCategoryMouse | EventCategoryInput; }
 	private:
 		float m_MouseX, m_MouseY;
 	};
@@ -31,6 +32,7 @@ namespace LoFox {
 
 		virtual EventType GetEventType() const override { return EventType::MouseScrolled; }
 		static EventType GetStaticEventType() { return EventType::MouseScrolled; }
+		virtual int GetCategoryFlags() const override { return EventCategoryMouse | EventCategoryInput; }
 	private:
 		float m_XOffset, m_YOffset;
 	};
@@ -39,6 +41,7 @@ namespace LoFox {
 
 	public:
 		inline MouseCode GetMouseButton() const { return m_Button; }
+		virtual int GetCategoryFlags() const override { return EventCategoryMouse | EventCategoryInput; }
 	protected:
 		MouseButtonEvent(MouseCode button)
 			: m_Button(button) {}
@@ -54,6 +57,7 @@ namespace LoFox {
 
 		virtual EventType GetEventType() const override { return EventType::MouseButtonPressed; }
 		static EventType GetStaticEventType() { return EventType::MouseButtonPressed; }
+		virtual int GetCategoryFlags() const override { return EventCategoryMouse | EventCategoryInput; }
 	};
 
 	class MouseButtonReleasedEvent : public MouseButtonEvent {
@@ -64,5 +68,6 @@ namespace LoFox {
 
 		virtual EventType GetEventType() const override { return EventType::MouseButtonReleased; }
 		static EventType GetStaticEventType() { return EventType::MouseButtonReleased; }
+		virtual int GetCategoryFlags() const override { return EventCategoryMouse | EventCategoryInput; }
 	};
 }

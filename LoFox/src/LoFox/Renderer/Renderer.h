@@ -12,6 +12,7 @@
 // #include "LoFox/Renderer/Pipeline.h"
 // #include "LoFox/Renderer/SwapChain.h"
 
+#include "LoFox/Renderer/Framebuffer.h"
 #include "LoFox/Renderer/Pipeline.h"
 #include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Renderer/IndexBuffer.h"
@@ -27,11 +28,13 @@ namespace LoFox {
 		static void Init(Ref<Window> window);
 		static void Shutdown();
 
-		static void BeginFrame(glm::vec3 clearColor = { 0.0f, 0.0f, 0.0f });
+		static void BeginFrame();
+		static void BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor = { 0.0f, 0.0f, 0.0f });
 
 		static void SetActivePipeline(Ref<GraphicsPipeline> pipeline);
 		static void Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer);
 
+		static void EndFramebuffer();
 		static void EndFrame();
 
 		static void WaitIdle();

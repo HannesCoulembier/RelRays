@@ -19,7 +19,9 @@ namespace LoFox {
 
 	Ref<Window> Window::Create(const WindowSpec& spec) {
 
-		return CreateRef<Window>(spec);
+		Ref<Window> window = CreateRef<Window>(spec);
+		GraphicsContext::Init(window);
+		return window;
 	}
 
 	Window::Window(const WindowSpec& spec) 
@@ -46,12 +48,9 @@ namespace LoFox {
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		else
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		
 
 		m_WindowHandle = glfwCreateWindow(m_Spec.Width, m_Spec.Height, m_Spec.Title.c_str(), nullptr, nullptr);
 		windowCount++;
-
-		GraphicsContext::Init(m_WindowHandle);
 
 		// Provides glfw callbacks with m_WindowData
 		glfwSetWindowUserPointer(m_WindowHandle, &m_WindowData);
@@ -163,6 +162,8 @@ namespace LoFox {
 	void Window::OnUpdate() {
 
 		glfwPollEvents();
+		if (!IsMinimized())
+			GraphicsContext::PresentFrame();
 	}
 
 	void Window::GetFramebufferSize(int* width, int* height) const {

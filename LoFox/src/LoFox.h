@@ -10,6 +10,8 @@
 #include "LoFox/Core/Application.h"
 #include "LoFox/Core/Layer.h"
 
+#include "LoFox/ImGui/ImGuiLayer.h"
+
 #include "LoFox/Core/Input.h"
 #include "LoFox/Core/KeyCodes.h"
 #include "LoFox/Core/MouseCodes.h"
@@ -21,6 +23,7 @@
 // #include "LoFox/Renderer/RenderCommand.h"
 #include "LoFox/Renderer/Renderer.h"
 
+#include "LoFox/Renderer/Framebuffer.h"
 #include "LoFox/Renderer/VertexBuffer.h"
 #include "LoFox/Renderer/IndexBuffer.h"
 #include "LoFox/Renderer/Resources/Texture.h"

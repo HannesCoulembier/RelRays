@@ -16,6 +16,7 @@ namespace LoFox {
 
 		virtual EventType GetEventType() const override { return EventType::WindowResize; }
 		static EventType GetStaticEventType() { return EventType::WindowResize; }
+		virtual int GetCategoryFlags() const override { return EventCategoryApplication; }
 	private:
 		uint32_t m_Width, m_Height;
 	};
@@ -27,5 +28,6 @@ namespace LoFox {
 
 		virtual EventType GetEventType() const override { return EventType::WindowClose; }
 		static EventType GetStaticEventType() { return EventType::WindowClose; }
+		virtual int GetCategoryFlags() const override { return EventCategoryApplication; }
 	};
 }

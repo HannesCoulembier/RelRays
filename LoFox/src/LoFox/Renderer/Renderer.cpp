@@ -54,9 +54,14 @@ namespace LoFox {
 		// LF_CORE_ASSERT(vkCreateSampler(VulkanContext::LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler) == VK_SUCCESS, "Failed to create image sampler!");
 	}
 
-	void Renderer::BeginFrame(glm::vec3 clearColor) {
+	void Renderer::BeginFrame() {
 
-		GraphicsContext::BeginFrame(clearColor);
+		GraphicsContext::BeginFrame();
+	}
+
+	void Renderer::BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor) {
+
+		GraphicsContext::BeginFramebuffer(framebuffer, clearColor);
 	}
 
 	void Renderer::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
@@ -69,10 +74,14 @@ namespace LoFox {
 		GraphicsContext::Draw(indexBuffer, vertexBuffer);
 	}
 
+	void Renderer::EndFramebuffer() {
+
+		GraphicsContext::EndFramebuffer();
+	}
+
 	void Renderer::EndFrame() {
 
 		GraphicsContext::EndFrame();
-		GraphicsContext::PresentFrame();
 	}
 
 	void Renderer::WaitIdle() {
