@@ -174,6 +174,8 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(vkQueueSubmit(GraphicsQueueHandle, 1, &submit, VK_NULL_HANDLE) == VK_SUCCESS, "Failed to submit draw commands!");
 		m_IsPipelineBound = false;
+
+		m_ActiveFramebuffer = nullptr;
 	}
 
 	void VulkanContext::EndFrame() {

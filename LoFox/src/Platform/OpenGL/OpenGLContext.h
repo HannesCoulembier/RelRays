@@ -30,11 +30,7 @@ namespace LoFox {
 
 		inline static GLuint m_VertexArrayID;
 		inline static Ref<GraphicsPipeline> m_ActivePipeline;
-
-		// TODO: Give own FrameBuffer class
-		inline static GLuint m_FramebufferID;
-		inline static GLuint m_RenderbufferID;
-		inline static GLuint m_FramebufferColorAttachmentID;
+		inline static Ref<Framebuffer> m_ActiveFramebuffer;
 	};
 
 }

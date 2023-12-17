@@ -47,34 +47,34 @@ namespace LoFox {
 
 
 		// Framebuffer
-		glGenFramebuffers(1, &m_FramebufferID);
-		glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferID);
-
-		
-		glGenTextures(1, &m_FramebufferColorAttachmentID);
-		glBindTexture(GL_TEXTURE_2D, m_FramebufferColorAttachmentID);
-		// Attach color texture
-		int width, height;
-		glfwGetFramebufferSize(static_cast<GLFWwindow*>(m_Window->GetWindowHandle()), &width, &height);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_FramebufferColorAttachmentID, 0);
-		
-		glGenRenderbuffers(1, &m_RenderbufferID);
-		glBindRenderbuffer(GL_RENDERBUFFER, m_RenderbufferID);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RenderbufferID);
-
-		LF_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete!");
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		// glGenFramebuffers(1, &m_FramebufferID);
+		// glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferID);
+		// 
+		// 
+		// glGenTextures(1, &m_FramebufferColorAttachmentID);
+		// glBindTexture(GL_TEXTURE_2D, m_FramebufferColorAttachmentID);
+		// // Attach color texture
+		// int width, height;
+		// glfwGetFramebufferSize(static_cast<GLFWwindow*>(m_Window->GetWindowHandle()), &width, &height);
+		// glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		// 
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_FramebufferColorAttachmentID, 0);
+		// 
+		// glGenRenderbuffers(1, &m_RenderbufferID);
+		// glBindRenderbuffer(GL_RENDERBUFFER, m_RenderbufferID);
+		// glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+		// glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RenderbufferID);
+		// 
+		// LF_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete!");
+		// 
+		// glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// glBindTexture(GL_TEXTURE_2D, 0);
+		// glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	}
 
 	void OpenGLContext::Shutdown() {
@@ -88,14 +88,19 @@ namespace LoFox {
 
 	void OpenGLContext::BeginFramebuffer(Ref<Framebuffer> framebuffer, glm::vec3 clearColor) {
 
-		OpenGLFramebufferData* framebufferData = static_cast<OpenGLFramebufferData*>(framebuffer->GetData());
+		m_ActiveFramebuffer = framebuffer;
+		OpenGLFramebufferData* framebufferData = static_cast<OpenGLFramebufferData*>(m_ActiveFramebuffer->GetData());
 		glBindFramebuffer(GL_FRAMEBUFFER, framebufferData->RendererID);
-		glViewport(0, 0, framebuffer->GetWidth(), framebuffer->GetHeight());
+		glViewport(0, 0, m_ActiveFramebuffer->GetWidth(), m_ActiveFramebuffer->GetHeight());
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void OpenGLContext::SetActivePipeline(Ref<GraphicsPipeline> pipeline) {
+
+		OpenGLFramebufferData* framebufferData = static_cast<OpenGLFramebufferData*>(m_ActiveFramebuffer->GetData());
+		glBindFramebuffer(GL_FRAMEBUFFER, framebufferData->RendererID);
 
 		OpenGLGraphicsPipelineData* pipelineData = static_cast<OpenGLGraphicsPipelineData*>(pipeline->GetData());
 
@@ -103,9 +108,14 @@ namespace LoFox {
 		glUseProgram(pipelineData->ProgramID);
 
 		BindResourceLayout(pipelineData->ProgramID, pipelineData->ResourceLayout);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void OpenGLContext::Draw(Ref<IndexBuffer> indexBuffer, Ref<VertexBuffer> vertexBuffer) {
+
+		OpenGLFramebufferData* framebufferData = static_cast<OpenGLFramebufferData*>(m_ActiveFramebuffer->GetData());
+		glBindFramebuffer(GL_FRAMEBUFFER, framebufferData->RendererID);
 
 		OpenGLVertexBufferData* vertexBufferData = static_cast<OpenGLVertexBufferData*>(vertexBuffer->GetData());
 		OpenGLIndexBufferData* indexBufferData = static_cast<OpenGLIndexBufferData*>(indexBuffer->GetData());
@@ -179,11 +189,14 @@ namespace LoFox {
 		}
 
 		glDrawElements(pipelineData->PrimitiveTopology, indexBuffer->GetNumberOfIndices(), GL_UNSIGNED_INT, nullptr);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void OpenGLContext::EndFramebuffer() {
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		m_ActiveFramebuffer = nullptr;
 	}
 
 	void OpenGLContext::EndFrame() {
