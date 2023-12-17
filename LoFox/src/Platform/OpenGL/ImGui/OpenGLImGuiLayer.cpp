@@ -33,10 +33,11 @@ namespace LoFox {
 		SetStyle();
 
 		Application& app = Application::GetInstance();
-		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetActiveWindow()->GetWindowHandle());
+		Ref<Window> window = app.GetActiveWindow();
+		GLFWwindow* windowHandle = static_cast<GLFWwindow*>(window->GetWindowHandle());
 
 		// Setup Platform/Renderer bindings
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGui_ImplGlfw_InitForOpenGL(windowHandle, true);
 		ImGui_ImplOpenGL3_Init("#version 330");
 	}
 
@@ -74,6 +75,7 @@ namespace LoFox {
 
 		// Rendering
 		ImGui::Render();
+
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
