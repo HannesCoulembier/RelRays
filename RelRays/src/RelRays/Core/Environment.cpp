@@ -1,4 +1,5 @@
 #include "RelRays/Core/Environment.h"
+#include <ImGui/imgui.h>
 
 #include "RelRays/Core/Defaults.h"
 
@@ -12,6 +13,12 @@ namespace RelRays {
 		alignas(16) glm::mat4 invView;
 		alignas(16) glm::mat4 invProj;
 		alignas(4) float Time;
+	};
+	// END TEMPORARY STUFF RAYTRACE EXAMPLE
+
+	struct GPURenderSettingsUBO {
+
+		alignas(4) int		RayBounces;
 	};
 
 	struct GPUColorSpectraDescription {
@@ -76,7 +83,9 @@ namespace RelRays {
 
 		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
+		// END TEMPORARY STUFF RAYTRACE EXAMPLE
 		m_CameraUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUCameraUBO));
+		m_RenderSettingsUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPURenderSettingsUBO));
 
 		m_ObjectDescriptionBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectDescription));
 		m_ObjectFragmentsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectFragment));
@@ -103,7 +112,8 @@ namespace RelRays {
 
 		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
-			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer	},
+			{ LoFox::ShaderType::Compute,	m_RenderSettingsUniformBuffer },
+			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_ObjectDescriptionBuffer },
 			{ LoFox::ShaderType::Compute,	m_ObjectFragmentsBuffer },
 			{ LoFox::ShaderType::Compute,	m_MaterialsBuffer },
@@ -203,6 +213,8 @@ namespace RelRays {
 		// Buffers
 		m_UniformBuffer->Destroy();
 		m_CameraUniformBuffer->Destroy();
+		m_RenderSettingsUniformBuffer->Destroy();
+
 		m_ObjectDescriptionBuffer->Destroy();
 		m_ObjectFragmentsBuffer->Destroy();
 		m_MaterialsBuffer->Destroy();
@@ -298,9 +310,14 @@ namespace RelRays {
 				spectra.push_back(wl);
 		};
 
+		// Uniform buffers
 		GPUCameraUBO cameraData = {};
 		FillInAndUploadColorSpectraDescription(Defaults::EyeCamera::SensorColorSpectra, cameraData.ColorSpectraDescription);
 		m_CameraUniformBuffer->SetData(&cameraData);
+
+		GPURenderSettingsUBO renderSettingsData = {};
+		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
+		m_RenderSettingsUniformBuffer->SetData(&renderSettingsData);
 
 		// Objects
 		for (auto object : m_Objects) {
@@ -355,5 +372,16 @@ namespace RelRays {
 		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
 		m_MaterialsBuffer->SetData(materials.size(), materials.data());
 		m_SpectraBuffer->SetData(spectra.size(), spectra.data());
+	}
+
+	void Environment::RenderImGuiRenderSettings() {
+
+		ImGui::Begin("Settings");
+
+		ImGui::SliderInt("Bounces", &m_RenderSettings.RayBounces, 1, 10);
+		ImGui::Separator();
+
+		ImGui::End();
+		
 	}
 }

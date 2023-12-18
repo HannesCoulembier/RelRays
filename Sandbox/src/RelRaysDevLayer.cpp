@@ -35,14 +35,7 @@ namespace LoFox {
 
 	void RelRaysDevLayer::OnImGuiRender() {
 
-		{ // Settings
-			ImGui::Begin("Settings");
-			ImGui::Text("This is the settings window");
-
-			ImGui::Separator();
-
-			ImGui::End();
-		}
+		m_Env->RenderImGuiRenderSettings();
 
 		{ // Viewport
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });

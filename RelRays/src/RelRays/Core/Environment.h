@@ -28,6 +28,8 @@ namespace RelRays {
 		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material);
 		LoFox::Ref<Material> CreateMaterial(glm::vec4 color, float metallic);
 
+		void RenderImGuiRenderSettings();
+
 		float GetSimulationTime() { return m_SimulationTime; }
 		float GetProperTime() { return m_ProperTime; }
 		uint64_t GetFinalImageImTextureID() { return *(uint64_t*)m_FinalImageRenderData.Framebuffer->GetAttachmentImTextureID(0); }
@@ -51,6 +53,7 @@ namespace RelRays {
 		LoFox::Ref<LoFox::StorageBuffer> m_SpectraBuffer;
 
 		LoFox::Ref<LoFox::UniformBuffer> m_CameraUniformBuffer;
+		LoFox::Ref<LoFox::UniformBuffer> m_RenderSettingsUniformBuffer;
 
 		// BEGIN TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 		LoFox::Ref<LoFox::UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)
@@ -88,6 +91,11 @@ namespace RelRays {
 			uint32_t FinalImageWidth, FinalImageHeight;
 		};
 		FinalImageRenderData m_FinalImageRenderData = {};
+
+		struct RenderSettings {
+			int RayBounces = 7;
+		};
+		RenderSettings m_RenderSettings = {};
 
 		float m_SimulationTime = 0.0f; // Time measured by the camera (or sum of the times measured by multiple cameras)
 		float m_LastOnUpdateTime = 0.0f; // Used to calculate FPS
