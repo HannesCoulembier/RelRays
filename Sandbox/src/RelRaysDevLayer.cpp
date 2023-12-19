@@ -13,9 +13,11 @@ namespace LoFox {
 		m_PurpleMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 0.0f, 1.0f }, 0.2f);
 		m_YellowMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 1.0f, 0.0f }, 0.2f);
 
-		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, 0.0f) * Units::m, 1.0f * Units::m, m_YellowMaterial);
-		m_TestObject2 = m_Env->CreateObject(glm::vec3(0.0f, -0.135f, 0.0f) * Units::m, 1.0f * Units::m, m_YellowMaterial);
-		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, -101.0f, -5.0f) * Units::m, 100.0f * Units::m, m_PurpleMaterial);
+		m_TriangleModel = m_Env->CreateModelFromPath("fake path");
+
+		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, 0.0f) * Units::m, 1.0f * Units::m, m_YellowMaterial, m_TriangleModel);
+		m_TestObject2 = m_Env->CreateObject(glm::vec3(0.0f, -0.135f, -2.0f) * Units::m, 1.0f * Units::m, m_YellowMaterial, m_TriangleModel);
+		// m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, -101.0f, -5.0f) * Units::m, 100.0f * Units::m, m_PurpleMaterial, m_TriangleModel);
 	}
 	void RelRaysDevLayer::OnDetach() {
 

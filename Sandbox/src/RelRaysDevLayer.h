@@ -23,6 +23,7 @@ namespace LoFox {
 		Ref<RelRays::Environment> m_Env;
 		Ref<RelRays::Material> m_PurpleMaterial, m_YellowMaterial;
 		Ref<RelRays::Object> m_TestObject1, m_TestObject2, m_TestObject3;
+		Ref<RelRays::Model> m_TriangleModel;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		float m_Time = 0;

@@ -25,8 +25,9 @@ namespace RelRays {
 		void RenderFrame(uint32_t viewportWidth, uint32_t viewportHeight);
 		void Destroy();
 
-		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material);
+		LoFox::Ref<Object> CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
 		LoFox::Ref<Material> CreateMaterial(glm::vec4 color, float metallic);
+		LoFox::Ref<Model> CreateModelFromPath(const std::string& objPath);
 
 		void RenderImGuiRenderSettings();
 
@@ -51,6 +52,8 @@ namespace RelRays {
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectFragmentsBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_MaterialsBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_SpectraBuffer;
+		LoFox::Ref<LoFox::StorageBuffer> m_VertexBuffer;
+		LoFox::Ref<LoFox::StorageBuffer> m_IndexBuffer;
 
 		LoFox::Ref<LoFox::UniformBuffer> m_CameraUniformBuffer;
 		LoFox::Ref<LoFox::UniformBuffer> m_RenderSettingsUniformBuffer;

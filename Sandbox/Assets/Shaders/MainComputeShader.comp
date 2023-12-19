@@ -29,9 +29,11 @@ struct ColorSpectraDescription {
     vec4    RelativeWeights;
 };
 struct ObjectDescription {
-    int LatestFragmentIndex;
+    int LatestFragmentIndex; // Lowest index (the newest object fragments have the highest indices)
     int NumberOfFragments;
-    float Radius;
+
+    int FirstIndexIndex;
+    int IndexCount;
 };
 struct ObjectFragment {
     vec3 Pos;
@@ -45,7 +47,9 @@ struct Material {
 	// float EmissionPower;
     ColorSpectraDescription AbsorptionSpectraDescription;
 };
-
+struct Vertex {
+    vec3 Position;
+};
 
 layout(         binding = 0)        uniform         CameraBlockAndScene {
     mat4 view;
@@ -64,7 +68,9 @@ layout(std140,  binding = 3)        readonly buffer ObjectDescriptionBlock  { Ob
 layout(std140,  binding = 4)        readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
 layout(std140,  binding = 5)        readonly buffer MaterialBlock           { Material materials[]; };
 layout(         binding = 6)        readonly buffer SpectrumBlock           { float spectra[]; };
-layout(         binding = 7, rgba8) uniform image2D colorBuffer;
+layout(         binding = 7)        readonly buffer VertexBufferBlock       { Vertex vertices[]; };
+layout(         binding = 8)        readonly buffer IndexBufferBlock        { int indices[]; };
+layout(         binding = 9, rgba8) uniform image2D colorBuffer;
 
 const int raySpectrumSampleCount = 100;
 float rayMinWaveLength = 0.0;
@@ -85,8 +91,13 @@ struct HitPayload {
     int ObjectFragmentIndex;
 };
 
+struct SmallHitPayload {
+    float HitDistance;
+};
+
 HitPayload TraceRay(Ray ray);
-HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex);
+SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3);
+HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex, int firstTriangleIndexIndex);
 HitPayload Miss(Ray ray);
 
 float SampleSpectra(float waveLength, float spectrumMinWaveLength, float spectrumMaxWaveLength, int spectrumStartIndex, int spectrumLength);
@@ -201,58 +212,128 @@ HitPayload TraceRay(Ray ray) {
 
 	int closestObjectDescription = -1;
     int closestObjectFragment = -1;
+    int closestTriangleIndexIndex = -1;
 
 	float hitDistance = FLT_MAX;
 
 	for (int i = 0; i < objectDescriptions.length(); i++) {
         
         ObjectDescription objectDescription = objectDescriptions[i];
-        ObjectFragment objectFragment = objectFragments[objectDescription.LatestFragmentIndex];
 
-        vec3 origin = ray.Origin - objectFragment.Pos;
+        for (int j = 0; j < objectDescription.NumberOfFragments; j++) {
 
-	    float a = dot(ray.Direction, ray.Direction);
-	    float b = 2.0f * dot(ray.Direction, origin);
-	    float c = dot(origin, origin) - objectDescription.Radius * objectDescription.Radius;
+            ObjectFragment objectFragment = objectFragments[objectDescription.LatestFragmentIndex + j];
 
-	    float discriminant = b * b - 4 * a * c;
+            for (int k = 0; k < (objectDescription.IndexCount) / 3; k++) { // Count up every 3 indices (per triangle)
 
-	    if (discriminant < 0)
-		    continue;
-	
-	    float t = (-b - sqrt(discriminant)) / (2.0f * a);
-	    
-        if (t > 0.0f && t < hitDistance) {
-            hitDistance = t;
-	        closestObjectDescription = i;
-            closestObjectFragment = objectDescription.LatestFragmentIndex;
+                Vertex v1 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 0]];
+                Vertex v2 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 1]];
+                Vertex v3 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 2]];
+
+                vec3 p1 = v1.Position + objectFragment.Pos;
+                vec3 p2 = v2.Position + objectFragment.Pos;
+                vec3 p3 = v3.Position + objectFragment.Pos;
+
+                SmallHitPayload smallPayload = CalculateHitDistance(ray, p1, p2, p3);
+                float t = smallPayload.HitDistance;
+                if (t > 0.0 && t < hitDistance) {
+                    hitDistance = t;
+                    closestObjectDescription = i;
+                    closestObjectFragment = objectDescription.LatestFragmentIndex + j;
+                    closestTriangleIndexIndex = objectDescription.FirstIndexIndex + k * 3;
+                }
+            }
         }
+
+        // vec3 origin = ray.Origin - objectFragment.Pos;
+
+	    // float a = dot(ray.Direction, ray.Direction);
+	    // float b = 2.0f * dot(ray.Direction, origin);
+	    // float c = dot(origin, origin) - objectDescription.Radius * objectDescription.Radius;
+
+	    // float discriminant = b * b - 4 * a * c;
+
+	    // if (discriminant < 0)
+		//     continue;
+	
+	    // float t = (-b - sqrt(discriminant)) / (2.0f * a);
+	    
+        // if (t > 0.0f && t < hitDistance) {
+        //     hitDistance = t;
+	    //     closestObjectDescription = i;
+        //     closestObjectFragment = objectDescription.LatestFragmentIndex;
+        // }
     }
     
 	if (closestObjectDescription < 0) {
 		return Miss(ray);
     }
 
-	return ClosestHit(ray, hitDistance, closestObjectDescription, closestObjectFragment);
+	return ClosestHit(ray, hitDistance, closestObjectDescription, closestObjectFragment, closestTriangleIndexIndex);
+}
+
+bool PointInTriangle(vec3 p, vec3 p0, vec3 p1, vec3 p2) {
+  vec3 a = p0 - p;
+  vec3 b = p1 - p;
+  vec3 c = p2 - p;
+
+  vec3 u = cross(b, c);
+  vec3 v = cross(c, a);
+  vec3 w = cross(a, b);
+
+  if (dot(u, v) < 0.0) {
+      return false;
+  }
+  if (dot(u, w) < 0.0) {
+      return false;
+  }
+
+  return true;
+}
+
+SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3) {
+    SmallHitPayload result;
+    vec3 normal = normalize(cross(pos2 - pos1, pos3 - pos1));
+
+    float t = dot(normal, (pos1 - ray.Origin)) / dot(normal, ray.Direction);
+    
+    // Check if hitPoint is in triangle
+    vec3 hitPos = ray.Origin + t * ray.Direction;
+    bool isInTriangle = PointInTriangle(hitPos, pos1, pos2, pos3);
+    if (isInTriangle)
+        result.HitDistance = t;
+    else
+        result.HitDistance = -1.0;
+    return result;
 }
 
 HitPayload Miss(Ray ray) {
     
     HitPayload payload;
     payload.HitDistance = -1.0;
+    payload.WorldPos = vec3(0.0);
+    payload.WorldNormal = ray.Direction;
+    payload.ObjectDescriptionIndex = -1;
+    payload.ObjectFragmentIndex = -1;
     return payload;
 }
 
-HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex) {
+HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex, int firstTriangleIndexIndex) {
     
     ObjectDescription objectDescription = objectDescriptions[objectDescriptionIndex];
     ObjectFragment objectFragment = objectFragments[objectFragmentIndex];
+    Vertex v1 = vertices[indices[firstTriangleIndexIndex + 0]];
+    Vertex v2 = vertices[indices[firstTriangleIndexIndex + 1]];
+    Vertex v3 = vertices[indices[firstTriangleIndexIndex + 2]];
+
+    vec3 planeNormal = cross((v2.Position - v1.Position), (v3.Position - v1.Position));
 
     HitPayload payload;
 
 	payload.HitDistance = hitDistance;
 	payload.WorldPos = ray.Origin + ray.Direction * hitDistance;
-	payload.WorldNormal = normalize(payload.WorldPos - objectFragment.Pos); // For a sphere
+    // payload.WorldNormal = normalize(payload.WorldPos - objectFragment.Pos); // For a sphere
+	payload.WorldNormal = normalize(-planeNormal * dot(ray.Direction, planeNormal)); // Multiply by dot of ray direction and normal to get the normal to face the right way, then normalize
     payload.ObjectDescriptionIndex = objectDescriptionIndex;
     payload.ObjectFragmentIndex = objectFragmentIndex;
 
