@@ -38,9 +38,18 @@ namespace LoFox {
 		glAttachShader(m_OpenGLData.ProgramID, fragmentShaderID);
 		glLinkProgram(m_OpenGLData.ProgramID);
 
-		// TODO: add error checking using:
-		// glGetProgramiv(m_OpenGLData.ProgramID, GL_LINK_STATUS, &Result);
-		// glGetProgramiv(m_OpenGLData.ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+		// Check for errors
+		GLint isLinked;
+		glGetProgramiv(m_OpenGLData.ProgramID, GL_LINK_STATUS, &isLinked);
+		if (isLinked == GL_FALSE) {
+
+			GLint maxLength;
+			glGetProgramiv(m_OpenGLData.ProgramID, GL_INFO_LOG_LENGTH, &maxLength);
+
+			std::vector<GLchar> infoLog(maxLength);
+			glGetProgramInfoLog(m_OpenGLData.ProgramID, maxLength, &maxLength, infoLog.data());
+			LF_CORE_ERROR("Shader linking failed:\n{0}", infoLog.data());
+		}
 	}
 
 	void OpenGLGraphicsPipeline::Destroy() {
@@ -61,9 +70,18 @@ namespace LoFox {
 		glAttachShader(m_OpenGLData.ProgramID, computeShaderID);
 		glLinkProgram(m_OpenGLData.ProgramID);
 
-		// TODO: add error checking using:
-		// glGetProgramiv(m_OpenGLData.ProgramID, GL_LINK_STATUS, &Result);
-		// glGetProgramiv(m_OpenGLData.ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+		// Check for errors
+		GLint isLinked;
+		glGetProgramiv(m_OpenGLData.ProgramID, GL_LINK_STATUS, &isLinked);
+		if (isLinked == GL_FALSE) {
+
+			GLint maxLength;
+			glGetProgramiv(m_OpenGLData.ProgramID, GL_INFO_LOG_LENGTH, &maxLength);
+
+			std::vector<GLchar> infoLog(maxLength);
+			glGetProgramInfoLog(m_OpenGLData.ProgramID, maxLength, &maxLength, infoLog.data());
+			LF_CORE_ERROR("Shader linking failed ({0}):\n{1}", m_CreateInfo.ComputeShader->GetPath(), infoLog.data());
+		}
 	}
 
 	void OpenGLComputePipeline::Dispatch(uint32_t width, uint32_t height, uint32_t groupWidth, uint32_t groupHeight) {
