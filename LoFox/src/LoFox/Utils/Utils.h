@@ -97,5 +97,24 @@ namespace LoFox {
 			}
 		}
 
+		std::vector<std::string> split(const std::string& str, const std::string& token) {
+
+			size_t pos, lastPos = 0, length = str.length();
+
+			std::vector<std::string> result = {};
+
+			while (lastPos <= length) {
+
+				pos = str.find(token, lastPos);
+				if (pos == std::string::npos)
+					pos = length;
+
+				if (pos != lastPos)
+					result.emplace_back(std::string(str.data() + lastPos, pos - lastPos));
+
+				lastPos = pos + token.length();
+			}
+			return result;
+		}
 	}
 }
