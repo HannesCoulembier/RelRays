@@ -99,8 +99,8 @@ namespace RelRays {
 
 		m_SpectraBuffer = LoFox::StorageBuffer::Create(1000, sizeof(float));
 
-		m_VertexBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUVertex));
-		m_IndexBuffer = LoFox::StorageBuffer::Create(1000, sizeof(int));
+		m_VertexBuffer = LoFox::StorageBuffer::Create(1000000, sizeof(GPUVertex));
+		m_IndexBuffer = LoFox::StorageBuffer::Create(1000000, sizeof(int));
 
 		m_FinalImageRenderData.FinalImage = LoFox::StorageImage::Create(m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
 
@@ -119,6 +119,7 @@ namespace RelRays {
 		});
 
 		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
+			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false}, // NOTE: OpenGL only supports image bindings up until binding 7, so make them the first bindings in the layout
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
 			{ LoFox::ShaderType::Compute,	m_RenderSettingsUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer },
@@ -128,7 +129,6 @@ namespace RelRays {
 			{ LoFox::ShaderType::Compute,	m_SpectraBuffer },
 			{ LoFox::ShaderType::Compute,	m_VertexBuffer },
 			{ LoFox::ShaderType::Compute,	m_IndexBuffer },
-			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false},
 		});
 
 		LoFox::VertexLayout vertexLayout = { // Must match QuadVertex
@@ -245,9 +245,9 @@ namespace RelRays {
 		m_Materials = {};
 	}
 
-	LoFox::Ref<Object> Environment::CreateObject(glm::vec3 pos, float radius, LoFox::Ref<Material> material, LoFox::Ref<Model> model) {
+	LoFox::Ref<Object> Environment::CreateObject(glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model) {
 
-		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self, pos, radius, material, model);
+		LoFox::Ref<Object> object = LoFox::CreateRef<Object>(m_Self, pos, material, model);
 		m_Objects.push_back(object);
 		return object;
 	}

@@ -51,26 +51,26 @@ struct Vertex {
     vec3 Position;
 };
 
-layout(         binding = 0)        uniform         CameraBlockAndScene {
+layout(         binding = 0, rgba8) uniform image2D colorBuffer;
+layout(         binding = 1)        uniform         CameraBlockAndScene {
     mat4 view;
     mat4 proj;
     mat4 invView;
     mat4 invProj;
     float uTime;
 } cameraAndScene;
-layout(         binding = 1)        uniform         RenderSettingsBlock     {
+layout(         binding = 2)        uniform         RenderSettingsBlock     {
     int RayBounces;
 } RenderSettings;
-layout(         binding = 2)        uniform         CameraBlock             {
+layout(         binding = 3)        uniform         CameraBlock             {
     ColorSpectraDescription ColorSpectraDescription;
 } Camera;
-layout(std140,  binding = 3)        readonly buffer ObjectDescriptionBlock  { ObjectDescription objectDescriptions[]; };
-layout(std140,  binding = 4)        readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
-layout(std140,  binding = 5)        readonly buffer MaterialBlock           { Material materials[]; };
-layout(         binding = 6)        readonly buffer SpectrumBlock           { float spectra[]; };
-layout(         binding = 7)        readonly buffer VertexBufferBlock       { Vertex vertices[]; };
-layout(         binding = 8)        readonly buffer IndexBufferBlock        { int indices[]; };
-layout(         binding = 9, rgba8) uniform image2D colorBuffer;
+layout(std140,  binding = 4)        readonly buffer ObjectDescriptionBlock  { ObjectDescription objectDescriptions[]; };
+layout(std140,  binding = 5)        readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
+layout(std140,  binding = 6)        readonly buffer MaterialBlock           { Material materials[]; };
+layout(         binding = 7)        readonly buffer SpectrumBlock           { float spectra[]; };
+layout(         binding = 8)        readonly buffer VertexBufferBlock       { Vertex vertices[]; };
+layout(         binding = 9)        readonly buffer IndexBufferBlock        { int indices[]; };
 
 const int raySpectrumSampleCount = 100;
 float rayMinWaveLength = 0.0;
@@ -138,16 +138,15 @@ void main() {
 		HitPayload payload = TraceRay(ray);
 		if (payload.HitDistance < 0.0) { // HitDistance < 0.0 means it missed
             
-            // vec4 skyLight;
-            // if (ray.Origin != cameraPos) {
-            //     // vec3 reflectedDirection = normalize(reflect(ray.Direction, payload.WorldNormal));
-            //     skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.01 + max(vec4(0.0), dot(lightDirection, ray.Direction)));
-            // }
-            // else {
-            //     skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.50 + max(vec4(0.0), dot(lightDirection, ray.Direction)));
-            // }
+            vec4 skyLight;
+            if (ray.Origin != cameraPos) {
+                skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.01 + max(0.0, dot(lightDirection, ray.Direction)));
+            }
+            else {
+                skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.50 + max(0.0, dot(lightDirection, ray.Direction)));
+            }
             // skyLight = vec4(0.0, 0.1, 0.2, 0.4);
-            vec4 skyLight = vec4(0.05, 0.05, 0.05, 0.05);
+            // skyLight = vec4(0.05, 0.05, 0.05, 0.05);
             for (int i = 0; i < raySpectrumSampleCount; i++) {
                 float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
                 ColorSpectraDescription spectraDescription = materials[0].AbsorptionSpectraDescription;
@@ -173,7 +172,7 @@ void main() {
             float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * spectraDescription.RelativeWeights.b * mat.Albedo.b;
             float bFactor   = SampleColorSpectraBlue(waveLength, spectraDescription)     * spectraDescription.RelativeWeights.a * mat.Albedo.a;
 
-            rayAccLight[i] += (irFactor + rFactor + gFactor + bFactor) * 0.08 * rayAccAbsorbed[i]; // TODO: replace mat.Albedo with mat.EmissionColor * mat.EmissionPower once added
+            rayAccLight[i] += (irFactor + rFactor + gFactor + bFactor) * 0.00 * rayAccAbsorbed[i]; // TODO: replace mat.Albedo with mat.EmissionColor * mat.EmissionPower once added
 
             rayAccAbsorbed[i] *= (irFactor + rFactor + gFactor + bFactor) * (1.0 - mat.Metallic);
         }

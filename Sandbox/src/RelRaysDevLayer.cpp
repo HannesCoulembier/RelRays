@@ -13,11 +13,13 @@ namespace LoFox {
 		m_PurpleMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 0.0f, 1.0f }, 0.2f);
 		m_YellowMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 1.0f, 0.0f }, 0.2f);
 
-		m_TriangleModel = m_Env->CreateModelFromPath("fake path");
+		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
+		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
+		m_CubeModel = m_Env->CreateModelFromPath("Assets/Models/cube.obj");
 
-		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, 0.0f) * Units::m, 1.0f * Units::m, m_YellowMaterial, m_TriangleModel);
-		m_TestObject2 = m_Env->CreateObject(glm::vec3(0.0f, -0.135f, -2.0f) * Units::m, 1.0f * Units::m, m_YellowMaterial, m_TriangleModel);
-		// m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, -101.0f, -5.0f) * Units::m, 100.0f * Units::m, m_PurpleMaterial, m_TriangleModel);
+		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, -1.0f) * Units::m, m_YellowMaterial, m_CubeModel);
+		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, m_PurpleMaterial, m_SpaceshipModel);
+		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m, m_YellowMaterial, m_SpaceshipModel);
 	}
 	void RelRaysDevLayer::OnDetach() {
 

@@ -12,7 +12,7 @@ namespace RelRays {
 	class Object {
 
 	public:
-		Object(LoFox::Ref<Environment> origin, glm::vec3 pos, float radius, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
+		Object(LoFox::Ref<Environment> origin, glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
 	private:
 		LoFox::Ref<Environment> m_Origin;
 		float m_ProperTime = 0.0f;
@@ -20,7 +20,6 @@ namespace RelRays {
 
 		// Temporary dev data
 		glm::vec3 m_Pos;
-		float m_Radius;
 		LoFox::Ref<Material> m_Material;
 		LoFox::Ref<Model> m_Model;
 
