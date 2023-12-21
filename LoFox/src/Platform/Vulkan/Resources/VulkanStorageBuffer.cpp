@@ -25,6 +25,7 @@ namespace LoFox {
 
 	void VulkanStorageBuffer::SetData(uint32_t objectCount, const void* data) {
 
+		LF_CORE_ASSERT(objectCount <= m_MaxObjectCount);
 		memcpy(m_MappedBuffer, data, m_ObjectSize*objectCount);
 	}
 }

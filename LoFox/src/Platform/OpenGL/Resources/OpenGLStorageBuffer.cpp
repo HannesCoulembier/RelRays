@@ -20,6 +20,7 @@ namespace LoFox {
 
 	void OpenGLStorageBuffer::SetData(uint32_t objectCount, const void* data) {
 
+		LF_CORE_ASSERT(objectCount <= m_MaxObjectCount);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_OpenGLData.RendererID);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, objectCount*m_ObjectSize, data);
 	}
