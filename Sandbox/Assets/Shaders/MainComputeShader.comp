@@ -43,8 +43,8 @@ struct Material {
 	vec4 Albedo;
 	// float Roughness;
 	float Metallic;
-	// vec3 EmissionColor;
-	// float EmissionPower;
+	vec4 EmissionColor;
+	float EmissionStrength;
     ColorSpectraDescription AbsorptionSpectraDescription;
 };
 struct Vertex {
@@ -75,8 +75,8 @@ layout(         binding = 9)        readonly buffer IndexBufferBlock        { in
 const int raySpectrumSampleCount = 100;
 float rayMinWaveLength = 0.0;
 float rayMaxWaveLength = 1800.0;
-float rayAccLight[raySpectrumSampleCount];
-float rayAccAbsorbed[raySpectrumSampleCount];
+float pathAccLight[raySpectrumSampleCount];
+float pathAccAbsorbed[raySpectrumSampleCount];
 
 struct Ray {
     vec3 Origin;
@@ -115,8 +115,8 @@ void main() {
 
     // Initializing global vars
     for (int i = 0; i < raySpectrumSampleCount; i++) {
-        rayAccLight[i] = 0.0;
-        rayAccAbsorbed[i] = 1.0;
+        pathAccLight[i] = 0.0;
+        pathAccAbsorbed[i] = 1.0;
     }
 
     ivec2 screenPos = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
@@ -139,22 +139,26 @@ void main() {
 		if (payload.HitDistance < 0.0) { // HitDistance < 0.0 means it missed
             
             vec4 skyLight;
-            if (ray.Origin != cameraPos) {
-                skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.01 + max(0.0, dot(lightDirection, ray.Direction)));
-            }
-            else {
-                skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.50 + max(0.0, dot(lightDirection, ray.Direction)));
-            }
+
+            // if (ray.Origin != cameraPos) {
+            //     skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.01 + max(0.0, dot(lightDirection, ray.Direction)));
+            // }
+            // else {
+            //     skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.50 + max(0.0, dot(lightDirection, ray.Direction)));
+            // }
+
             // skyLight = vec4(0.0, 0.1, 0.2, 0.4);
-            // skyLight = vec4(0.05, 0.05, 0.05, 0.05);
+            skyLight = vec4(0.01, 0.01, 0.01, 0.01);
+            // skyLight = vec4(0.0, 0.0, 0.0, 0.0);
+
             for (int i = 0; i < raySpectrumSampleCount; i++) {
                 float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
                 ColorSpectraDescription spectraDescription = materials[0].AbsorptionSpectraDescription;
-                float irFactor  = SampleColorSpectraInfrared(waveLength, spectraDescription) * spectraDescription.RelativeWeights.r * skyLight.r;
-                float rFactor   = SampleColorSpectraRed(waveLength, spectraDescription)      * spectraDescription.RelativeWeights.g * skyLight.g;
-                float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * spectraDescription.RelativeWeights.b * skyLight.b;
-                float bFactor   = SampleColorSpectraBlue(waveLength, spectraDescription)     * spectraDescription.RelativeWeights.a * skyLight.a;
-                rayAccLight[i] += (irFactor + rFactor + gFactor + bFactor) * rayAccAbsorbed[i];
+                float irFactor  = SampleColorSpectraInfrared(waveLength, spectraDescription) * skyLight.r;
+                float rFactor   = SampleColorSpectraRed(waveLength, spectraDescription)      * skyLight.g;
+                float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * skyLight.b;
+                float bFactor   = SampleColorSpectraBlue(waveLength, spectraDescription)     * skyLight.a;
+                pathAccLight[i] += (irFactor + rFactor + gFactor + bFactor) * pathAccAbsorbed[i];
             }
 			break;
         }
@@ -167,14 +171,19 @@ void main() {
             float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
             
             ColorSpectraDescription spectraDescription = mat.AbsorptionSpectraDescription;
-            float irFactor  = SampleColorSpectraInfrared(waveLength, spectraDescription) * spectraDescription.RelativeWeights.r * mat.Albedo.r;
-            float rFactor   = SampleColorSpectraRed(waveLength, spectraDescription)      * spectraDescription.RelativeWeights.g * mat.Albedo.g;
-            float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * spectraDescription.RelativeWeights.b * mat.Albedo.b;
-            float bFactor   = SampleColorSpectraBlue(waveLength, spectraDescription)     * spectraDescription.RelativeWeights.a * mat.Albedo.a;
+            float irFactorAbs  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.Albedo.r;
+            float rFactorAbs   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.Albedo.g;
+            float gFactorAbs   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.Albedo.b;
+            float bFactorAbs   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.Albedo.a;
 
-            rayAccLight[i] += (irFactor + rFactor + gFactor + bFactor) * 0.00 * rayAccAbsorbed[i]; // TODO: replace mat.Albedo with mat.EmissionColor * mat.EmissionPower once added
+            float irFactorEmit  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.EmissionColor.r;
+            float rFactorEmit   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.EmissionColor.g;
+            float gFactorEmit   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.EmissionColor.b;
+            float bFactorEmit   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.EmissionColor.a;
 
-            rayAccAbsorbed[i] *= (irFactor + rFactor + gFactor + bFactor) * (1.0 - mat.Metallic);
+            pathAccLight[i] += (irFactorEmit + rFactorEmit + gFactorEmit + bFactorEmit) * mat.EmissionStrength * pathAccAbsorbed[i];
+
+            pathAccAbsorbed[i] *= (irFactorAbs + rFactorAbs + gFactorAbs + bFactorAbs) * (1.0 - mat.Metallic);
         }
 
 		ray.Origin = payload.WorldPos + payload.WorldNormal * 0.0001f;
@@ -368,22 +377,22 @@ float SampleSpectra(float waveLength, float spectrumMinWaveLength, float spectru
 
 float SampleColorSpectraInfrared(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.InfraredSpectrumMinWaveLength, colorSpectra.InfraredSpectrumMaxWaveLength, colorSpectra.InfraredSpectrumIndex, colorSpectra.InfraredSpectrumSize);
+    return SampleSpectra(waveLength, colorSpectra.InfraredSpectrumMinWaveLength, colorSpectra.InfraredSpectrumMaxWaveLength, colorSpectra.InfraredSpectrumIndex, colorSpectra.InfraredSpectrumSize) * colorSpectra.RelativeWeights.r;
 }
 
 float SampleColorSpectraRed(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.RedSpectrumMinWaveLength, colorSpectra.RedSpectrumMaxWaveLength, colorSpectra.RedSpectrumIndex, colorSpectra.RedSpectrumSize);
+    return SampleSpectra(waveLength, colorSpectra.RedSpectrumMinWaveLength, colorSpectra.RedSpectrumMaxWaveLength, colorSpectra.RedSpectrumIndex, colorSpectra.RedSpectrumSize) * colorSpectra.RelativeWeights.g;
 }
 
 float SampleColorSpectraGreen(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.GreenSpectrumMinWaveLength, colorSpectra.GreenSpectrumMaxWaveLength, colorSpectra.GreenSpectrumIndex, colorSpectra.GreenSpectrumSize);
+    return SampleSpectra(waveLength, colorSpectra.GreenSpectrumMinWaveLength, colorSpectra.GreenSpectrumMaxWaveLength, colorSpectra.GreenSpectrumIndex, colorSpectra.GreenSpectrumSize) * colorSpectra.RelativeWeights.b;
 }
 
 float SampleColorSpectraBlue(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.BlueSpectrumMinWaveLength, colorSpectra.BlueSpectrumMaxWaveLength, colorSpectra.BlueSpectrumIndex, colorSpectra.BlueSpectrumSize);
+    return SampleSpectra(waveLength, colorSpectra.BlueSpectrumMinWaveLength, colorSpectra.BlueSpectrumMaxWaveLength, colorSpectra.BlueSpectrumIndex, colorSpectra.BlueSpectrumSize) * colorSpectra.RelativeWeights.a;
 }
 
 float IntegrateRayLightSpectrumWithInfraredSpectrum(ColorSpectraDescription colorSpectra) {
@@ -391,7 +400,7 @@ float IntegrateRayLightSpectrumWithInfraredSpectrum(ColorSpectraDescription colo
     float total = 0.0;
     for (int i = 0; i < raySpectrumSampleCount; i++) {
         float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
-        total += rayAccLight[i] * SampleColorSpectraInfrared(waveLength, colorSpectra);
+        total += pathAccLight[i] * SampleColorSpectraInfrared(waveLength, colorSpectra);
     }
     return total * (rayMaxWaveLength - rayMinWaveLength)/ raySpectrumSampleCount;
 }
@@ -401,7 +410,7 @@ float IntegrateRayLightSpectrumWithRedSpectrum(ColorSpectraDescription colorSpec
     float total = 0.0;
     for (int i = 0; i < raySpectrumSampleCount; i++) {
         float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
-        total += rayAccLight[i] * SampleColorSpectraRed(waveLength, colorSpectra);
+        total += pathAccLight[i] * SampleColorSpectraRed(waveLength, colorSpectra);
     }
     return total * (rayMaxWaveLength - rayMinWaveLength)/ raySpectrumSampleCount;
 }
@@ -411,7 +420,7 @@ float IntegrateRayLightSpectrumWithGreenSpectrum(ColorSpectraDescription colorSp
     float total = 0.0;
     for (int i = 0; i < raySpectrumSampleCount; i++) {
         float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
-        total += rayAccLight[i] * SampleColorSpectraGreen(waveLength, colorSpectra);
+        total += pathAccLight[i] * SampleColorSpectraGreen(waveLength, colorSpectra);
     }
     return total * (rayMaxWaveLength - rayMinWaveLength)/ raySpectrumSampleCount;
 }
@@ -421,7 +430,7 @@ float IntegrateRayLightSpectrumWithBlueSpectrum(ColorSpectraDescription colorSpe
     float total = 0.0;
     for (int i = 0; i < raySpectrumSampleCount; i++) {
         float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
-        total += rayAccLight[i] * SampleColorSpectraBlue(waveLength, colorSpectra);
+        total += pathAccLight[i] * SampleColorSpectraBlue(waveLength, colorSpectra);
     }
     return total * (rayMaxWaveLength - rayMinWaveLength)/ raySpectrumSampleCount;
 }

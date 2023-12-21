@@ -71,8 +71,8 @@ namespace RelRays {
 		alignas(16) glm::vec4 Albedo;
 		// alignas(4) float Roughness;
 		alignas(4) float Metallic;
-		// alignas(16) glm::vec3 EmissionColor;
-		// alignas(4) float EmissionPower;
+		alignas(16) glm::vec4 EmissionColor;
+		alignas(4) float EmissionStrength;
 		alignas(16) GPUColorSpectraDescription ColorSpectraDescription;
 	};
 
@@ -252,10 +252,10 @@ namespace RelRays {
 		return object;
 	}
 
-	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec4 color, float metallic) {
+	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float metallic) {
 
 		uint32_t matIndex = m_Materials.size();
-		LoFox::Ref<Material> mat = LoFox::CreateRef<Material>(m_Self, matIndex, color, metallic);
+		LoFox::Ref<Material> mat = LoFox::CreateRef<Material>(m_Self, matIndex, albedo, emissionColor, emissionStrength, metallic);
 		m_Materials.push_back(mat);
 		return mat;
 	}
@@ -380,7 +380,9 @@ namespace RelRays {
 		for (auto mat : m_Materials) { // The materials are ordened by their 'names'. These are just their indices in the m_Materials vector
 
 			GPUMaterial gpuMat = {};
-			gpuMat.Albedo = mat->m_Color;
+			gpuMat.Albedo = mat->m_Albedo;
+			gpuMat.EmissionColor = mat->m_EmissionColor;
+			gpuMat.EmissionStrength = mat->m_EmissionStrength;
 			gpuMat.Metallic = mat->m_Metallic;
 			FillInAndUploadColorSpectraDescription(mat->m_ColorSpectra, gpuMat.ColorSpectraDescription);
 

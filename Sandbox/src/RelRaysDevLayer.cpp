@@ -10,16 +10,26 @@ namespace LoFox {
 		// envCreateInfo.RenderTargetHeight = 50;
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
-		m_PurpleMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 0.0f, 1.0f }, 0.2f);
-		m_YellowMaterial = m_Env->CreateMaterial({ 0.0f, 1.0f, 1.0f, 0.0f }, 0.2f);
+		m_PurpleMaterial = m_Env->CreateMaterial(
+			{ 0.0f, 1.0f, 0.1f, 1.0f }, // Make the material purple
+			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
+			0.0f,						// Don't make it emit light
+			0.2f						// Metallic
+		);
+		m_YellowMaterial = m_Env->CreateMaterial(
+			{ 0.0f, 1.0f, 1.0f, 0.1f }, // Yellow albedo
+			{ 0.0f, 1.0f, 1.0f, 0.1f },	// Light emission in same color as albedo
+			0.04f,						// Light strength
+			0.2f						// Metallic
+		);
 
 		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
 		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
 		m_CubeModel = m_Env->CreateModelFromPath("Assets/Models/cube.obj");
 
 		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, -1.0f) * Units::m, m_YellowMaterial, m_CubeModel);
-		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, m_PurpleMaterial, m_SpaceshipModel);
-		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m, m_YellowMaterial, m_SpaceshipModel);
+		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, m_YellowMaterial, m_SpaceshipModel);
+		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m, m_PurpleMaterial, m_SpaceshipModel);
 	}
 	void RelRaysDevLayer::OnDetach() {
 

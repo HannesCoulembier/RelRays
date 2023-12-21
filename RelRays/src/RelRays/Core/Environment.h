@@ -26,7 +26,7 @@ namespace RelRays {
 		void Destroy();
 
 		LoFox::Ref<Object> CreateObject(glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
-		LoFox::Ref<Material> CreateMaterial(glm::vec4 color, float metallic);
+		LoFox::Ref<Material> CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float metallic);
 		LoFox::Ref<Model> CreateModelFromPath(const std::string& objPath);
 
 		void RenderImGuiRenderSettings();
