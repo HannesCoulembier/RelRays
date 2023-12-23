@@ -33,7 +33,8 @@ namespace RelRays {
 
 		float GetSimulationTime() { return m_SimulationTime; }
 		float GetProperTime() { return m_ProperTime; }
-		uint64_t GetFinalImageImTextureID() { return *(uint64_t*)m_FinalImageRenderData.Framebuffer->GetAttachmentImTextureID(0); }
+		// uint64_t GetFinalImageImTextureID() { return *(uint64_t*)m_FinalImageRenderData.Framebuffer->GetAttachmentImTextureID(0); }
+		uint64_t GetFinalImageImTextureID() { return *(uint64_t*)m_FinalImageRenderData.FinalImage->GetImTextureID(); }
 
 		static LoFox::Ref<Environment> Create(EnvironmentCreateInfo createInfo);
 	private:

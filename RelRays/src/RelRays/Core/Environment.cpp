@@ -198,12 +198,12 @@ namespace RelRays {
 		uint32_t height = m_FinalImageRenderData.Framebuffer->GetHeight();
 		m_RaytraceRendererData.RaytracePipeline->Dispatch(width, height, 8, 8);
 
-		LoFox::Renderer::BeginFramebuffer(m_FinalImageRenderData.Framebuffer, { 1.0f, 0.0f, 1.0f });
-
-		LoFox::Renderer::SetActivePipeline(m_FinalImageRenderData.GraphicsPipeline);
-		LoFox::Renderer::Draw(m_FinalImageRenderData.IndexBuffer, m_FinalImageRenderData.VertexBuffer);
-
-		LoFox::Renderer::EndFramebuffer();
+		// LoFox::Renderer::BeginFramebuffer(m_FinalImageRenderData.Framebuffer, { 1.0f, 0.0f, 1.0f });
+		// 
+		// LoFox::Renderer::SetActivePipeline(m_FinalImageRenderData.GraphicsPipeline);
+		// LoFox::Renderer::Draw(m_FinalImageRenderData.IndexBuffer, m_FinalImageRenderData.VertexBuffer);
+		// 
+		// LoFox::Renderer::EndFramebuffer();
 	}
 
 	void Environment::Destroy() {
