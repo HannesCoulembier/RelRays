@@ -1,9 +1,6 @@
 #include <LoFox.h>
 #include <LoFox/Core/EntryPoint.h>
 
-#include "RaytraceExampleLayer.h"
-// #include "InstancingExampleLayer.h"
-#include "OpenGLDevelopment.h"
 #include "RelRaysDevLayer.h"
 
 namespace LoFox {
@@ -15,10 +12,7 @@ namespace LoFox {
 			: Application(spec) {
 
 			// Examples: Only use 1 at a time!
-			// PushLayer(CreateRef<RaytraceExampleLayer>());
 			PushLayer(CreateRef<RelRaysDevLayer>());
-			// PushLayer(CreateRef<InstancingExampleLayer>());
-			// PushLayer(CreateRef<OpenGLDevLayer>());
 		}
 
 		~SandboxApp() {

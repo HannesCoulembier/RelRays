@@ -20,9 +20,9 @@ namespace LoFox {
 
 		switch (s_API) {
 
-		case RendererAPI::API::None:	LF_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
-		case RendererAPI::API::Vulkan:	return CreateScope<VulkanRendererAPI>();
-		case RendererAPI::API::OpenGL:	return CreateScope<OpenGLRendererAPI>();
+			case RendererAPI::API::None:	LF_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
+			case RendererAPI::API::Vulkan:	return CreateScope<VulkanRendererAPI>();
+			case RendererAPI::API::OpenGL:	return CreateScope<OpenGLRendererAPI>();
 		}
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");

@@ -34,43 +34,8 @@ namespace LoFox {
 		else Type = ResourceType::StorageImageResource;
 	}
 
-	// Resource::Resource(ShaderType shaderStage, Ref<LoFox::StorageImage> storageImage, bool isDestination)
-	// 	: ShaderStage(shaderStage), StorageImage(storageImage) {
-	// 
-	// 	if (isDestination)
-	// 		Type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	// 	else
-	// 		Type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	// 
-	// 	ImageDescriptorInfos.clear();
-	// 	ImageDescriptorInfos.push_back(StorageImage->GetDescriptorInfo());
-	// }
-
 	ResourceLayout::ResourceLayout(std::initializer_list<Resource> resources)
-		: m_Resources(resources) {
-
-		// std::vector<VkDescriptorSetLayoutBinding> bindings = {};
-		// uint32_t binding = 0;
-		// for (auto resource : resources) {
-		// 
-		// 	VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {};
-		// 	descriptorSetLayoutBinding.binding = binding;
-		// 	descriptorSetLayoutBinding.descriptorType = resource.Type;
-		// 	descriptorSetLayoutBinding.descriptorCount = resource.DescriptorCount;
-		// 	descriptorSetLayoutBinding.stageFlags = ShaderTypeToVulkan(resource.ShaderStage);
-		// 	descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
-		// 
-		// 	bindings.push_back(descriptorSetLayoutBinding);
-		// 	binding++;
-		// }
-		// 
-		// VkDescriptorSetLayoutCreateInfo descriptorSetlayoutCreateInfo = {};
-		// descriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		// descriptorSetlayoutCreateInfo.bindingCount = (uint32_t)bindings.size();
-		// descriptorSetlayoutCreateInfo.pBindings = bindings.data();
-		// 
-		// LF_CORE_ASSERT(vkCreateDescriptorSetLayout(VulkanContext::LogicalDevice, &descriptorSetlayoutCreateInfo, nullptr, &m_DescriptorSetLayout) == VK_SUCCESS, "Failed to create descriptor set layout!");
-	}
+		: m_Resources(resources) {}
 
 	Ref<ResourceLayout> ResourceLayout::Create(std::initializer_list<Resource> resources) {
 
@@ -83,9 +48,4 @@ namespace LoFox {
 
 		LF_CORE_ASSERT(false, "Unknown RendererAPI!");
 	}
-
-	// void ResourceLayout::Destroy() {
-	// 
-	// 	// vkDestroyDescriptorSetLayout(VulkanContext::LogicalDevice, m_DescriptorSetLayout, nullptr);
-	// }
 }

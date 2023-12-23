@@ -1,7 +1,5 @@
 #pragma once
 
-#include "LoFox/Core/Core.h"
-
 namespace LoFox {
 
 	class IndexBuffer {

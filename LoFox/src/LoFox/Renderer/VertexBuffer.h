@@ -1,9 +1,5 @@
 #pragma once
 
-// #include "LoFox/Core/Core.h"
-
-// #include "LoFox/Renderer/Buffer.h"
-
 namespace LoFox {
 
 	enum VertexAttributeType {
@@ -44,8 +40,7 @@ namespace LoFox {
 		virtual void Destroy() = 0;
 
 		inline VertexLayout GetVertexLayout() { return m_VertexLayout; }
-		// inline VkBuffer GetBuffer() { return m_Buffer->GetBuffer(); }
-		// inline uint32_t GetSize() { return m_Size; }
+		inline uint32_t GetSize() { return m_Size; }
 		void* GetData() { return m_Data; }
 
 		static Ref<VertexBuffer> Create(uint32_t bufferSize, const void* data, VertexLayout layout);

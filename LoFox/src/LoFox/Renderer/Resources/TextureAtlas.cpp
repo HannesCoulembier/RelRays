@@ -1,6 +1,6 @@
 #include "lfpch.h"
 
-// LEGACY CODE
+// TODO: add back but good
 /*
 #include "LoFox/Renderer/Resources/TextureAtlas.h"
 

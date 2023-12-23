@@ -1,7 +1,5 @@
 #pragma once
 
-#include "LoFox/Core/Core.h"
-
 #include "LoFox/Renderer/Shader.h"
 #include "LoFox/Renderer/Resources/UniformBuffer.h"
 #include "LoFox/Renderer/Resources/StorageBuffer.h"
@@ -34,9 +32,6 @@ namespace LoFox {
 		// Ref<TextureAtlas> TextureAtlasRef = nullptr;
 		uint32_t ItemCount = 1; // TexAtlas will have multiple textures -> multiple items
 
-		// std::vector<VkDescriptorBufferInfo> BufferDescriptorInfos;
-		// std::vector<VkDescriptorImageInfo> ImageDescriptorInfos;
-
 		// Resource(ShaderType shaderStage, Ref<TextureAtlas> atlas);
 		Resource(ShaderType shaderStage, Ref<UniformBuffer> uniformBuffer);
 		Resource(ShaderType shaderStage, Ref<StorageBuffer> storageBuffer);
@@ -49,7 +44,6 @@ namespace LoFox {
 	public:
 		virtual void Destroy() = 0;
 
-		// VkDescriptorSetLayout GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
 		std::vector<Resource> GetResources() { return m_Resources; }
 		void* GetData() { return m_Data; }
 
@@ -59,7 +53,5 @@ namespace LoFox {
 	protected:
 		void* m_Data = nullptr;
 		std::vector<Resource> m_Resources;
-
-		// VkDescriptorSetLayout m_DescriptorSetLayout;
 	};
 }

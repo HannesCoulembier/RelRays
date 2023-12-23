@@ -4,6 +4,7 @@
 #include "LoFox/Core/Input.h"
 
 #include "LoFox/Renderer/Renderer.h"
+#include "LoFox/Utils/Time.h"
 
 namespace LoFox {
 
