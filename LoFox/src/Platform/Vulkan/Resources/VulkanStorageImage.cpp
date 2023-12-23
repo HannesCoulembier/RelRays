@@ -1,7 +1,7 @@
 #include "lfpch.h"
 #include "Platform/Vulkan/Resources/VulkanStorageImage.h"
 
-#include <stb_image.h>
+#include <backends/imgui_impl_vulkan.h>
 
 #include "Platform/Vulkan/VulkanContext.h"
 #include "Platform/Vulkan/Buffer.h"
@@ -52,11 +52,18 @@ namespace LoFox {
 		m_VulkanData.ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		m_VulkanData.ImageInfo.imageView = m_Image->GetImageView();
 		m_VulkanData.ImageInfo.sampler = m_Sampler;
+
+		m_DescriptorSet = ImGui_ImplVulkan_AddTexture(m_Sampler, m_VulkanData.ImageInfo.imageView, VK_IMAGE_LAYOUT_GENERAL);
 	}
 
 	void VulkanStorageImage::Destroy() {
 
 		vkDestroySampler(VulkanContext::LogicalDevice, m_Sampler, nullptr);
 		m_Image->Destroy();
+	}
+
+	void* VulkanStorageImage::GetImTextureID() {
+
+		return &m_DescriptorSet;
 	}
 }
