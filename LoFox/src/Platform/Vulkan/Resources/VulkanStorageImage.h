@@ -17,11 +17,15 @@ namespace LoFox {
 	public:
 		VulkanStorageImage(uint32_t width, uint32_t height);
 		virtual void Destroy() override;
+
+		virtual void* GetImTextureID() override;
 	private:
 		VulkanStorageImageData m_VulkanData;
 
 		VkFormat m_Format;
 		Ref<Image> m_Image;
 		VkSampler m_Sampler;
+
+		VkDescriptorSet m_DescriptorSet;
 	};
 }

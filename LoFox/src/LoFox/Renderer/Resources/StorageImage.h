@@ -8,6 +8,7 @@ namespace LoFox {
 		virtual void Destroy() = 0;
 
 		void* GetData() { return m_Data; }
+		virtual void* GetImTextureID() = 0;
 
 		static Ref<StorageImage> Create(uint32_t width, uint32_t height);
 	protected:

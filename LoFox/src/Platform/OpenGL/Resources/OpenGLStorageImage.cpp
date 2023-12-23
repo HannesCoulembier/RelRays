@@ -19,4 +19,9 @@ namespace LoFox {
 
 		glDeleteTextures(1, &m_OpenGLData.RendererID);
 	}
+
+	void* OpenGLStorageImage::GetImTextureID() {
+
+		return &m_OpenGLData.RendererID;
+	}
 }

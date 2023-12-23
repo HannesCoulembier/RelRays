@@ -15,6 +15,8 @@ namespace LoFox {
 	public:
 		OpenGLStorageImage(uint32_t width, uint32_t height);
 		virtual void Destroy() override;
+
+		virtual void* GetImTextureID() override;
 	private:
 		OpenGLStorageImageData m_OpenGLData;
 	};
