@@ -102,16 +102,17 @@ namespace LoFox {
 		colors[ImGuiCol_WindowBg] =				ImVec4{ 0.13f,	0.13f,	0.13f,	1.0f };    
 		colors[ImGuiCol_PopupBg] =				colors[ImGuiCol_WindowBg];				// Background of popups, menus, tooltips windows
 		// colors[ImGuiCol_ChildBg] =			ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f }; // Background of child windows
+		colors[ImGuiCol_MenuBarBg] =			colors[ImGuiCol_WindowBg];				// Background of menu bar
 
 		// Tabs
 		colors[ImGuiCol_Tab] =					ImVec4{ 0.9f,	0.45f,	0.25f,	1.0f };	// Unselected tabs
 		colors[ImGuiCol_TabUnfocused] =			colors[ImGuiCol_Tab];					// Unselected tabs
 		colors[ImGuiCol_TabUnfocusedActive] =	colors[ImGuiCol_Tab];					// Visible, unselected tab
-		colors[ImGuiCol_TabActive] =			ImVec4{ 0.95f,	0.6f,	0.4f,	1.0f };	// Currently selected tab
-		colors[ImGuiCol_TabHovered] =			ImVec4{ 0.9f,	0.7f,	0.5f,	1.0f };	// Hovered tab
+		colors[ImGuiCol_TabActive] =			ImVec4{ 0.95f,	0.50f,	0.35f,	1.0f };	// Currently selected tab
+		colors[ImGuiCol_TabHovered] =			colors[ImGuiCol_TabActive];				// Hovered tab
 
 		// Title
-		colors[ImGuiCol_TitleBg] =				ImVec4{ 0.15f,	0.15f,	0.15f,	1.0f };
+		colors[ImGuiCol_TitleBg] =				colors[ImGuiCol_WindowBg];
 		colors[ImGuiCol_TitleBgActive] =		colors[ImGuiCol_TitleBg];
 		colors[ImGuiCol_TitleBgCollapsed] =		ImVec4{ 0.5f,	0.3f,	0.2f,	1.0f };
 
@@ -128,36 +129,33 @@ namespace LoFox {
 		// colors[ImGuiCol_ResizeGrip] =		ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f }; // Resize grip in lower-right and lower-left corners of windows.
 		colors[ImGuiCol_ResizeGripHovered] =	ImVec4{ 0.4f,	0.2f,	0.1f,	1.0f };
 		colors[ImGuiCol_ResizeGripActive] =		ImVec4{ 0.7f,	0.35f,	0.15f,	1.0f };
+		
+		colors[ImGuiCol_Border] =				ImVec4{ 0.3f,	0.2f,	0.13f,	1.0f };
+		colors[ImGuiCol_BorderShadow] =			colors[ImGuiCol_TitleBgCollapsed];
+
+		colors[ImGuiCol_FrameBg] =				ImVec4{ 0.5f,	0.3f,	0.2f,	1.0f }; // Background of checkbox, radio button, plot, slider, text input
+		colors[ImGuiCol_FrameBgHovered] =		ImVec4{ 0.6f,	0.4f,	0.3f,	1.0f };
+		colors[ImGuiCol_FrameBgActive] =		colors[ImGuiCol_FrameBgHovered];
+		
+		colors[ImGuiCol_SliderGrab] =			colors[ImGuiCol_Tab];					// Slider button
+		colors[ImGuiCol_SliderGrabActive] =		colors[ImGuiCol_SliderGrab];			// Slider button
 
 		// colors[ImGuiCol_Header] =			ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f }; // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
-		// colors[ImGuiCol_HeaderHovered] =		ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
+		colors[ImGuiCol_HeaderHovered] =		colors[ImGuiCol_FrameBgHovered];
 		// colors[ImGuiCol_HeaderActive] =		ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
-		
-		// colors[ImGuiCol_Border] =			ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
-		// colors[ImGuiCol_BorderShadow] =		ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
 
-		// colors[ImGuiCol_FrameBg] =			ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f }; // Background of checkbox, radio button, plot, slider, text input
-		// colors[ImGuiCol_FrameBgHovered] =	ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
-		// colors[ImGuiCol_FrameBgActive] =		ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
+		colors[ImGuiCol_Button] =				colors[ImGuiCol_FrameBg];
+		colors[ImGuiCol_ButtonHovered] =		ImVec4{ 0.7f,	0.5f,	0.4f,	1.0f };
+		colors[ImGuiCol_ButtonActive] =			colors[ImGuiCol_FrameBgActive];
 
-
-		// Remaining Color options taken from imgui.h:
-		//	ImGuiCol_Text,
-		//	ImGuiCol_TextDisabled,
-		//	ImGuiCol_MenuBarBg,
-		//	ImGuiCol_ScrollbarBg,
-		//	ImGuiCol_ScrollbarGrab,
-		//	ImGuiCol_ScrollbarGrabHovered,
-		//	ImGuiCol_ScrollbarGrabActive,
+		// Remaining Color options taken from imgui.h:																			
+		//	ImGuiCol_Text,																										
+		//	ImGuiCol_TextDisabled,																									
+		//	ImGuiCol_ScrollbarBg,																								
+		//	ImGuiCol_ScrollbarGrab,																								
+		//	ImGuiCol_ScrollbarGrabHovered,																						
+		//	ImGuiCol_ScrollbarGrabActive,																						
 		//	ImGuiCol_CheckMark,
-		//	ImGuiCol_SliderGrab,
-		//	ImGuiCol_SliderGrabActive,
-		//	ImGuiCol_Button,
-		//	ImGuiCol_ButtonHovered,
-		//	ImGuiCol_ButtonActive,
-		//	ImGuiCol_Header,                // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
-		//	ImGuiCol_HeaderHovered,
-		//	ImGuiCol_HeaderActive,
 		//	ImGuiCol_PlotLines,
 		//	ImGuiCol_PlotLinesHovered,
 		//	ImGuiCol_PlotHistogram,
