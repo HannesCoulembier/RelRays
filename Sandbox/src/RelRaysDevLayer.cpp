@@ -11,7 +11,7 @@ namespace LoFox {
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
 		m_PurpleMaterial = m_Env->CreateMaterial(
-			{ 0.0f, 1.0f, 0.1f, 1.0f }, // Make the material purple
+			{ 0.0f, 1.0f, 0.1f, 1.0f }, // Purple albedo
 			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
 			0.0f,						// Don't make it emit light
 			0.2f						// Metallic
@@ -22,14 +22,21 @@ namespace LoFox {
 			0.04f,						// Light strength
 			0.2f						// Metallic
 		);
+		m_WhiteMaterial = m_Env->CreateMaterial(
+			{ 0.0f, 1.0f, 1.0f, 1.0f }, // White albedo
+			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
+			0.0f,						// Don't make it emit light
+			0.2f						// Metallic
+		);
 
-		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
 		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
 		m_CubeModel = m_Env->CreateModelFromPath("Assets/Models/cube.obj");
 
-		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, -1.0f) * Units::m, m_YellowMaterial, m_CubeModel);
-		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, m_YellowMaterial, m_SpaceshipModel);
-		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m, m_PurpleMaterial, m_SpaceshipModel);
+		m_TestObject1 = m_Env->CreateObject(glm::vec3(2.0f, 1.0f, -50.0f) * Units::m,	 	m_YellowMaterial,	m_CubeModel);
+		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, 	m_WhiteMaterial,	m_SpaceshipModel);
+		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m,	 	m_PurpleMaterial,	m_SpaceshipModel);
+
+		m_TestObject1->AddEvent(m_TestObject1->Get4Pos(0.0f), glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
 	}
 	void RelRaysDevLayer::OnDetach() {
 
@@ -50,6 +57,18 @@ namespace LoFox {
 	void RelRaysDevLayer::OnImGuiRender() {
 
 		m_Env->RenderImGuiRenderSettings();
+
+		{// Scene settings
+			ImGui::Begin("Scene");
+
+			static float t = 1.0f;
+			if (ImGui::Button("Change course")) {
+				t *= -1.0f;
+				m_TestObject1->AddEvent(m_TestObject1->Get4Pos(m_Env->GetProperTime()), t * glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
+			}
+
+			ImGui::End();
+		}
 
 		{ // Viewport
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });

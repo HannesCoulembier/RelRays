@@ -12,13 +12,13 @@ namespace RelRays {
 		alignas(16) glm::mat4 proj;
 		alignas(16) glm::mat4 invView;
 		alignas(16) glm::mat4 invProj;
-		alignas(4) float Time;
 	};
 	// END TEMPORARY STUFF RAYTRACE EXAMPLE
 
 	struct GPURenderSettingsUBO {
 
 		alignas(4) int		RayBounces;
+		alignas(4) int		Samples;
 	};
 
 	struct GPUColorSpectraDescription {
@@ -46,6 +46,12 @@ namespace RelRays {
 		alignas(16) glm::vec4 RelativeWeights;
 	};
 
+	struct GPUSceneUBO {
+
+		alignas(16) glm::vec4 AmbientLight;
+		alignas(4) float OriginTime;
+	};
+
 	struct GPUCameraUBO {
 
 		GPUColorSpectraDescription ColorSpectraDescription;
@@ -53,7 +59,7 @@ namespace RelRays {
 
 	struct GPUObjectDescription {
 
-		alignas(16) int LatestFragmentIndex;
+		alignas(16) int OldestFragmentIndex;
 		alignas(4) int NumberOfFragments;
 		
 		alignas(4) int FirstIndexIndex;
@@ -62,7 +68,8 @@ namespace RelRays {
 
 	struct GPUObjectFragment {
 
-		alignas(16) glm::vec3 Pos; // To be extended
+		alignas(16) glm::vec4 StartPos; // To be extended
+		alignas(16) glm::vec3 StartVel;
 
 		alignas(4) int MaterialIndex;
 	};
@@ -90,6 +97,7 @@ namespace RelRays {
 		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
 		// END TEMPORARY STUFF RAYTRACE EXAMPLE
 		m_CameraUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUCameraUBO));
+		m_SceneUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUSceneUBO));
 		m_RenderSettingsUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPURenderSettingsUBO));
 
 		m_ObjectDescriptionBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUObjectDescription));
@@ -123,6 +131,7 @@ namespace RelRays {
 			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
 			{ LoFox::ShaderType::Compute,	m_RenderSettingsUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer },
+			{ LoFox::ShaderType::Compute,	m_SceneUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_ObjectDescriptionBuffer },
 			{ LoFox::ShaderType::Compute,	m_ObjectFragmentsBuffer },
 			{ LoFox::ShaderType::Compute,	m_MaterialsBuffer },
@@ -185,9 +194,10 @@ namespace RelRays {
 		}
 		else {
 			float time = LoFox::Time::GetTime();
-			ts = time - m_SimulationTime;
-			m_SimulationTime = time;
+			m_SimulationTime = time * Units::s;
 		}
+
+		m_ProperTime = m_SimulationTime; // TODO: update proper time properly (multiple modes, ...)
 	}
 
 	void Environment::RenderFrame(uint32_t viewportWidth, uint32_t viewportHeight) {
@@ -223,6 +233,7 @@ namespace RelRays {
 		// Buffers
 		m_UniformBuffer->Destroy();
 		m_CameraUniformBuffer->Destroy();
+		m_SceneUniformBuffer->Destroy();
 		m_RenderSettingsUniformBuffer->Destroy();
 
 		m_ObjectDescriptionBuffer->Destroy();
@@ -280,11 +291,12 @@ namespace RelRays {
 		ubo.invView = glm::inverse(ubo.view);
 		ubo.invProj = glm::inverse(ubo.proj);
 
-		ubo.Time = m_SimulationTime;
-
 		m_UniformBuffer->SetData(&ubo);
 		// END OF TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 
+		GPUCameraUBO cameraData = {};
+		GPUSceneUBO sceneData = {};
+		GPURenderSettingsUBO renderSettingsData = {};
 		std::vector<float> spectra = {};
 		std::vector<GPUObjectDescription> objectDescriptions = {};
 		std::vector<GPUObjectFragment> objectFragments = {};
@@ -330,29 +342,38 @@ namespace RelRays {
 		};
 
 		// Uniform buffers
-		GPUCameraUBO cameraData = {};
 		FillInAndUploadColorSpectraDescription(Defaults::EyeCamera::SensorColorSpectra, cameraData.ColorSpectraDescription);
-		m_CameraUniformBuffer->SetData(&cameraData);
 
-		GPURenderSettingsUBO renderSettingsData = {};
+		sceneData.AmbientLight = m_RenderSettings.AmbientLight;
+		sceneData.OriginTime = m_ProperTime / Units::s;
+
 		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
+		renderSettingsData.Samples = m_RenderSettings.Samples;
+
+		m_CameraUniformBuffer->SetData(&cameraData);
+		m_SceneUniformBuffer->SetData(&sceneData);
 		m_RenderSettingsUniformBuffer->SetData(&renderSettingsData);
 
+		// Storage buffers
 		// Objects
 		for (auto object : m_Objects) {
 
 			GPUObjectDescription description = {};
 
 			// Fragments
-			description.LatestFragmentIndex = objectFragments.size();
+			description.NumberOfFragments = object->m_Fragments.size();
+			description.OldestFragmentIndex = objectFragments.size();
 			{
-				GPUObjectFragment fragment = {};
-				fragment.MaterialIndex = object->m_Material->m_Name;
-				fragment.Pos = object->m_Pos / Units::m; // GPU shader uses meters
+				GPUObjectFragment GPUfragment = {};
+				for (auto fragment : object->m_Fragments) {
 
-				objectFragments.push_back(fragment);
+					GPUfragment.MaterialIndex = fragment.m_Material->m_Name;
+					GPUfragment.StartPos = fragment.m_StartPos / glm::vec4(Units::m, Units::m, Units::m, Units::s); // GPU shader uses meters and seconds
+					GPUfragment.StartVel = fragment.m_StartVel / (Units::m / Units::s); // GPU shader uses meter/second for velocity
+					
+					objectFragments.push_back(GPUfragment);
+				}
 			}
-			description.NumberOfFragments = 1;
 
 			// Mesh
 			description.FirstIndexIndex = indices.size();
@@ -388,24 +409,6 @@ namespace RelRays {
 
 			materials.push_back(gpuMat);
 		}
-		// materials.resize(3);
-		// materials[0].Albedo = glm::vec3(1.0f, 1.0f, 0.0f);
-		// materials[0].Roughness = 0.05f;
-		// materials[0].Metallic = 0.2f;
-		// materials[0].EmissionColor = glm::vec3(1.0f, 1.0f, 0.0f);
-		// materials[0].EmissionPower = 0.0f;
-		// 
-		// materials[1].Albedo = glm::vec3(1.0f, 0.0f, 1.0f);
-		// materials[1].Roughness = 0.1f;
-		// materials[1].Metallic = 0.2f;
-		// materials[1].EmissionColor = glm::vec3(1.0f, 0.0f, 1.0f);
-		// materials[1].EmissionPower = 0.0f;
-		// 
-		// materials[2].Albedo = glm::vec3(0.0f, 1.0f, 1.0f);
-		// materials[2].Roughness = 0.1f;
-		// materials[2].Metallic = 0.2f;
-		// materials[2].EmissionColor = glm::vec3(1.0f, 0.7f, 0.3f);
-		// materials[2].EmissionPower = 1.0f;
 
 		m_ObjectDescriptionBuffer->SetData(objectDescriptions.size(), objectDescriptions.data());
 		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
@@ -417,11 +420,19 @@ namespace RelRays {
 
 	void Environment::RenderImGuiRenderSettings() {
 
-		ImGui::Begin("Settings");
+		ImGui::Begin("Renderer");
 
 		ImGui::SliderInt("Bounces", &m_RenderSettings.RayBounces, 1, 10);
+		ImGui::SliderInt("Samples", &m_RenderSettings.Samples, 0, 10);
+		std::string originTimeText = "Origin time:\t" + std::to_string(m_ProperTime / Units::s);
+		ImGui::Text(originTimeText.c_str());
+
 		ImGui::Separator();
 
+		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.y); // TODO: make infrared the alpha component to allow this to work normally.
+		
+		ImGui::Separator();
+		
 		ImGui::End();
 		
 	}

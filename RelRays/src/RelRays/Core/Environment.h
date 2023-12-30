@@ -15,7 +15,7 @@ namespace RelRays {
 		uint32_t RenderTargetHeight = 1000;
 
 		bool UseConstantTimeStep = false; // When set to false, the timestep per OnUpdate call will depend on the time between calls. When set to true, the timestep is constant (see ConstantTimeStepValue).
-		float ConstantTimeStepValue = 1.0f / 60.0f; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
+		float ConstantTimeStepValue = 1.0f / 60.0f * Units::s; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
 	};
 
 	class Environment {
@@ -57,6 +57,7 @@ namespace RelRays {
 		LoFox::Ref<LoFox::StorageBuffer> m_IndexBuffer;
 
 		LoFox::Ref<LoFox::UniformBuffer> m_CameraUniformBuffer;
+		LoFox::Ref<LoFox::UniformBuffer> m_SceneUniformBuffer;
 		LoFox::Ref<LoFox::UniformBuffer> m_RenderSettingsUniformBuffer;
 
 		// BEGIN TEMPORARY STUFF FROM RAYTRACE EXAMPLE
@@ -98,6 +99,8 @@ namespace RelRays {
 
 		struct RenderSettings {
 			int RayBounces = 7;
+			int Samples = 1;
+			glm::vec4 AmbientLight = glm::vec4(0.10f);
 		};
 		RenderSettings m_RenderSettings = {};
 
