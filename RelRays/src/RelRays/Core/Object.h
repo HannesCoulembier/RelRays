@@ -8,15 +8,16 @@
 namespace RelRays {
 
 	class Environment; // Forward declaration
-	class Object;
-
 
 	class Object {
 
 	public:
 		Object(LoFox::Ref<Environment> origin, glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
 
-		void AddEvent(glm::vec4 pos, glm::vec3 vel);
+		void SetPos(glm::vec3 pos);
+		void SetVel(glm::vec3 vel);
+		void SetState(glm::vec3 pos, glm::vec3 vel);
+		void AddEvent(glm::vec4 pos, glm::vec3 vel, LoFox::Ref<Material> material);
 
 		glm::vec4 Get4Pos(float time); // Get the 4 position vector relative to the origin (time is also origin time)
 
@@ -32,6 +33,7 @@ namespace RelRays {
 			friend Environment;
 		};
 	private:
+		inline ObjectFragment GetLatestFragment() { return m_Fragments[m_Fragments.size() - 1]; }
 		ObjectFragment GetActiveFragment(float time);
 	private:
 

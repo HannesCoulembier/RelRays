@@ -36,7 +36,7 @@ namespace LoFox {
 		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, 	m_WhiteMaterial,	m_SpaceshipModel);
 		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m,	 	m_PurpleMaterial,	m_SpaceshipModel);
 
-		m_TestObject1->AddEvent(m_TestObject1->Get4Pos(0.0f), glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
+		m_TestObject1->SetVel(glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
 	}
 	void RelRaysDevLayer::OnDetach() {
 
@@ -64,7 +64,11 @@ namespace LoFox {
 			static float t = 1.0f;
 			if (ImGui::Button("Change course")) {
 				t *= -1.0f;
-				m_TestObject1->AddEvent(m_TestObject1->Get4Pos(m_Env->GetProperTime()), t * glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
+				m_TestObject1->SetVel(t * glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
+			}
+			if (ImGui::Button("Reset cube")) {
+				m_TestObject1->SetPos(glm::vec3(2.0f, 1.0f, -50.0f));
+				m_TestObject1->SetVel(glm::vec3(0.0f, 1.0f, 0.0f));
 			}
 
 			ImGui::End();

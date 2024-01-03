@@ -18,10 +18,48 @@ namespace RelRays {
 		m_Model = model;
 	}
 
-	void Object::AddEvent(glm::vec4 pos, glm::vec3 vel) {
+	void Object::SetPos(glm::vec3 pos) {
 
-		ObjectFragment fragment = ObjectFragment(pos, vel, m_Fragments[m_Fragments.size() - 1].m_Material);
-		m_Fragments.push_back(fragment);
+		ObjectFragment latestFragment = GetLatestFragment();
+		AddEvent(glm::vec4(pos, m_Origin->GetProperTime()), latestFragment.m_StartVel, latestFragment.m_Material);
+	}
+
+	void Object::SetVel(glm::vec3 vel) {
+
+		ObjectFragment latestFragment = GetLatestFragment();
+		AddEvent(Get4Pos(m_Origin->GetProperTime()), vel, latestFragment.m_Material);
+	}
+
+	void Object::SetState(glm::vec3 pos, glm::vec3 vel) {
+
+		AddEvent(glm::vec4(pos, m_Origin->GetProperTime()), vel, GetLatestFragment().m_Material);
+	}
+
+	void Object::AddEvent(glm::vec4 pos, glm::vec3 vel, LoFox::Ref<Material> material) {
+
+		ObjectFragment latestFragment = GetLatestFragment();
+		
+		if (pos == latestFragment.m_StartPos && vel == latestFragment.m_StartVel && material == latestFragment.m_Material)
+			return; // If both fragments are exactly the same, do nothing
+
+		float latestFragmentCreationTime = latestFragment.m_StartPos.w;
+		LF_CORE_ASSERT(pos.w >= latestFragmentCreationTime, "History is already defined for this moment!"); // Events can only be inserted or changed at the end of the history
+
+		if (pos.w == latestFragmentCreationTime) { // Change the fragment already active (as the times are the same)
+
+			m_Fragments[m_Fragments.size() - 1].m_StartPos = pos;
+			m_Fragments[m_Fragments.size() - 1].m_StartVel = vel;
+			m_Fragments[m_Fragments.size() - 1].m_Material = material;
+		}
+		else { // Add a new fragment
+
+			ObjectFragment fragment = {
+				pos,
+				vel,
+				material
+			};
+			m_Fragments.push_back(fragment);
+		}
 	}
 
 	Object::ObjectFragment Object::GetActiveFragment(float time) {
