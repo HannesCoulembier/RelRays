@@ -373,7 +373,7 @@ namespace RelRays {
 			RedSensorSpectrum,
 			GreenSensorSpectrum,
 			BlueSensorSpectrum,
-			glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) / 20.0f // The data extracted resembled the relative sensitivity of the red, green and blue spectra.
+			glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) / 20.0f // The data extracted resembled the relative sensitivity of the red, green and blue spectra.
 		);
 
 		// Data extracted from https://en.wikipedia.org/wiki/CIE_1931_color_space#/media/File:CIE1931_RGBCMF2.png
@@ -519,7 +519,7 @@ namespace RelRays {
 			BlueSensorSpectrum,
 			// glm::vec4(0.0f, 1.0f, 4.5907f, 0.0601f) // 1:4.5907:0.0601 ratio to represent source luminance and 72.0962:1.3791:1 for source radiance.
 			// glm::vec4(0.0f, 72.0962f, 1.3791, 1.0f) // 1:4.5907:0.0601 ratio to represent source luminance and 72.0962:1.3791:1 for source radiance.
-			glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) / 1.0f
+			glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) / 1.0f
 		);
 	
 		// TODO: Look up real values

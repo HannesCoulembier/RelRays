@@ -11,19 +11,19 @@ namespace LoFox {
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
 		m_PurpleMaterial = m_Env->CreateMaterial(
-			{ 0.0f, 1.0f, 0.1f, 1.0f }, // Purple albedo
+			{ 1.0f, 0.1f, 1.0f, 0.0f}, // Purple albedo
 			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
 			0.0f,						// Don't make it emit light
 			0.2f						// Metallic
 		);
 		m_YellowMaterial = m_Env->CreateMaterial(
-			{ 0.0f, 1.0f, 1.0f, 0.1f }, // Yellow albedo
-			{ 0.0f, 1.0f, 1.0f, 0.1f },	// Light emission in same color as albedo
+			{ 1.0f, 1.0f, 0.1f, 0.0f }, // Yellow albedo
+			{ 1.0f, 1.0f, 0.1f, 0.0f },	// Light emission in same color as albedo
 			0.04f,						// Light strength
 			0.2f						// Metallic
 		);
 		m_WhiteMaterial = m_Env->CreateMaterial(
-			{ 0.0f, 1.0f, 1.0f, 1.0f }, // White albedo
+			{ 1.0f, 1.0f, 1.0f, 0.0f }, // White albedo
 			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
 			0.0f,						// Don't make it emit light
 			0.2f						// Metallic

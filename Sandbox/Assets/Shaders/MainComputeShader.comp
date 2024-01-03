@@ -153,10 +153,10 @@ void TracePath() {
             for (int i = 0; i < raySpectrumSampleCount; i++) {
                 float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
                 ColorSpectraDescription spectraDescription = materials[0].AbsorptionSpectraDescription;
-                float irFactor  = SampleColorSpectraInfrared(waveLength, spectraDescription) * skyLight.r;
-                float rFactor   = SampleColorSpectraRed(waveLength, spectraDescription)      * skyLight.g;
-                float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * skyLight.b;
-                float bFactor   = SampleColorSpectraBlue(waveLength, spectraDescription)     * skyLight.a;
+                float irFactor  = SampleColorSpectraInfrared(waveLength, spectraDescription) * skyLight.a;
+                float rFactor   = SampleColorSpectraRed(waveLength, spectraDescription)      * skyLight.r;
+                float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * skyLight.g;
+                float bFactor   = SampleColorSpectraBlue(waveLength, spectraDescription)     * skyLight.b;
                 pathAccLight[i] += (irFactor + rFactor + gFactor + bFactor) * pathAccAbsorbed[i];
             }
 			break;
@@ -170,15 +170,15 @@ void TracePath() {
             float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
             
             ColorSpectraDescription spectraDescription = mat.AbsorptionSpectraDescription;
-            float irFactorAbs  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.Albedo.r;
-            float rFactorAbs   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.Albedo.g;
-            float gFactorAbs   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.Albedo.b;
-            float bFactorAbs   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.Albedo.a;
+            float irFactorAbs  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.Albedo.a;
+            float rFactorAbs   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.Albedo.r;
+            float gFactorAbs   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.Albedo.g;
+            float bFactorAbs   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.Albedo.b;
 
-            float irFactorEmit  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.EmissionColor.r;
-            float rFactorEmit   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.EmissionColor.g;
-            float gFactorEmit   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.EmissionColor.b;
-            float bFactorEmit   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.EmissionColor.a;
+            float irFactorEmit  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.EmissionColor.a;
+            float rFactorEmit   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.EmissionColor.r;
+            float gFactorEmit   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.EmissionColor.g;
+            float bFactorEmit   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.EmissionColor.b;
 
             pathAccLight[i] += (irFactorEmit + rFactorEmit + gFactorEmit + bFactorEmit) * mat.EmissionStrength * pathAccAbsorbed[i];
 
@@ -210,10 +210,10 @@ void main() {
     }
 
     ColorSpectraDescription spectraDescription = Camera.ColorSpectraDescription;
-    float ir    = IntegratePathLightSpectrumWithInfraredSpectrum(spectraDescription) * spectraDescription.RelativeWeights.r;
-    float r     = IntegratePathLightSpectrumWithRedSpectrum(spectraDescription)      * spectraDescription.RelativeWeights.g;
-    float g     = IntegratePathLightSpectrumWithGreenSpectrum(spectraDescription)    * spectraDescription.RelativeWeights.b;
-    float b     = IntegratePathLightSpectrumWithBlueSpectrum(spectraDescription)     * spectraDescription.RelativeWeights.a;
+    float ir    = IntegratePathLightSpectrumWithInfraredSpectrum(spectraDescription) * spectraDescription.RelativeWeights.a;
+    float r     = IntegratePathLightSpectrumWithRedSpectrum(spectraDescription)      * spectraDescription.RelativeWeights.r;
+    float g     = IntegratePathLightSpectrumWithGreenSpectrum(spectraDescription)    * spectraDescription.RelativeWeights.g;
+    float b     = IntegratePathLightSpectrumWithBlueSpectrum(spectraDescription)     * spectraDescription.RelativeWeights.b;
 
     vec3 finalColor = vec3(ir + r,g,b) / float(RenderSettings.Samples);
     imageStore(colorBuffer, screenPos, vec4(finalColor, 1.0));
@@ -393,22 +393,22 @@ float SampleSpectra(float waveLength, float spectrumMinWaveLength, float spectru
 
 float SampleColorSpectraInfrared(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.InfraredSpectrumMinWaveLength, colorSpectra.InfraredSpectrumMaxWaveLength, colorSpectra.InfraredSpectrumIndex, colorSpectra.InfraredSpectrumSize) * colorSpectra.RelativeWeights.r;
+    return SampleSpectra(waveLength, colorSpectra.InfraredSpectrumMinWaveLength, colorSpectra.InfraredSpectrumMaxWaveLength, colorSpectra.InfraredSpectrumIndex, colorSpectra.InfraredSpectrumSize) * colorSpectra.RelativeWeights.a;
 }
 
 float SampleColorSpectraRed(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.RedSpectrumMinWaveLength, colorSpectra.RedSpectrumMaxWaveLength, colorSpectra.RedSpectrumIndex, colorSpectra.RedSpectrumSize) * colorSpectra.RelativeWeights.g;
+    return SampleSpectra(waveLength, colorSpectra.RedSpectrumMinWaveLength, colorSpectra.RedSpectrumMaxWaveLength, colorSpectra.RedSpectrumIndex, colorSpectra.RedSpectrumSize) * colorSpectra.RelativeWeights.r;
 }
 
 float SampleColorSpectraGreen(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.GreenSpectrumMinWaveLength, colorSpectra.GreenSpectrumMaxWaveLength, colorSpectra.GreenSpectrumIndex, colorSpectra.GreenSpectrumSize) * colorSpectra.RelativeWeights.b;
+    return SampleSpectra(waveLength, colorSpectra.GreenSpectrumMinWaveLength, colorSpectra.GreenSpectrumMaxWaveLength, colorSpectra.GreenSpectrumIndex, colorSpectra.GreenSpectrumSize) * colorSpectra.RelativeWeights.g;
 }
 
 float SampleColorSpectraBlue(float waveLength, ColorSpectraDescription colorSpectra) {
     
-    return SampleSpectra(waveLength, colorSpectra.BlueSpectrumMinWaveLength, colorSpectra.BlueSpectrumMaxWaveLength, colorSpectra.BlueSpectrumIndex, colorSpectra.BlueSpectrumSize) * colorSpectra.RelativeWeights.a;
+    return SampleSpectra(waveLength, colorSpectra.BlueSpectrumMinWaveLength, colorSpectra.BlueSpectrumMaxWaveLength, colorSpectra.BlueSpectrumIndex, colorSpectra.BlueSpectrumSize) * colorSpectra.RelativeWeights.b;
 }
 
 float IntegratePathLightSpectrumWithInfraredSpectrum(ColorSpectraDescription colorSpectra) {

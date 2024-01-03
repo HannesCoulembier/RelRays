@@ -429,7 +429,7 @@ namespace RelRays {
 
 		ImGui::Separator();
 
-		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.y); // TODO: make infrared the alpha component to allow this to work normally.
+		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.r);
 		
 		ImGui::Separator();
 		
