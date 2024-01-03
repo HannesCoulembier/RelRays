@@ -30,6 +30,7 @@ namespace RelRays {
 		LoFox::Ref<Model> CreateModelFromPath(const std::string& objPath);
 
 		void RenderImGuiRenderSettings();
+		void RenderImGuiRenderStats();
 
 		float GetSimulationTime() { return m_SimulationTime; }
 		float GetProperTime() { return m_ProperTime; }
@@ -103,6 +104,13 @@ namespace RelRays {
 			glm::vec4 AmbientLight = glm::vec4(0.10f);
 		};
 		RenderSettings m_RenderSettings = {};
+		struct RenderStats {
+			uint32_t ObjectCount = 0;
+			uint32_t ObjectFragmentCount = 0;
+			uint32_t VertexCount = 0;
+			uint32_t IndexCount = 0;
+		};
+		RenderStats m_RenderStats = {};
 
 		float m_SimulationTime = 0.0f; // Time measured by the camera (or sum of the times measured by multiple cameras)
 		float m_LastOnUpdateTime = 0.0f; // Used to calculate FPS

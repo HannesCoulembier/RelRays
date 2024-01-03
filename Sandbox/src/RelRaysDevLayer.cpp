@@ -57,6 +57,7 @@ namespace LoFox {
 	void RelRaysDevLayer::OnImGuiRender() {
 
 		m_Env->RenderImGuiRenderSettings();
+		m_Env->RenderImGuiRenderStats();
 
 		{// Scene settings
 			ImGui::Begin("Scene");
@@ -69,6 +70,9 @@ namespace LoFox {
 			if (ImGui::Button("Reset cube")) {
 				m_TestObject1->SetPos(glm::vec3(2.0f, 1.0f, -50.0f));
 				m_TestObject1->SetVel(glm::vec3(0.0f, 1.0f, 0.0f));
+			}
+			if (ImGui::Button("Create new cube")) {
+				m_Env->CreateObject({ 0.0f, -5.0f, 0.0f }, m_PurpleMaterial, m_CubeModel)->SetVel({ 0.0f, 0.0f, -5.0f }); // We don't store the ref to the object as this is just a demo
 			}
 
 			ImGui::End();

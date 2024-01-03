@@ -416,11 +416,16 @@ namespace RelRays {
 		m_SpectraBuffer->SetData(spectra.size(), spectra.data());
 		m_VertexBuffer->SetData(vertices.size(), vertices.data());
 		m_IndexBuffer->SetData(indices.size(), indices.data());
+
+		m_RenderStats.ObjectCount = objectDescriptions.size();
+		m_RenderStats.ObjectFragmentCount = objectFragments.size();
+		m_RenderStats.VertexCount = vertices.size();
+		m_RenderStats.IndexCount = indices.size();
 	}
 
 	void Environment::RenderImGuiRenderSettings() {
 
-		ImGui::Begin("Renderer");
+		ImGui::Begin("Render settings");
 
 		ImGui::SliderInt("Bounces", &m_RenderSettings.RayBounces, 1, 10);
 		ImGui::SliderInt("Samples", &m_RenderSettings.Samples, 0, 10);
@@ -430,10 +435,30 @@ namespace RelRays {
 		ImGui::Separator();
 
 		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.r);
-		
+
 		ImGui::Separator();
-		
+
 		ImGui::End();
-		
+
+	}
+
+	void Environment::RenderImGuiRenderStats() {
+
+		ImGui::Begin("Render stats");
+
+		ImGui::Text("Objects drawn: %d", m_RenderStats.ObjectCount);
+		ImGui::Text("Object fragments drawn: %d", m_RenderStats.ObjectFragmentCount);
+
+		ImGui::Separator();
+
+		ImGui::Text("Vertices drawn: %d", m_RenderStats.VertexCount);
+		ImGui::Text("Indices drawn:	%d", m_RenderStats.IndexCount);
+
+		ImGui::Separator();
+
+		ImGui::Text("Image resolution: %dx%d", m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
+
+		ImGui::End();
+
 	}
 }
