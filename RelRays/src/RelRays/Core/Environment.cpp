@@ -54,7 +54,12 @@ namespace RelRays {
 
 	struct GPUCameraUBO {
 
-		GPUColorSpectraDescription ColorSpectraDescription;
+		alignas(16) glm::vec3 Pos;
+		alignas(16) glm::vec3 Vel;
+		alignas(16) glm::vec3 Acc;
+		alignas(16) glm::mat4 InvView;
+		alignas(16) glm::mat4 InvProj;
+		alignas(16) GPUColorSpectraDescription ColorSpectraDescription;
 	};
 
 	struct GPUObjectDescription {
@@ -89,13 +94,12 @@ namespace RelRays {
 
 	void Environment::Init(EnvironmentCreateInfo createInfo) {
 
+		Defaults::Init();
+
 		m_CreateInfo = createInfo;
 		m_FinalImageRenderData.FinalImageWidth = int((float)(m_CreateInfo.RenderTargetWidth)/8.0f)*8;
 		m_FinalImageRenderData.FinalImageHeight = int((float)(m_CreateInfo.RenderTargetHeight)/8.0f)*8;
 
-		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-		m_UniformBuffer = LoFox::UniformBuffer::Create(sizeof(UBO)); // Unused at the moment
-		// END TEMPORARY STUFF RAYTRACE EXAMPLE
 		m_CameraUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUCameraUBO));
 		m_SceneUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUSceneUBO));
 		m_RenderSettingsUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPURenderSettingsUBO));
@@ -128,7 +132,6 @@ namespace RelRays {
 
 		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false}, // NOTE: OpenGL only supports image bindings up until binding 7, so make them the first bindings in the layout
-			{ LoFox::ShaderType::Compute,	m_UniformBuffer	},
 			{ LoFox::ShaderType::Compute,	m_RenderSettingsUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_SceneUniformBuffer },
@@ -148,7 +151,6 @@ namespace RelRays {
 		m_FinalImageRenderData.FragmentShader = LoFox::Shader::Create(LoFox::ShaderType::Fragment, "Assets/Shaders/MainFragmentShader.frag");
 		m_FinalImageRenderData.VertexShader = LoFox::Shader::Create(LoFox::ShaderType::Vertex, "Assets/Shaders/MainVertexShader.vert");
 		m_RaytraceRendererData.ComputeShader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/MainComputeShader.comp");
-		// m_ComputeShader = Shader::Create(ShaderType::Compute, "Assets/Shaders/RaytraceExample/RTComputeShader2.comp");
 
 		uint32_t vertexBufferSize = sizeof(m_FinalImageRenderData.vertices[0]) * m_FinalImageRenderData.vertices.size();
 		m_FinalImageRenderData.VertexBuffer = LoFox::VertexBuffer::Create(vertexBufferSize, m_FinalImageRenderData.vertices.data(), vertexLayout);
@@ -168,8 +170,6 @@ namespace RelRays {
 		graphicsPipelineCreateInfo.Topology = LoFox::Topology::Triangle;
 		graphicsPipelineCreateInfo.VertexLayout = vertexLayout;
 		m_FinalImageRenderData.GraphicsPipeline = LoFox::GraphicsPipeline::Create(graphicsPipelineCreateInfo);
-
-		UpdateBuffers(m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
 	}
 
 	LoFox::Ref<Environment> Environment::Create(EnvironmentCreateInfo createInfo) {
@@ -187,20 +187,27 @@ namespace RelRays {
 
 	void Environment::OnUpdate() {
 
-		float ts;
+		float time = LoFox::Time::GetTime();
+		float ts = time - (m_RealTime / Units::s);
+		m_RenderStats.RealTimeFPS = 1 / ts;
+		m_RealTime = time * Units::s;
+
 		if (m_CreateInfo.UseConstantTimeStep) {
-			ts = m_CreateInfo.ConstantTimeStepValue;
-			m_SimulationTime += ts;
+			
+			m_RenderStats.SimulationFPS = 1 / (m_CreateInfo.ConstantTimeStepValue / Units::s);
+			m_SimulationTime += m_CreateInfo.ConstantTimeStepValue;
 		}
 		else {
-			float time = LoFox::Time::GetTime();
-			m_SimulationTime = time * Units::s;
+			m_RenderStats.SimulationFPS = m_RenderStats.RealTimeFPS;
+			m_SimulationTime = m_RealTime;
 		}
 
 		m_ProperTime = m_SimulationTime; // TODO: update proper time properly (multiple modes, ...)
 	}
 
 	void Environment::RenderFrame(uint32_t viewportWidth, uint32_t viewportHeight) {
+
+		LF_CORE_ASSERT(m_ActiveCamera, "No active camera selected for rendering!");
 
 		UpdateBuffers(viewportWidth, viewportHeight);
 
@@ -231,7 +238,6 @@ namespace RelRays {
 		m_FinalImageRenderData.FinalImage->Destroy();
 
 		// Buffers
-		m_UniformBuffer->Destroy();
 		m_CameraUniformBuffer->Destroy();
 		m_SceneUniformBuffer->Destroy();
 		m_RenderSettingsUniformBuffer->Destroy();
@@ -254,6 +260,8 @@ namespace RelRays {
 		m_Self = nullptr;
 		m_Objects = {};
 		m_Materials = {};
+		m_Cameras = {};
+		m_ActiveCamera = nullptr;
 	}
 
 	LoFox::Ref<Object> Environment::CreateObject(glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model) {
@@ -276,23 +284,16 @@ namespace RelRays {
 		return LoFox::CreateRef<Model>(objPath);
 	}
 
+	LoFox::Ref<Camera> Environment::CreateCamera(glm::vec3 pos, glm::vec3 viewDirection, Sensor sensor, bool makeActiveCamera) {
+
+		LoFox::Ref<Camera> camera = LoFox::CreateRef<Camera>(m_Self, pos, viewDirection, sensor);
+		m_Cameras.push_back(camera);
+		if (makeActiveCamera)
+			m_ActiveCamera = camera;
+		return camera;
+	}
+
 	void Environment::UpdateBuffers(uint32_t viewportWidth, uint32_t viewportHeight) {
-
-		uint32_t width = viewportWidth;
-		uint32_t height = viewportHeight;
-
-		// TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-		UBO ubo = {};
-		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -5.0f);
-		glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f); // Forward into the screen goes into the negative z-direction.
-		ubo.view = glm::lookAt(cameraPos, cameraPos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.proj = glm::perspectiveFov(glm::radians(45.0f), (float)width, (float)height, 0.1f, 4000.0f);
-
-		ubo.invView = glm::inverse(ubo.view);
-		ubo.invProj = glm::inverse(ubo.proj);
-
-		m_UniformBuffer->SetData(&ubo);
-		// END OF TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 
 		GPUCameraUBO cameraData = {};
 		GPUSceneUBO sceneData = {};
@@ -342,17 +343,18 @@ namespace RelRays {
 		};
 
 		// Uniform buffers
-		FillInAndUploadColorSpectraDescription(Defaults::EyeCamera::SensorColorSpectra, cameraData.ColorSpectraDescription);
+		cameraData.Pos = m_ActiveCamera->m_Pos;
+		cameraData.Vel = m_ActiveCamera->m_Vel;
+		cameraData.Acc = m_ActiveCamera->m_Acc;
+		cameraData.InvView = glm::inverse(glm::lookAt(m_ActiveCamera->m_Pos, m_ActiveCamera->m_Pos + m_ActiveCamera->m_ViewDirection, glm::vec3(0.0f, 1.0f, 0.0f)));
+		cameraData.InvProj = glm::inverse(glm::perspectiveFov(glm::radians(45.0f), (float)viewportWidth, (float)viewportHeight, 0.1f, 4000.0f));
+		FillInAndUploadColorSpectraDescription(m_ActiveCamera->m_Sensor.ColorSpectra, cameraData.ColorSpectraDescription);
 
 		sceneData.AmbientLight = m_RenderSettings.AmbientLight;
 		sceneData.OriginTime = m_ProperTime / Units::s;
 
 		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
 		renderSettingsData.Samples = m_RenderSettings.Samples;
-
-		m_CameraUniformBuffer->SetData(&cameraData);
-		m_SceneUniformBuffer->SetData(&sceneData);
-		m_RenderSettingsUniformBuffer->SetData(&renderSettingsData);
 
 		// Storage buffers
 		// Objects
@@ -410,6 +412,10 @@ namespace RelRays {
 			materials.push_back(gpuMat);
 		}
 
+		m_CameraUniformBuffer->SetData(&cameraData);
+		m_SceneUniformBuffer->SetData(&sceneData);
+		m_RenderSettingsUniformBuffer->SetData(&renderSettingsData);
+
 		m_ObjectDescriptionBuffer->SetData(objectDescriptions.size(), objectDescriptions.data());
 		m_ObjectFragmentsBuffer->SetData(objectFragments.size(), objectFragments.data());
 		m_MaterialsBuffer->SetData(materials.size(), materials.data());
@@ -417,6 +423,7 @@ namespace RelRays {
 		m_VertexBuffer->SetData(vertices.size(), vertices.data());
 		m_IndexBuffer->SetData(indices.size(), indices.data());
 
+		// Render stats
 		m_RenderStats.ObjectCount = objectDescriptions.size();
 		m_RenderStats.ObjectFragmentCount = objectFragments.size();
 		m_RenderStats.VertexCount = vertices.size();
@@ -427,10 +434,8 @@ namespace RelRays {
 
 		ImGui::Begin("Render settings");
 
-		ImGui::SliderInt("Bounces", &m_RenderSettings.RayBounces, 1, 10);
+		ImGui::SliderInt("Bounces", &m_RenderSettings.RayBounces, 0, 10);
 		ImGui::SliderInt("Samples", &m_RenderSettings.Samples, 0, 10);
-		std::string originTimeText = "Origin time:\t" + std::to_string(m_ProperTime / Units::s);
-		ImGui::Text(originTimeText.c_str());
 
 		ImGui::Separator();
 
@@ -438,27 +443,46 @@ namespace RelRays {
 
 		ImGui::Separator();
 
+		ImGui::SliderFloat3("Active camera pos", &m_ActiveCamera->m_Pos.x, -10.0f, 10.0f);
+
 		ImGui::End();
 
 	}
 
 	void Environment::RenderImGuiRenderStats() {
 
-		ImGui::Begin("Render stats");
+		{ // Render stats
+			ImGui::Begin("Render stats");
 
-		ImGui::Text("Objects drawn: %d", m_RenderStats.ObjectCount);
-		ImGui::Text("Object fragments drawn: %d", m_RenderStats.ObjectFragmentCount);
+			ImGui::Text("Objects drawn: %d", m_RenderStats.ObjectCount);
+			ImGui::Text("Object fragments drawn: %d", m_RenderStats.ObjectFragmentCount);
 
-		ImGui::Separator();
+			ImGui::Separator();
 
-		ImGui::Text("Vertices drawn: %d", m_RenderStats.VertexCount);
-		ImGui::Text("Indices drawn:	%d", m_RenderStats.IndexCount);
+			ImGui::Text("Vertices drawn: %d", m_RenderStats.VertexCount);
+			ImGui::Text("Indices drawn:	%d", m_RenderStats.IndexCount);
 
-		ImGui::Separator();
+			ImGui::Separator();
 
-		ImGui::Text("Image resolution: %dx%d", m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
+			ImGui::Text("Image resolution: %dx%d", m_FinalImageRenderData.FinalImageWidth, m_FinalImageRenderData.FinalImageHeight);
 
-		ImGui::End();
+			ImGui::End();
+		}
 
+		{ // Simulation stats
+			ImGui::Begin("Simulation stats");
+
+
+			ImGui::Text("True FPS: %f", m_RenderStats.RealTimeFPS);
+			ImGui::Text("Simulation FPS: %f", m_RenderStats.SimulationFPS);
+
+			ImGui::Separator();
+
+			ImGui::Text("Real time: %f", m_RealTime);
+			ImGui::Text("Simulation time: %f", m_SimulationTime);
+			ImGui::Text("Origin/proper time: %f", m_ProperTime);
+
+			ImGui::End();
+		}
 	}
 }

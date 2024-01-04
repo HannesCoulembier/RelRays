@@ -1,27 +1,22 @@
 #pragma once
 
 #include "RelRays/Physics/Spectrum.h"
+#include "RelRays/Core/Camera.h"
 
 namespace RelRays {
 	namespace Defaults {
 
+		void Init();
+
 		const static LoFox::Ref<Spectrum> EmptySpectrum = Spectrum::Create(0.0f, 1000000.0f, { 0.0f });
 
-		class SonyCamera {
-		public:
-			const static LoFox::Ref<Spectrum> RedSensorSpectrum;
-			const static LoFox::Ref<Spectrum> GreenSensorSpectrum;
-			const static LoFox::Ref<Spectrum> BlueSensorSpectrum;
-			const static LoFox::Ref<ColorSpectra> SensorColorSpectra;
-		};
+		namespace Sensors {
 
-		class EyeCamera {
-		public:
-			const static LoFox::Ref<Spectrum> RedSensorSpectrum;
-			const static LoFox::Ref<Spectrum> GreenSensorSpectrum;
-			const static LoFox::Ref<Spectrum> BlueSensorSpectrum;
-			const static LoFox::Ref<ColorSpectra> SensorColorSpectra;
-		};
+			inline Sensor SonyCamera;
+			inline Sensor EyeCamera;
+
+			// Sensor InfraRedCamera;
+		}
 
 		class Colors {
 		public:
@@ -30,9 +25,5 @@ namespace RelRays {
 			const static LoFox::Ref<Spectrum> GreenSpectrum;
 			const static LoFox::Ref<Spectrum> BlueSpectrum;
 		};
-
-		// class InfraRedCamera {
-		// 
-		// };
 	}
 }

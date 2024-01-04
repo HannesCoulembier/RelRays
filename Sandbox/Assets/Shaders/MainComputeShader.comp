@@ -53,29 +53,28 @@ struct Vertex {
 };
 
 layout(         binding = 0, rgba8) uniform image2D colorBuffer;
-layout(         binding = 1)        uniform         CameraBlockAndScene {
-    mat4 view;
-    mat4 proj;
-    mat4 invView;
-    mat4 invProj;
-} cameraAndScene;
-layout(         binding = 2)        uniform         RenderSettingsBlock     {
+layout(         binding = 1)        uniform         RenderSettingsBlock     {
     int RayBounces;
     int Samples;
 } RenderSettings;
-layout(         binding = 3)        uniform         CameraBlock             {
+layout(         binding = 2)        uniform         CameraBlock             {
+    vec3 Pos;
+    vec3 Vel;
+    vec3 Acc;
+    mat4 InvView;
+    mat4 InvProj;
     ColorSpectraDescription ColorSpectraDescription;
 } Camera;
-layout(         binding = 4)        uniform         SceneBlock              {
+layout(         binding = 3)        uniform         SceneBlock              {
     vec4 AmbientLight;
     float OriginTime;
 } Scene;
-layout(std140,  binding = 5 )       readonly buffer ObjectDescriptionBlock  { ObjectDescription objectDescriptions[]; };
-layout(std140,  binding = 6 )       readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
-layout(std140,  binding = 7 )       readonly buffer MaterialBlock           { Material materials[]; };
-layout(         binding = 8 )       readonly buffer SpectrumBlock           { float spectra[]; };
-layout(         binding = 9 )       readonly buffer VertexBufferBlock       { Vertex vertices[]; };
-layout(         binding = 10)       readonly buffer IndexBufferBlock        { int indices[]; };
+layout(std140,  binding = 4 )       readonly buffer ObjectDescriptionBlock  { ObjectDescription objectDescriptions[]; };
+layout(std140,  binding = 5 )       readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
+layout(std140,  binding = 6 )       readonly buffer MaterialBlock           { Material materials[]; };
+layout(         binding = 7 )       readonly buffer SpectrumBlock           { float spectra[]; };
+layout(         binding = 8 )       readonly buffer VertexBufferBlock       { Vertex vertices[]; };
+layout(         binding = 9 )       readonly buffer IndexBufferBlock        { int indices[]; };
 
 const int raySpectrumSampleCount = 100;
 float rayMinWaveLength = 0.0;
@@ -123,12 +122,10 @@ void TracePath() {
 	vec2 uv = vec2(float(screenPos.x) / float(screenSize.x), float(screenPos.y) / float(screenSize.y)); // uv with 0,0 in bottom left corner
 	vec2 coord = uv * 2.0f - 1.0f; // -1 -> 1
 
-    vec3 cameraPos = vec3(cameraAndScene.view[3][0], cameraAndScene.view[3][1], cameraAndScene.view[3][2]);
-
     Ray ray;
-    ray.Origin = cameraPos;
-    vec4 target = cameraAndScene.invProj * vec4(coord.x, coord.y, 1, 1);
-    ray.Direction = vec3(cameraAndScene.invView * vec4(normalize(vec3(target) / target.w), 0)); // World space
+    ray.Origin = Camera.Pos;
+    vec4 target = Camera.InvProj * vec4(coord.x, coord.y, 1, 1);
+    ray.Direction = vec3(Camera.InvView * vec4(normalize(vec3(target) / target.w), 0)); // World space
 
 	for (int i = 0; i < RenderSettings.RayBounces; i++) {
 
@@ -137,7 +134,7 @@ void TracePath() {
             
             vec4 skyLight;
 
-            // if (ray.Origin != cameraPos) {
+            // if (ray.Origin != Camera.Pos) {
             //     skyLight = 2.0 * vec4(0.0, 0.1, 0.2, 0.4) * (0.01 + max(0.0, dot(lightDirection, ray.Direction)));
             // }
             // else {

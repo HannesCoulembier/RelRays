@@ -3,6 +3,7 @@
 #include <LoFox.h>
 
 #include "RelRays/Core/Object.h"
+#include "RelRays/Core/Camera.h"
 
 #include "RelRays/Physics/Units.h"
 #include "RelRays/Physics/Constants.h"
@@ -28,6 +29,7 @@ namespace RelRays {
 		LoFox::Ref<Object> CreateObject(glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
 		LoFox::Ref<Material> CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float metallic);
 		LoFox::Ref<Model> CreateModelFromPath(const std::string& objPath);
+		LoFox::Ref<Camera> CreateCamera(glm::vec3 pos, glm::vec3 viewDirection, Sensor sensor, bool makeActiveCamera = false);
 
 		void RenderImGuiRenderSettings();
 		void RenderImGuiRenderStats();
@@ -49,6 +51,8 @@ namespace RelRays {
 
 		std::vector<LoFox::Ref<Object>> m_Objects;
 		std::vector<LoFox::Ref<Material>> m_Materials;
+		std::vector<LoFox::Ref<Camera>> m_Cameras;
+		LoFox::Ref<Camera> m_ActiveCamera = nullptr;
 
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectDescriptionBuffer;
 		LoFox::Ref<LoFox::StorageBuffer> m_ObjectFragmentsBuffer;
@@ -60,10 +64,6 @@ namespace RelRays {
 		LoFox::Ref<LoFox::UniformBuffer> m_CameraUniformBuffer;
 		LoFox::Ref<LoFox::UniformBuffer> m_SceneUniformBuffer;
 		LoFox::Ref<LoFox::UniformBuffer> m_RenderSettingsUniformBuffer;
-
-		// BEGIN TEMPORARY STUFF FROM RAYTRACE EXAMPLE
-		LoFox::Ref<LoFox::UniformBuffer> m_UniformBuffer; // Unused at the moment (for camera data)
-		// END   TEMPORARY STUFF FROM RAYTRACE EXAMPLE
 
 		struct RaytraceRendererData {
 			LoFox::Ref<LoFox::Shader>			ComputeShader;
@@ -109,11 +109,14 @@ namespace RelRays {
 			uint32_t ObjectFragmentCount = 0;
 			uint32_t VertexCount = 0;
 			uint32_t IndexCount = 0;
+
+			float RealTimeFPS = 0.0f; // represents the FPS experienced by the user
+			float SimulationFPS = 0.0f; // represents the frames per simulation time seconds (FPS relative to m_SimulationTime). Handy for videos
 		};
 		RenderStats m_RenderStats = {};
 
+		float m_RealTime = 0.0f; // Time that has passed in the real world (mostly used for FPS calculations)
 		float m_SimulationTime = 0.0f; // Time measured by the camera (or sum of the times measured by multiple cameras)
-		float m_LastOnUpdateTime = 0.0f; // Used to calculate FPS
 		float m_ProperTime = 0.0f; // Time measured by the never moving origin
 	};
 }

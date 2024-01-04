@@ -24,6 +24,7 @@ namespace LoFox {
 		Ref<RelRays::Material> m_PurpleMaterial, m_YellowMaterial, m_WhiteMaterial;
 		Ref<RelRays::Object> m_TestObject1, m_TestObject2, m_TestObject3;
 		Ref<RelRays::Model> m_SpaceshipModel, m_CubeModel;
+		Ref<RelRays::Camera> m_MainCamera, m_SecondaryCamera;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		float m_Time = 0;
