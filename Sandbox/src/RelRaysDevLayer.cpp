@@ -6,8 +6,8 @@ namespace LoFox {
 	void RelRaysDevLayer::OnAttach() {
 
 		RelRays::EnvironmentCreateInfo envCreateInfo = {}; // Defaults are good
-		// envCreateInfo.RenderTargetWidth = 100;
-		// envCreateInfo.RenderTargetHeight = 50;
+		// envCreateInfo.RenderTargetWidth = 320;
+		// envCreateInfo.RenderTargetHeight = 160;
 		// envCreateInfo.UseConstantTimeStep = true;
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 

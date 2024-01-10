@@ -150,7 +150,7 @@ namespace RelRays {
 
 		m_FinalImageRenderData.FragmentShader = LoFox::Shader::Create(LoFox::ShaderType::Fragment, "Assets/Shaders/MainFragmentShader.frag");
 		m_FinalImageRenderData.VertexShader = LoFox::Shader::Create(LoFox::ShaderType::Vertex, "Assets/Shaders/MainVertexShader.vert");
-		m_RaytraceRendererData.ComputeShader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/MainComputeShader.comp");
+		m_RaytraceRendererData.SRT_Wavelength_Shader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/SRT_Wavelengths.comp");
 
 		uint32_t vertexBufferSize = sizeof(m_FinalImageRenderData.vertices[0]) * m_FinalImageRenderData.vertices.size();
 		m_FinalImageRenderData.VertexBuffer = LoFox::VertexBuffer::Create(vertexBufferSize, m_FinalImageRenderData.vertices.data(), vertexLayout);
@@ -158,9 +158,9 @@ namespace RelRays {
 
 		// Create Compute Pipeline
 		LoFox::ComputePipelineCreateInfo computePipelineCreateInfo = {};
-		computePipelineCreateInfo.ComputeShader = m_RaytraceRendererData.ComputeShader;
+		computePipelineCreateInfo.ComputeShader = m_RaytraceRendererData.SRT_Wavelength_Shader;
 		computePipelineCreateInfo.ResourceLayout = m_RaytraceRendererData.RaytraceResourceLayout;
-		m_RaytraceRendererData.RaytracePipeline = LoFox::ComputePipeline::Create(computePipelineCreateInfo);
+		m_RaytraceRendererData.SRT_Wavelength_Pipeline = LoFox::ComputePipeline::Create(computePipelineCreateInfo);
 
 		// Create Graphics pipeline
 		LoFox::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
@@ -213,7 +213,7 @@ namespace RelRays {
 
 		uint32_t width = m_FinalImageRenderData.Framebuffer->GetWidth();
 		uint32_t height = m_FinalImageRenderData.Framebuffer->GetHeight();
-		m_RaytraceRendererData.RaytracePipeline->Dispatch(width, height, 8, 8);
+		m_RaytraceRendererData.SRT_Wavelength_Pipeline->Dispatch(width, height, 8, 8);
 
 		// LoFox::Renderer::BeginFramebuffer(m_FinalImageRenderData.Framebuffer, { 1.0f, 0.0f, 1.0f });
 		// 
@@ -228,7 +228,7 @@ namespace RelRays {
 		// Shaders
 		m_FinalImageRenderData.VertexShader->Destroy();
 		m_FinalImageRenderData.FragmentShader->Destroy();
-		m_RaytraceRendererData.ComputeShader->Destroy();
+		m_RaytraceRendererData.SRT_Wavelength_Shader->Destroy();
 
 		// Render stuff
 		m_FinalImageRenderData.VertexBuffer->Destroy();
@@ -250,7 +250,7 @@ namespace RelRays {
 		m_IndexBuffer->Destroy();
 
 		// Pipelines
-		m_RaytraceRendererData.RaytracePipeline->Destroy(); // All pipelines other than the graphicspipeline provided to the Renderer must be destroyed
+		m_RaytraceRendererData.SRT_Wavelength_Pipeline->Destroy();
 		m_FinalImageRenderData.GraphicsPipeline->Destroy();
 
 		// Framebuffers

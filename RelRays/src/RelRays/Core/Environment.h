@@ -66,8 +66,8 @@ namespace RelRays {
 		LoFox::Ref<LoFox::UniformBuffer> m_RenderSettingsUniformBuffer;
 
 		struct RaytraceRendererData {
-			LoFox::Ref<LoFox::Shader>			ComputeShader;
-			LoFox::Ref<LoFox::ComputePipeline>	RaytracePipeline;
+			LoFox::Ref<LoFox::Shader>			SRT_Wavelength_Shader;
+			LoFox::Ref<LoFox::ComputePipeline>	SRT_Wavelength_Pipeline;
 			LoFox::Ref<LoFox::ResourceLayout>	RaytraceResourceLayout;
 		};
 		RaytraceRendererData m_RaytraceRendererData = {};
