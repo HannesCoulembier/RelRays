@@ -17,6 +17,8 @@ namespace RelRays {
 
 		bool UseConstantTimeStep = false; // When set to false, the timestep per OnUpdate call will depend on the time between calls. When set to true, the timestep is constant (see ConstantTimeStepValue).
 		float ConstantTimeStepValue = 1.0f / 60.0f * Units::s; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
+	
+		bool ApplyDopplerShift = true;
 	};
 
 	class Environment {
@@ -27,7 +29,7 @@ namespace RelRays {
 		void Destroy();
 
 		LoFox::Ref<Object> CreateObject(glm::vec3 pos, LoFox::Ref<Material> material, LoFox::Ref<Model> model);
-		LoFox::Ref<Material> CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float metallic);
+		LoFox::Ref<Material> CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float absorption);
 		LoFox::Ref<Model> CreateModelFromPath(const std::string& objPath);
 		LoFox::Ref<Camera> CreateCamera(glm::vec3 pos, glm::vec3 viewDirection, Sensor sensor, bool makeActiveCamera = false);
 
@@ -66,9 +68,13 @@ namespace RelRays {
 		LoFox::Ref<LoFox::UniformBuffer> m_RenderSettingsUniformBuffer;
 
 		struct RaytraceRendererData {
-			LoFox::Ref<LoFox::Shader>			SRT_Wavelength_Shader;
-			LoFox::Ref<LoFox::ComputePipeline>	SRT_Wavelength_Pipeline;
-			LoFox::Ref<LoFox::ResourceLayout>	RaytraceResourceLayout;
+			LoFox::Ref<LoFox::ResourceLayout>	GeneralResourceLayout;
+
+			LoFox::Ref<LoFox::Shader>			SRT_Wavelengths_Shader;
+			LoFox::Ref<LoFox::ComputePipeline>	SRT_Wavelengths_Pipeline;
+
+			LoFox::Ref<LoFox::Shader>			SRT_NoDoppler_Shader;
+			LoFox::Ref<LoFox::ComputePipeline>	SRT_NoDoppler_Pipeline;
 		};
 		RaytraceRendererData m_RaytraceRendererData = {};
 
@@ -101,6 +107,7 @@ namespace RelRays {
 		struct RenderSettings {
 			int RayBounces = 7;
 			int Samples = 1;
+			bool ApplyDopplerShift = true;
 			glm::vec4 AmbientLight = glm::vec4(0.10f);
 		};
 		RenderSettings m_RenderSettings = {};

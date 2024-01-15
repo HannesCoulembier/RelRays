@@ -43,7 +43,7 @@ struct ObjectFragment {
 struct Material {
 	vec4 Albedo;
 	// float Roughness;
-	float Metallic;
+	float Absorption;
 	vec4 EmissionColor;
 	float EmissionStrength;
     ColorSpectraDescription AbsorptionSpectraDescription;
@@ -143,9 +143,7 @@ void TracePath() {
 
             // skyLight = vec4(0.0, 0.1, 0.2, 0.4);
             // skyLight = vec4(0.01, 0.01, 0.01, 0.01);
-            skyLight = vec4(0.0, 0.0, 0.0, 0.0);
-
-            skyLight += Scene.AmbientLight;
+            skyLight = Scene.AmbientLight;
 
             for (int i = 0; i < raySpectrumSampleCount; i++) {
                 float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
@@ -179,7 +177,7 @@ void TracePath() {
 
             pathAccLight[i] += (irFactorEmit + rFactorEmit + gFactorEmit + bFactorEmit) * mat.EmissionStrength * pathAccAbsorbed[i];
 
-            pathAccAbsorbed[i] *= (irFactorAbs + rFactorAbs + gFactorAbs + bFactorAbs) * (1.0 - mat.Metallic);
+            pathAccAbsorbed[i] *= (irFactorAbs + rFactorAbs + gFactorAbs + bFactorAbs) * (1.0 - mat.Absorption);
         }
 
 		ray.Origin = payload.WorldPos + payload.WorldNormal * 0.0001f;

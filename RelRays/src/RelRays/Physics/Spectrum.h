@@ -5,7 +5,7 @@ namespace RelRays {
 	class Spectrum {
 
 	public:
-		Spectrum(float minWaveLength, float maxWaveLength, const std::vector<float>& wavelengths);
+		Spectrum(float minWaveLength, float maxWaveLength, const std::vector<float>& wavelengths, bool normalize = false);
 
 		uint32_t GetWaveLengthCount() { return m_WaveLengthCount; }
 		float GetMinWaveLength() { return m_MinWaveLength; }
@@ -14,7 +14,7 @@ namespace RelRays {
 		float* GetData() { return m_WaveLengths.data(); }
 		std::vector<float> GetWaveLengths() { return m_WaveLengths; }
 
-		static LoFox::Ref<Spectrum> Create(float minWaveLength, float maxWaveLength, const std::vector<float>& wavelengths);
+		static LoFox::Ref<Spectrum> Create(float minWaveLength, float maxWaveLength, const std::vector<float>& wavelengths, bool normalize = false);
 	private:
 		uint32_t m_WaveLengthCount;
 		std::vector<float> m_WaveLengths;

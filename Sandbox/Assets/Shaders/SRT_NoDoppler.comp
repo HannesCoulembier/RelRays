@@ -1,0 +1,283 @@
+#version 430
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#define FLT_MAX 3.402823466e+38
+#define FLT_MIN 1.175494351e-38
+
+struct ColorSpectraDescription {
+    
+    int     InfraredSpectrumIndex;
+    int     InfraredSpectrumSize;
+    float   InfraredSpectrumMinWaveLength;
+    float   InfraredSpectrumMaxWaveLength;
+
+    int     RedSpectrumIndex;
+    int     RedSpectrumSize;
+    float   RedSpectrumMinWaveLength;
+    float   RedSpectrumMaxWaveLength;
+
+    int     GreenSpectrumIndex;
+    int     GreenSpectrumSize;
+    float   GreenSpectrumMinWaveLength;
+    float   GreenSpectrumMaxWaveLength;
+
+    int     BlueSpectrumIndex;
+    int     BlueSpectrumSize;
+    float   BlueSpectrumMinWaveLength;
+    float   BlueSpectrumMaxWaveLength;
+
+    vec4    RelativeWeights;
+};
+struct ObjectDescription {
+    int OldestFragmentIndex; // Lowest index (the newest object fragments have the highest indices)
+    int NumberOfFragments;
+
+    int FirstIndexIndex;
+    int IndexCount;
+};
+struct ObjectFragment {
+    vec4 StartPos;
+    vec3 StartVel;
+    int MaterialIndex;
+};
+struct Material {
+	vec4 Albedo;
+	// float Roughness;
+	float Absorption;
+	vec4 EmissionColor;
+	float EmissionStrength;
+    ColorSpectraDescription AbsorptionSpectraDescription;
+};
+struct Vertex {
+    vec3 Position;
+};
+
+layout(         binding = 0, rgba8) uniform image2D colorBuffer;
+layout(         binding = 1)        uniform         RenderSettingsBlock     {
+    int RayBounces;
+    int Samples;
+} RenderSettings;
+layout(         binding = 2)        uniform         CameraBlock             {
+    vec3 Pos;
+    vec3 Vel;
+    vec3 Acc;
+    mat4 InvView;
+    mat4 InvProj;
+    ColorSpectraDescription ColorSpectraDescription;
+} Camera;
+layout(         binding = 3)        uniform         SceneBlock              {
+    vec4 AmbientLight;
+    float OriginTime;
+} Scene;
+layout(std140,  binding = 4 )       readonly buffer ObjectDescriptionBlock  { ObjectDescription objectDescriptions[]; };
+layout(std140,  binding = 5 )       readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
+layout(std140,  binding = 6 )       readonly buffer MaterialBlock           { Material materials[]; };
+layout(         binding = 7 )       readonly buffer SpectrumBlock           { float spectra[]; };
+layout(         binding = 8 )       readonly buffer VertexBufferBlock       { Vertex vertices[]; };
+layout(         binding = 9 )       readonly buffer IndexBufferBlock        { int indices[]; };
+
+vec4 pathAccLight = vec4(0.0, 0.0, 0.0, 0.0);
+vec4 pathAccAbsorbed = vec4(0.0, 0.0, 0.0, 0.0);
+
+struct Ray {
+    vec3 Origin;
+    vec3 Direction;
+};
+
+struct HitPayload {
+    float HitDistance;
+    vec3 WorldPos;
+    vec3 WorldNormal;
+    int ObjectDescriptionIndex;
+    int ObjectFragmentIndex;
+};
+
+struct SmallHitPayload {
+    float HitDistance;
+};
+
+HitPayload TraceRay(Ray ray);
+SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3);
+HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex, int firstTriangleIndexIndex);
+HitPayload Miss(Ray ray);
+
+void TracePath() {
+    
+    ivec2 screenPos = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+    ivec2 screenSize = imageSize(colorBuffer);
+	vec2 uv = vec2(float(screenPos.x) / float(screenSize.x), float(screenPos.y) / float(screenSize.y)); // uv with 0,0 in bottom left corner
+	vec2 coord = uv * 2.0f - 1.0f; // -1 -> 1
+
+    Ray ray;
+    ray.Origin = Camera.Pos;
+    vec4 target = Camera.InvProj * vec4(coord.x, coord.y, 1, 1);
+    ray.Direction = vec3(Camera.InvView * vec4(normalize(vec3(target) / target.w), 0)); // World space
+
+	for (int i = 0; i < RenderSettings.RayBounces; i++) {
+
+		HitPayload payload = TraceRay(ray);
+		if (payload.HitDistance < 0.0) { // HitDistance < 0.0 means it missed
+            
+            vec4 skyLight = Scene.AmbientLight;
+            pathAccLight += skyLight * pathAccAbsorbed;
+			break;
+        }
+
+        ObjectDescription objectDescription = objectDescriptions[payload.ObjectDescriptionIndex];
+        ObjectFragment objectFragment = objectFragments[payload.ObjectFragmentIndex];
+        Material mat = materials[objectFragment.MaterialIndex];
+        
+        pathAccLight += mat.EmissionColor * mat.EmissionStrength * pathAccAbsorbed;
+        pathAccAbsorbed *= mat.Albedo * (1.0 - mat.Absorption);
+
+		ray.Origin = payload.WorldPos + payload.WorldNormal * 0.0001f;
+        ray.Direction = normalize(reflect(ray.Direction, payload.WorldNormal));
+	}
+}
+
+void main() {
+
+    ivec2 screenPos = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+    ivec2 screenSize = imageSize(colorBuffer);
+
+    pathAccLight = vec4(0.0);
+
+    for (int i = 0; i < RenderSettings.Samples; i++) {
+
+        pathAccAbsorbed = vec4(1.0);
+        TracePath();
+    }
+
+    float ir    = pathAccLight.a;
+    float r     = pathAccLight.r;
+    float g     = pathAccLight.g;
+    float b     = pathAccLight.b;
+    vec3 finalColor = vec3(ir + r,g,b) / float(RenderSettings.Samples);
+    imageStore(colorBuffer, screenPos, vec4(finalColor, 1.0));
+}
+
+HitPayload TraceRay(Ray ray) {
+
+	int closestObjectDescription = -1;
+    int closestObjectFragment = -1;
+    int closestTriangleIndexIndex = -1;
+
+	float hitDistance = FLT_MAX;
+
+	for (int i = 0; i < objectDescriptions.length(); i++) {
+        
+        ObjectDescription objectDescription = objectDescriptions[i];
+
+        for (int j = 0; j < objectDescription.NumberOfFragments; j++) {
+
+            ObjectFragment objectFragment = objectFragments[objectDescription.OldestFragmentIndex + j];
+
+            // TODO: remove when switching to TSR
+            bool skipFragment = false;
+            skipFragment = skipFragment || objectFragment.StartPos.w > Scene.OriginTime; // Only consider objectFragments that are currently active
+
+            if (j < objectDescription.NumberOfFragments - 1) { // If this fragment is not the newest fragment, check the time of the next fragment
+
+                ObjectFragment nextFragment = objectFragments[objectDescription.OldestFragmentIndex + j + 1];
+                skipFragment = skipFragment || (nextFragment.StartPos.w <= Scene.OriginTime); // Only consider current objectFragment if it isn't time for the next one
+            }
+
+            if (skipFragment)
+                continue;
+
+            vec3 currentFragmentPos = objectFragment.StartPos.xyz + objectFragment.StartVel.xyz * (Scene.OriginTime - objectFragment.StartPos.w);
+            // END TODO
+
+            for (int k = 0; k < (objectDescription.IndexCount) / 3; k++) { // Count up every 3 indices (per triangle)
+
+                Vertex v1 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 0]];
+                Vertex v2 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 1]];
+                Vertex v3 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 2]];
+
+                // TODO: remove when switching to TSR
+                vec3 p1 = v1.Position + currentFragmentPos;
+                vec3 p2 = v2.Position + currentFragmentPos;
+                vec3 p3 = v3.Position + currentFragmentPos;
+                // END TODO
+
+                SmallHitPayload smallPayload = CalculateHitDistance(ray, p1, p2, p3);
+                float t = smallPayload.HitDistance;
+                if (t > 0.0 && t < hitDistance) {
+                    hitDistance = t;
+                    closestObjectDescription = i;
+                    closestObjectFragment = objectDescription.OldestFragmentIndex + j;
+                    closestTriangleIndexIndex = objectDescription.FirstIndexIndex + k * 3;
+                }
+            }
+        }
+    }
+    
+	if (closestObjectDescription < 0) {
+		return Miss(ray);
+    }
+
+	return ClosestHit(ray, hitDistance, closestObjectDescription, closestObjectFragment, closestTriangleIndexIndex);
+}
+
+bool PointInTriangle(vec3 p, vec3 p0, vec3 p1, vec3 p2) {
+  vec3 a = p0 - p;
+  vec3 b = p1 - p;
+  vec3 c = p2 - p;
+
+  vec3 u = cross(b, c);
+  vec3 v = cross(c, a);
+  vec3 w = cross(a, b);
+
+  if (dot(u, v) < 0.0 || dot(u, w) < 0.0)
+      return false;
+  return true;
+}
+
+SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3) {
+    SmallHitPayload result;
+    vec3 normal = normalize(cross(pos2 - pos1, pos3 - pos1));
+
+    float t = dot(normal, (pos1 - ray.Origin)) / dot(normal, ray.Direction);
+    
+    // Check if hitPoint is in triangle
+    vec3 hitPos = ray.Origin + t * ray.Direction;
+    bool isInTriangle = PointInTriangle(hitPos, pos1, pos2, pos3);
+    if (isInTriangle)
+        result.HitDistance = t;
+    else
+        result.HitDistance = -1.0;
+    return result;
+}
+
+HitPayload Miss(Ray ray) {
+    
+    HitPayload payload;
+    payload.HitDistance = -1.0;
+    payload.WorldPos = vec3(0.0);
+    payload.WorldNormal = ray.Direction;
+    payload.ObjectDescriptionIndex = -1;
+    payload.ObjectFragmentIndex = -1;
+    return payload;
+}
+
+HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex, int firstTriangleIndexIndex) {
+    
+    ObjectDescription objectDescription = objectDescriptions[objectDescriptionIndex];
+    ObjectFragment objectFragment = objectFragments[objectFragmentIndex];
+    Vertex v1 = vertices[indices[firstTriangleIndexIndex + 0]];
+    Vertex v2 = vertices[indices[firstTriangleIndexIndex + 1]];
+    Vertex v3 = vertices[indices[firstTriangleIndexIndex + 2]];
+
+    vec3 planeNormal = cross((v2.Position - v1.Position), (v3.Position - v1.Position));
+
+    HitPayload payload;
+
+	payload.HitDistance = hitDistance;
+	payload.WorldPos = ray.Origin + ray.Direction * hitDistance;
+    // payload.WorldNormal = normalize(payload.WorldPos - objectFragment.Pos); // For a sphere
+	payload.WorldNormal = normalize(-planeNormal * dot(ray.Direction, planeNormal)); // Multiply by dot of ray direction and normal to get the normal to face the right way, then normalize
+    payload.ObjectDescriptionIndex = objectDescriptionIndex;
+    payload.ObjectFragmentIndex = objectFragmentIndex;
+
+    return payload;
+}

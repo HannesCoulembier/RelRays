@@ -82,7 +82,7 @@ namespace RelRays {
 	struct GPUMaterial {
 		alignas(16) glm::vec4 Albedo;
 		// alignas(4) float Roughness;
-		alignas(4) float Metallic;
+		alignas(4) float Absorption;
 		alignas(16) glm::vec4 EmissionColor;
 		alignas(4) float EmissionStrength;
 		alignas(16) GPUColorSpectraDescription ColorSpectraDescription;
@@ -99,6 +99,8 @@ namespace RelRays {
 		m_CreateInfo = createInfo;
 		m_FinalImageRenderData.FinalImageWidth = int((float)(m_CreateInfo.RenderTargetWidth)/8.0f)*8;
 		m_FinalImageRenderData.FinalImageHeight = int((float)(m_CreateInfo.RenderTargetHeight)/8.0f)*8;
+
+		m_RenderSettings.ApplyDopplerShift = m_CreateInfo.ApplyDopplerShift;
 
 		m_CameraUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUCameraUBO));
 		m_SceneUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUSceneUBO));
@@ -126,11 +128,12 @@ namespace RelRays {
 		};
 		m_FinalImageRenderData.Framebuffer = LoFox::Framebuffer::Create(framebufferCreateInfo);
 
-		m_FinalImageRenderData.GraphicsResourceLayout = LoFox::ResourceLayout::Create({
-			{ LoFox::ShaderType::Fragment, m_FinalImageRenderData.FinalImage	, true},
-		});
+		// Create Compute Shaders
+		m_RaytraceRendererData.SRT_Wavelengths_Shader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/SRT_Wavelengths.comp");
+		m_RaytraceRendererData.SRT_NoDoppler_Shader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/SRT_NoDoppler.comp");
 
-		m_RaytraceRendererData.RaytraceResourceLayout = LoFox::ResourceLayout::Create({
+		// Create Compute Pipelines
+		m_RaytraceRendererData.GeneralResourceLayout = LoFox::ResourceLayout::Create({
 			{ LoFox::ShaderType::Compute,	m_FinalImageRenderData.FinalImage , false}, // NOTE: OpenGL only supports image bindings up until binding 7, so make them the first bindings in the layout
 			{ LoFox::ShaderType::Compute,	m_RenderSettingsUniformBuffer },
 			{ LoFox::ShaderType::Compute,	m_CameraUniformBuffer },
@@ -143,33 +146,39 @@ namespace RelRays {
 			{ LoFox::ShaderType::Compute,	m_IndexBuffer },
 		});
 
-		LoFox::VertexLayout vertexLayout = { // Must match QuadVertex
-			{ LoFox::VertexAttributeType::Float3 }, // position
-			{ LoFox::VertexAttributeType::Float2 }, // texCoord
-		};
-
-		m_FinalImageRenderData.FragmentShader = LoFox::Shader::Create(LoFox::ShaderType::Fragment, "Assets/Shaders/MainFragmentShader.frag");
-		m_FinalImageRenderData.VertexShader = LoFox::Shader::Create(LoFox::ShaderType::Vertex, "Assets/Shaders/MainVertexShader.vert");
-		m_RaytraceRendererData.SRT_Wavelength_Shader = LoFox::Shader::Create(LoFox::ShaderType::Compute, "Assets/Shaders/SRT_Wavelengths.comp");
-
-		uint32_t vertexBufferSize = sizeof(m_FinalImageRenderData.vertices[0]) * m_FinalImageRenderData.vertices.size();
-		m_FinalImageRenderData.VertexBuffer = LoFox::VertexBuffer::Create(vertexBufferSize, m_FinalImageRenderData.vertices.data(), vertexLayout);
-		m_FinalImageRenderData.IndexBuffer = LoFox::IndexBuffer::Create(m_FinalImageRenderData.vertexIndices.size(), m_FinalImageRenderData.vertexIndices.data());
-
-		// Create Compute Pipeline
 		LoFox::ComputePipelineCreateInfo computePipelineCreateInfo = {};
-		computePipelineCreateInfo.ComputeShader = m_RaytraceRendererData.SRT_Wavelength_Shader;
-		computePipelineCreateInfo.ResourceLayout = m_RaytraceRendererData.RaytraceResourceLayout;
-		m_RaytraceRendererData.SRT_Wavelength_Pipeline = LoFox::ComputePipeline::Create(computePipelineCreateInfo);
+		computePipelineCreateInfo.ResourceLayout = m_RaytraceRendererData.GeneralResourceLayout;
+
+		computePipelineCreateInfo.ComputeShader = m_RaytraceRendererData.SRT_Wavelengths_Shader;
+		m_RaytraceRendererData.SRT_Wavelengths_Pipeline = LoFox::ComputePipeline::Create(computePipelineCreateInfo);
+
+		computePipelineCreateInfo.ComputeShader = m_RaytraceRendererData.SRT_NoDoppler_Shader;
+		m_RaytraceRendererData.SRT_NoDoppler_Pipeline = LoFox::ComputePipeline::Create(computePipelineCreateInfo);
+
+		// Create Vertex/Indexbuffers
+		// LoFox::VertexLayout vertexLayout = { // Must match QuadVertex
+		// 	{ LoFox::VertexAttributeType::Float3 }, // position
+		// 	{ LoFox::VertexAttributeType::Float2 }, // texCoord
+		// };
+		// uint32_t vertexBufferSize = sizeof(m_FinalImageRenderData.vertices[0]) * m_FinalImageRenderData.vertices.size();
+		// m_FinalImageRenderData.VertexBuffer = LoFox::VertexBuffer::Create(vertexBufferSize, m_FinalImageRenderData.vertices.data(), vertexLayout);
+		// m_FinalImageRenderData.IndexBuffer = LoFox::IndexBuffer::Create(m_FinalImageRenderData.vertexIndices.size(), m_FinalImageRenderData.vertexIndices.data());
+
+		// Create Vertex/Fragment Shaders
+		// m_FinalImageRenderData.FragmentShader = LoFox::Shader::Create(LoFox::ShaderType::Fragment, "Assets/Shaders/MainFragmentShader.frag");
+		// m_FinalImageRenderData.VertexShader = LoFox::Shader::Create(LoFox::ShaderType::Vertex, "Assets/Shaders/MainVertexShader.vert");
 
 		// Create Graphics pipeline
-		LoFox::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
-		graphicsPipelineCreateInfo.VertexShader = m_FinalImageRenderData.VertexShader;
-		graphicsPipelineCreateInfo.FragmentShader = m_FinalImageRenderData.FragmentShader;
-		graphicsPipelineCreateInfo.ResourceLayout = m_FinalImageRenderData.GraphicsResourceLayout;
-		graphicsPipelineCreateInfo.Topology = LoFox::Topology::Triangle;
-		graphicsPipelineCreateInfo.VertexLayout = vertexLayout;
-		m_FinalImageRenderData.GraphicsPipeline = LoFox::GraphicsPipeline::Create(graphicsPipelineCreateInfo);
+		// m_FinalImageRenderData.GraphicsResourceLayout = LoFox::ResourceLayout::Create({
+		// 	{ LoFox::ShaderType::Fragment, m_FinalImageRenderData.FinalImage	, true},
+		// });
+		// LoFox::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
+		// graphicsPipelineCreateInfo.VertexShader = m_FinalImageRenderData.VertexShader;
+		// graphicsPipelineCreateInfo.FragmentShader = m_FinalImageRenderData.FragmentShader;
+		// graphicsPipelineCreateInfo.ResourceLayout = m_FinalImageRenderData.GraphicsResourceLayout;
+		// graphicsPipelineCreateInfo.Topology = LoFox::Topology::Triangle;
+		// graphicsPipelineCreateInfo.VertexLayout = vertexLayout;
+		// m_FinalImageRenderData.GraphicsPipeline = LoFox::GraphicsPipeline::Create(graphicsPipelineCreateInfo);
 	}
 
 	LoFox::Ref<Environment> Environment::Create(EnvironmentCreateInfo createInfo) {
@@ -213,7 +222,11 @@ namespace RelRays {
 
 		uint32_t width = m_FinalImageRenderData.Framebuffer->GetWidth();
 		uint32_t height = m_FinalImageRenderData.Framebuffer->GetHeight();
-		m_RaytraceRendererData.SRT_Wavelength_Pipeline->Dispatch(width, height, 8, 8);
+
+		if (m_RenderSettings.ApplyDopplerShift)
+			m_RaytraceRendererData.SRT_Wavelengths_Pipeline->Dispatch(width, height, 8, 8);
+		else
+			m_RaytraceRendererData.SRT_NoDoppler_Pipeline->Dispatch(width, height, 8, 8);
 
 		// LoFox::Renderer::BeginFramebuffer(m_FinalImageRenderData.Framebuffer, { 1.0f, 0.0f, 1.0f });
 		// 
@@ -226,15 +239,16 @@ namespace RelRays {
 	void Environment::Destroy() {
 
 		// Shaders
-		m_FinalImageRenderData.VertexShader->Destroy();
-		m_FinalImageRenderData.FragmentShader->Destroy();
-		m_RaytraceRendererData.SRT_Wavelength_Shader->Destroy();
+		// m_FinalImageRenderData.VertexShader->Destroy();
+		// m_FinalImageRenderData.FragmentShader->Destroy();
+		m_RaytraceRendererData.SRT_Wavelengths_Shader->Destroy();
+		m_RaytraceRendererData.SRT_NoDoppler_Shader->Destroy();
 
 		// Render stuff
-		m_FinalImageRenderData.VertexBuffer->Destroy();
-		m_FinalImageRenderData.IndexBuffer->Destroy();
-		m_FinalImageRenderData.GraphicsResourceLayout->Destroy();
-		m_RaytraceRendererData.RaytraceResourceLayout->Destroy();
+		// m_FinalImageRenderData.VertexBuffer->Destroy();
+		// m_FinalImageRenderData.IndexBuffer->Destroy();
+		// m_FinalImageRenderData.GraphicsResourceLayout->Destroy();
+		m_RaytraceRendererData.GeneralResourceLayout->Destroy();
 		m_FinalImageRenderData.FinalImage->Destroy();
 
 		// Buffers
@@ -250,8 +264,9 @@ namespace RelRays {
 		m_IndexBuffer->Destroy();
 
 		// Pipelines
-		m_RaytraceRendererData.SRT_Wavelength_Pipeline->Destroy();
-		m_FinalImageRenderData.GraphicsPipeline->Destroy();
+		m_RaytraceRendererData.SRT_Wavelengths_Pipeline->Destroy();
+		m_RaytraceRendererData.SRT_NoDoppler_Pipeline->Destroy();
+		// m_FinalImageRenderData.GraphicsPipeline->Destroy();
 
 		// Framebuffers
 		m_FinalImageRenderData.Framebuffer->Destroy();
@@ -271,10 +286,10 @@ namespace RelRays {
 		return object;
 	}
 
-	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float metallic) {
+	LoFox::Ref<Material> Environment::CreateMaterial(glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float absorption) {
 
 		uint32_t matIndex = m_Materials.size();
-		LoFox::Ref<Material> mat = LoFox::CreateRef<Material>(m_Self, matIndex, albedo, emissionColor, emissionStrength, metallic);
+		LoFox::Ref<Material> mat = LoFox::CreateRef<Material>(m_Self, matIndex, albedo, emissionColor, emissionStrength, absorption);
 		m_Materials.push_back(mat);
 		return mat;
 	}
@@ -406,7 +421,7 @@ namespace RelRays {
 			gpuMat.Albedo = mat->m_Albedo;
 			gpuMat.EmissionColor = mat->m_EmissionColor;
 			gpuMat.EmissionStrength = mat->m_EmissionStrength;
-			gpuMat.Metallic = mat->m_Metallic;
+			gpuMat.Absorption = mat->m_Absorption;
 			FillInAndUploadColorSpectraDescription(mat->m_ColorSpectra, gpuMat.ColorSpectraDescription);
 
 			materials.push_back(gpuMat);
@@ -439,8 +454,10 @@ namespace RelRays {
 
 		ImGui::Separator();
 
-		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.r);
+		ImGui::Checkbox("Apply doppler shift", &m_RenderSettings.ApplyDopplerShift);
 
+		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.r);
+		m_RenderSettings.AmbientLight.a = 0.0f;
 		ImGui::Separator();
 
 		ImGui::SliderFloat3("Active camera pos", &m_ActiveCamera->m_Pos.x, -10.0f, 10.0f);

@@ -5,7 +5,7 @@
 
 namespace RelRays {
 
-	Material::Material(LoFox::Ref<Environment> origin, uint32_t name, glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float metallic) {
+	Material::Material(LoFox::Ref<Environment> origin, uint32_t name, glm::vec4 albedo, glm::vec4 emissionColor, float emissionStrength, float absorption) {
 
 		m_Origin = origin;
 		m_Name = name;
@@ -14,6 +14,6 @@ namespace RelRays {
 		m_EmissionColor = emissionColor;
 		m_EmissionStrength = emissionStrength;
 		m_ColorSpectra = ColorSpectra::Create(Defaults::Colors::InfraredSpectrum, Defaults::Colors::RedSpectrum, Defaults::Colors::GreenSpectrum, Defaults::Colors::BlueSpectrum);
-		m_Metallic = metallic;
+		m_Absorption = absorption;
 	}
 }

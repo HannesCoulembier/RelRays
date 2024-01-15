@@ -9,25 +9,26 @@ namespace LoFox {
 		// envCreateInfo.RenderTargetWidth = 320;
 		// envCreateInfo.RenderTargetHeight = 160;
 		// envCreateInfo.UseConstantTimeStep = true;
+		// envCreateInfo.ApplyDopplerShift = false;
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
 		m_PurpleMaterial = m_Env->CreateMaterial(
-			{ 1.0f, 0.1f, 1.0f, 0.0f}, // Purple albedo
+			{ 1.0f, 0.1f, 1.0f, 0.0f},	// Purple albedo
 			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
 			0.0f,						// Don't make it emit light
-			0.2f						// Metallic
+			0.2f						// Absorption
 		);
 		m_YellowMaterial = m_Env->CreateMaterial(
 			{ 1.0f, 1.0f, 0.1f, 0.0f }, // Yellow albedo
 			{ 1.0f, 1.0f, 0.1f, 0.0f },	// Light emission in same color as albedo
 			0.04f,						// Light strength
-			0.2f						// Metallic
+			0.2f						// Absorption
 		);
 		m_WhiteMaterial = m_Env->CreateMaterial(
 			{ 1.0f, 1.0f, 1.0f, 0.0f }, // White albedo
 			{ 0.0f, 0.0f, 0.0f, 0.0f },	// Don't make it emit light
 			0.0f,						// Don't make it emit light
-			0.2f						// Metallic
+			0.2f						// Absorption
 		);
 
 		m_SpaceshipModel = m_Env->CreateModelFromPath("Assets/Models/spaceship.obj");
