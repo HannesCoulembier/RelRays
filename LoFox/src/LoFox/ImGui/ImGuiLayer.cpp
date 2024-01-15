@@ -140,6 +140,8 @@ namespace LoFox {
 		colors[ImGuiCol_SliderGrab] =			colors[ImGuiCol_Tab];					// Slider button
 		colors[ImGuiCol_SliderGrabActive] =		colors[ImGuiCol_SliderGrab];			// Slider button
 
+		colors[ImGuiCol_CheckMark] =			colors[ImGuiCol_SliderGrab];			// Checkbox CheckMark
+
 		// colors[ImGuiCol_Header] =			ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f }; // Header* colors are used for CollapsingHeader, TreeNode, Selectable, MenuItem
 		colors[ImGuiCol_HeaderHovered] =		colors[ImGuiCol_FrameBgHovered];
 		// colors[ImGuiCol_HeaderActive] =		ImVec4{ 1.0f,	0.0f,	0.0f,	1.0f };
@@ -155,7 +157,6 @@ namespace LoFox {
 		//	ImGuiCol_ScrollbarGrab,																								
 		//	ImGuiCol_ScrollbarGrabHovered,																						
 		//	ImGuiCol_ScrollbarGrabActive,																						
-		//	ImGuiCol_CheckMark,
 		//	ImGuiCol_PlotLines,
 		//	ImGuiCol_PlotLinesHovered,
 		//	ImGuiCol_PlotHistogram,
