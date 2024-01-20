@@ -47,6 +47,7 @@ struct Material {
 	vec4 EmissionColor;
 	float EmissionStrength;
     ColorSpectraDescription AbsorptionSpectraDescription;
+    ColorSpectraDescription EmissionSpectraDescription;
 };
 struct Vertex {
     vec3 Position;
@@ -147,7 +148,7 @@ void TracePath() {
 
             for (int i = 0; i < raySpectrumSampleCount; i++) {
                 float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
-                ColorSpectraDescription spectraDescription = materials[0].AbsorptionSpectraDescription;
+                ColorSpectraDescription spectraDescription = materials[0].EmissionSpectraDescription;
                 float irFactor  = SampleColorSpectraInfrared(waveLength, spectraDescription) * skyLight.a;
                 float rFactor   = SampleColorSpectraRed(waveLength, spectraDescription)      * skyLight.r;
                 float gFactor   = SampleColorSpectraGreen(waveLength, spectraDescription)    * skyLight.g;
@@ -164,16 +165,17 @@ void TracePath() {
         for (int i = 0; i < raySpectrumSampleCount; i++) {
             float waveLength = rayMinWaveLength + (rayMaxWaveLength - rayMinWaveLength) * float(i) / raySpectrumSampleCount;
             
-            ColorSpectraDescription spectraDescription = mat.AbsorptionSpectraDescription;
-            float irFactorAbs  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.Albedo.a;
-            float rFactorAbs   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.Albedo.r;
-            float gFactorAbs   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.Albedo.g;
-            float bFactorAbs   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.Albedo.b;
+            ColorSpectraDescription absorptionSpectraDescription = mat.AbsorptionSpectraDescription;
+            ColorSpectraDescription emissionSpectraDescription = mat.EmissionSpectraDescription;
+            float irFactorAbs  = SampleColorSpectraInfrared(waveLength, absorptionSpectraDescription) * mat.Albedo.a;
+            float rFactorAbs   = SampleColorSpectraRed(waveLength, absorptionSpectraDescription)      * mat.Albedo.r;
+            float gFactorAbs   = SampleColorSpectraGreen(waveLength, absorptionSpectraDescription)    * mat.Albedo.g;
+            float bFactorAbs   = SampleColorSpectraBlue(waveLength, absorptionSpectraDescription)     * mat.Albedo.b;
 
-            float irFactorEmit  = SampleColorSpectraInfrared(waveLength, spectraDescription) * mat.EmissionColor.a;
-            float rFactorEmit   = SampleColorSpectraRed(waveLength, spectraDescription)      * mat.EmissionColor.r;
-            float gFactorEmit   = SampleColorSpectraGreen(waveLength, spectraDescription)    * mat.EmissionColor.g;
-            float bFactorEmit   = SampleColorSpectraBlue(waveLength, spectraDescription)     * mat.EmissionColor.b;
+            float irFactorEmit  = SampleColorSpectraInfrared(waveLength, emissionSpectraDescription) * mat.EmissionColor.a;
+            float rFactorEmit   = SampleColorSpectraRed(waveLength, emissionSpectraDescription)      * mat.EmissionColor.r;
+            float gFactorEmit   = SampleColorSpectraGreen(waveLength, emissionSpectraDescription)    * mat.EmissionColor.g;
+            float bFactorEmit   = SampleColorSpectraBlue(waveLength, emissionSpectraDescription)     * mat.EmissionColor.b;
 
             pathAccLight[i] += (irFactorEmit + rFactorEmit + gFactorEmit + bFactorEmit) * mat.EmissionStrength * pathAccAbsorbed[i];
 

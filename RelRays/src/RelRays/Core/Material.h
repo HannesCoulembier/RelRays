@@ -19,7 +19,8 @@ namespace RelRays {
 		glm::vec4 m_Albedo;
 		glm::vec4 m_EmissionColor;
 		float m_EmissionStrength;
-		LoFox::Ref<ColorSpectra> m_ColorSpectra;
+		LoFox::Ref<ColorSpectra> m_AbsorptionColorSpectra;
+		LoFox::Ref<ColorSpectra> m_EmissonColorSpectra;
 		float m_Absorption;
 
 		friend Environment;

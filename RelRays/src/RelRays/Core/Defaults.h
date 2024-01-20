@@ -18,12 +18,25 @@ namespace RelRays {
 			// Sensor InfraRedCamera;
 		}
 
-		class Colors {
-		public:
-			const static LoFox::Ref<Spectrum> InfraredSpectrum;
-			const static LoFox::Ref<Spectrum> RedSpectrum;
-			const static LoFox::Ref<Spectrum> GreenSpectrum;
-			const static LoFox::Ref<Spectrum> BlueSpectrum;
-		};
+		namespace EmissionSpectra {
+
+			class LED {
+			public:
+				const static LoFox::Ref<Spectrum> Infrared;
+				const static LoFox::Ref<Spectrum> Red;
+				const static LoFox::Ref<Spectrum> Green;
+				const static LoFox::Ref<Spectrum> Blue;
+			};
+		}
+		namespace AbsorptionSpectra {
+
+			class FakePaint {
+			public:
+				const static LoFox::Ref<Spectrum> Infrared;
+				const static LoFox::Ref<Spectrum> Red;
+				const static LoFox::Ref<Spectrum> Green;
+				const static LoFox::Ref<Spectrum> Blue;
+			};
+		}
 	}
 }

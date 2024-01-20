@@ -47,6 +47,7 @@ struct Material {
 	vec4 EmissionColor;
 	float EmissionStrength;
     ColorSpectraDescription AbsorptionSpectraDescription;
+    ColorSpectraDescription EmissionSpectraDescription;
 };
 struct Vertex {
     vec3 Position;

@@ -532,7 +532,7 @@ namespace RelRays {
 		}
 
 		// TODO: Look up real values
-		const LoFox::Ref<Spectrum> Colors::InfraredSpectrum = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Infrared= Spectrum::Create(
 			400.0f * Units::nm,
 			1000.0f * Units::nm,
 			{
@@ -546,7 +546,7 @@ namespace RelRays {
 				0.0f,
 				0.0f,
 			});
-		const LoFox::Ref<Spectrum> Colors::RedSpectrum = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Red = Spectrum::Create(
 			630.0f * Units::nm,
 			645.0f * Units::nm,
 			{
@@ -563,7 +563,7 @@ namespace RelRays {
 				1.0f,
 				1.0f,
 			}); // Should be 1 peak at 700nm
-		const LoFox::Ref<Spectrum> Colors::GreenSpectrum = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Green = Spectrum::Create(
 			530.0f * Units::nm,
 			545.0f * Units::nm,
 			{
@@ -578,7 +578,7 @@ namespace RelRays {
 				1.0f,
 				1.0f,
 			}); // Should be 1 peak at 546.1nm
-		const LoFox::Ref<Spectrum> Colors::BlueSpectrum = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Blue = Spectrum::Create(
 			430.0f * Units::nm,
 			445.0f * Units::nm,
 			{
@@ -591,5 +591,104 @@ namespace RelRays {
 				1.0f,
 				1.0f,
 			}); // Should be 1 peak at 435.8nm
+
+
+		// TODO: Look up real values
+		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Infrared = Spectrum::Create(
+			400.0f * Units::nm,
+			1000.0f * Units::nm,
+			{
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+				0.0f,
+			},
+			true
+		);
+		// Data extracted from the relative spectral power distribution graph for the XP-G3 Photo Red Standard https://downloads.cree-led.com/files/ds/x/XLamp-XPG3.pdf
+		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Red = Spectrum::Create(
+			380.0f * Units::nm,
+			770 * Units::nm,
+			{
+				0.00f,//380nm
+				0.00f,
+				0.00f,//400nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,//500nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.01f,
+				0.02f,
+				0.03f,//600nm
+				0.06f,
+				0.13f,
+				0.26f,
+				0.58f,
+				0.92f,
+				0.46f,
+				0.12f,
+				0.03f,
+				0.01f,
+				0.00f,//700nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,//770nm
+			},
+			true
+		);
+		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Green = Spectrum::Create(
+			530.0f * Units::nm,
+			545.0f * Units::nm,
+			{
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+			},
+			true
+		); // Should be 1 peak at 546.1nm
+		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Blue = Spectrum::Create(
+			430.0f * Units::nm,
+			445.0f * Units::nm,
+			{
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+				1.0f,
+			},
+			true
+		); // Should be 1 peak at 435.8nm
 	}
 }

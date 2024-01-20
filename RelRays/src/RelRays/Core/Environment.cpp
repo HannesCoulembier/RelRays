@@ -85,7 +85,8 @@ namespace RelRays {
 		alignas(4) float Absorption;
 		alignas(16) glm::vec4 EmissionColor;
 		alignas(4) float EmissionStrength;
-		alignas(16) GPUColorSpectraDescription ColorSpectraDescription;
+		alignas(16) GPUColorSpectraDescription AbsorptionColorSpectraDescription;
+		alignas(16) GPUColorSpectraDescription EmissionColorSpectraDescription;
 	};
 
 	struct GPUVertex {
@@ -422,7 +423,8 @@ namespace RelRays {
 			gpuMat.EmissionColor = mat->m_EmissionColor;
 			gpuMat.EmissionStrength = mat->m_EmissionStrength;
 			gpuMat.Absorption = mat->m_Absorption;
-			FillInAndUploadColorSpectraDescription(mat->m_ColorSpectra, gpuMat.ColorSpectraDescription);
+			FillInAndUploadColorSpectraDescription(mat->m_AbsorptionColorSpectra, gpuMat.AbsorptionColorSpectraDescription);
+			FillInAndUploadColorSpectraDescription(mat->m_EmissonColorSpectra, gpuMat.EmissionColorSpectraDescription);
 
 			materials.push_back(gpuMat);
 		}

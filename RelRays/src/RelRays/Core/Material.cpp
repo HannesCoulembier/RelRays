@@ -13,7 +13,8 @@ namespace RelRays {
 		m_Albedo = albedo;
 		m_EmissionColor = emissionColor;
 		m_EmissionStrength = emissionStrength;
-		m_ColorSpectra = ColorSpectra::Create(Defaults::Colors::InfraredSpectrum, Defaults::Colors::RedSpectrum, Defaults::Colors::GreenSpectrum, Defaults::Colors::BlueSpectrum);
+		m_AbsorptionColorSpectra = ColorSpectra::Create(Defaults::AbsorptionSpectra::FakePaint::Infrared, Defaults::AbsorptionSpectra::FakePaint::Red, Defaults::AbsorptionSpectra::FakePaint::Green, Defaults::AbsorptionSpectra::FakePaint::Blue);
+		m_EmissonColorSpectra = ColorSpectra::Create(Defaults::EmissionSpectra::LED::Infrared, Defaults::EmissionSpectra::LED::Red, Defaults::EmissionSpectra::LED::Green, Defaults::EmissionSpectra::LED::Blue);
 		m_Absorption = absorption;
 	}
 }
