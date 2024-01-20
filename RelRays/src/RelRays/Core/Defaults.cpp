@@ -523,8 +523,8 @@ namespace RelRays {
 				Sensors::EyeCamera.RedSpectrum,
 				Sensors::EyeCamera.GreenSpectrum,
 				Sensors::EyeCamera.BlueSpectrum,
-				// glm::vec4(0.0f, 1.0f, 4.5907f, 0.0601f) // 1:4.5907:0.0601 ratio to represent source luminance and 72.0962:1.3791:1 for source radiance.
-				// glm::vec4(0.0f, 72.0962f, 1.3791, 1.0f) // 1:4.5907:0.0601 ratio to represent source luminance and 72.0962:1.3791:1 for source radiance.
+				// glm::vec4(1.0f, 4.5907f, 0.0601f, 0.0f) // 1:4.5907:0.0601 ratio to represent source luminance and 72.0962:1.3791:1 for source radiance.
+				// glm::vec4(72.0962f, 1.3791, 1.0f, 0.0f) // 1:4.5907:0.0601 ratio to represent source luminance and 72.0962:1.3791:1 for source radiance.
 				glm::vec4(1.0f, 1.0f, 1.0f, 0.0f) / 1.0f
 			);
 
@@ -610,14 +610,12 @@ namespace RelRays {
 			},
 			true
 		);
-		// Data extracted from the relative spectral power distribution graph for the XP-G3 Photo Red Standard https://downloads.cree-led.com/files/ds/x/XLamp-XPG3.pdf
+		// Data extracted from the relative spectral power distribution graph for the LED Z-POWER RGB 625/525/460 SMD https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/5783/F50360_Rev.00_May2008.pdf
 		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Red = Spectrum::Create(
-			380.0f * Units::nm,
-			770 * Units::nm,
+			300.0f * Units::nm,
+			790.0f * Units::nm,
 			{
-				0.00f,//380nm
-				0.00f,
-				0.00f,//400nm
+				0.00f,// 300nm
 				0.00f,
 				0.00f,
 				0.00f,
@@ -627,8 +625,17 @@ namespace RelRays {
 				0.00f,
 				0.00f,
 				0.00f,
-				0.00f,//500nm
+				0.00f,// 400nm
 				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 500nm
 				0.00f,
 				0.00f,
 				0.00f,
@@ -637,58 +644,143 @@ namespace RelRays {
 				0.00f,
 				0.01f,
 				0.02f,
-				0.03f,//600nm
 				0.06f,
-				0.13f,
-				0.26f,
-				0.58f,
-				0.92f,
-				0.46f,
-				0.12f,
-				0.03f,
+				0.16f,// 600nm
+				0.41f,
+				0.81f,
+				0.55f,
+				0.11f,
+				0.02f,
 				0.01f,
-				0.00f,//700nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 700nm
 				0.00f,
 				0.00f,
 				0.00f,
 				0.00f,
 				0.00f,
 				0.00f,
-				0.00f,//770nm
-			},
+				0.00f,
+				0.00f,
+				0.00f,// 790nm
+			}, // 50 real entries, range: 300-790nm, spacing: 10nm
 			true
 		);
 		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Green = Spectrum::Create(
-			530.0f * Units::nm,
-			545.0f * Units::nm,
+			300.0f * Units::nm,
+			790.0f * Units::nm,
 			{
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-			},
+				0.00f,// 300nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 400nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.01f,
+				0.03f,
+				0.07f,
+				0.27f,
+				0.64f,
+				0.93f,// 500nm
+				0.89f,
+				0.69f,
+				0.46f,
+				0.28f,
+				0.17f,
+				0.09f,
+				0.05f,
+				0.03f,
+				0.02f,
+				0.01f,// 600nm
+				0.01f,
+				0.01f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 700nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 790nm
+			}, // 50 real entries, range: 300-790nm, spacing: 10nm
 			true
-		); // Should be 1 peak at 546.1nm
+		);
 		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Blue = Spectrum::Create(
-			430.0f * Units::nm,
-			445.0f * Units::nm,
+			300.0f * Units::nm,
+			790.0f * Units::nm,
 			{
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-				1.0f,
-			},
+				0.00f,// 300nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.01f,// 400nm
+				0.02f,
+				0.09f,
+				0.39f,
+				0.92f,
+				0.69f,
+				0.33f,
+				0.14f,
+				0.04f,
+				0.02f,
+				0.01f,// 500nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 600nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 700nm
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,
+				0.00f,// 790nm
+			}, // 50 real entries, range: 300-790nm, spacing: 10nm
 			true
-		); // Should be 1 peak at 435.8nm
+		);
 	}
 }
