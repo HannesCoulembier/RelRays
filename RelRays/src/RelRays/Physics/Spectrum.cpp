@@ -1,5 +1,6 @@
 #include "lfpch.h"
 #include "RelRays/Physics/Spectrum.h"
+#include "RelRays/Physics/Units.h"
 
 namespace RelRays {
 
@@ -11,9 +12,10 @@ namespace RelRays {
 		m_WaveLengthCount = wavelengths.size();
 		m_WaveLengths.resize(m_WaveLengthCount);
 		if (normalize) {
+			float spacing = ((maxWaveLength - minWaveLength) / Units::nm) / m_WaveLengthCount;
 			float area = 0.0f;
 			for (float wl : wavelengths)
-				area += wl;
+				area += wl * spacing;
 			if (area == 0.0f)
 				m_WaveLengths = wavelengths;
 			else

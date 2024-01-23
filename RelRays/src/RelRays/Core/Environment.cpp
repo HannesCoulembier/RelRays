@@ -366,7 +366,7 @@ namespace RelRays {
 		cameraData.InvProj = glm::inverse(glm::perspectiveFov(glm::radians(45.0f), (float)viewportWidth, (float)viewportHeight, 0.1f, 4000.0f));
 		FillInAndUploadColorSpectraDescription(m_ActiveCamera->m_Sensor.ColorSpectra, cameraData.ColorSpectraDescription);
 
-		sceneData.AmbientLight = m_RenderSettings.AmbientLight;
+		sceneData.AmbientLight = m_RenderSettings.AmbientLight * (m_RenderSettings.AmbientLightStrength / Units::W);
 		sceneData.OriginTime = m_ProperTime / Units::s;
 
 		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
@@ -460,6 +460,8 @@ namespace RelRays {
 
 		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.r);
 		m_RenderSettings.AmbientLight.a = 0.0f;
+		ImGui::SliderFloat("Ambient Lighting Strength", &m_RenderSettings.AmbientLightStrengthGUI, 0.0f, 1000.0f);
+		m_RenderSettings.AmbientLightStrength = m_RenderSettings.AmbientLightStrengthGUI * Units::W;
 		ImGui::Separator();
 
 		ImGui::SliderFloat3("Active camera pos", &m_ActiveCamera->m_Pos.x, -10.0f, 10.0f);

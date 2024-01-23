@@ -108,7 +108,9 @@ namespace RelRays {
 			int RayBounces = 7;
 			int Samples = 1;
 			bool ApplyDopplerShift = true;
-			glm::vec4 AmbientLight = glm::vec4(0.10f);
+			glm::vec4 AmbientLight = glm::vec4(0.4f);
+			float AmbientLightStrengthGUI = 200.0f;
+			float AmbientLightStrength = AmbientLightStrengthGUI * Units::W;
 		};
 		RenderSettings m_RenderSettings = {};
 		struct RenderStats {
