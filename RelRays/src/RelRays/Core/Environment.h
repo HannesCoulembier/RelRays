@@ -107,10 +107,12 @@ namespace RelRays {
 		struct RenderSettings {
 			int RayBounces = 7;
 			int Samples = 1;
+			int AccBuffersSampleCount = 180;
 			bool ApplyDopplerShift = true;
 			glm::vec4 AmbientLight = glm::vec4(0.4f);
-			float AmbientLightStrengthGUI = 200.0f;
-			float AmbientLightStrength = AmbientLightStrengthGUI * Units::W;
+			float FullRGBPowerRatio = 200.0f * Units::W; // When an rgb channel is set to 100% this corresponds to the FullRGBPowerRatio in Watts
+			float AmbientLightStrength = FullRGBPowerRatio; // Default the AmbientLightStrength to 100% rgb values
+			float AmbientLightStrengthGUI = AmbientLightStrength / Units::W;
 		};
 		RenderSettings m_RenderSettings = {};
 		struct RenderStats {

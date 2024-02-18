@@ -14,6 +14,7 @@ namespace RelRays {
 
 			inline Sensor SonyCamera;
 			inline Sensor EyeCamera;
+			inline Sensor BlockCamera;
 
 			// Sensor InfraRedCamera;
 		}

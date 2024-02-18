@@ -21,7 +21,7 @@ namespace LoFox {
 		m_YellowMaterial = m_Env->CreateMaterial(
 			{ 1.0f, 1.0f, 0.1f, 0.0f }, // Yellow albedo
 			{ 1.0f, 1.0f, 0.1f, 0.0f },	// Light emission in same color as albedo
-			0.4f,						// Light strength
+			50.0f * Units::W,			// Light strength
 			0.2f						// Absorption
 		);
 		m_WhiteMaterial = m_Env->CreateMaterial(
@@ -40,7 +40,7 @@ namespace LoFox {
 
 		m_TestObject1->SetVel(glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
 
-		m_MainCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), RelRays::Defaults::Sensors::SonyCamera, true);
+		m_MainCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), RelRays::Defaults::Sensors::BlockCamera, true);
 		m_SecondaryCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, -100.0f), glm::vec3(0.0f, 0.0f, 1.0f), RelRays::Defaults::Sensors::EyeCamera, false);
 	}
 	void RelRaysDevLayer::OnDetach() {

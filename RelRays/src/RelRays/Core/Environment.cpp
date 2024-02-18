@@ -19,6 +19,7 @@ namespace RelRays {
 
 		alignas(4) int		RayBounces;
 		alignas(4) int		Samples;
+		alignas(4) int		AccBuffersSampleCount;
 	};
 
 	struct GPUColorSpectraDescription {
@@ -112,7 +113,7 @@ namespace RelRays {
 
 		m_MaterialsBuffer = LoFox::StorageBuffer::Create(1000, sizeof(GPUMaterial));
 
-		m_SpectraBuffer = LoFox::StorageBuffer::Create(1000, sizeof(float));
+		m_SpectraBuffer = LoFox::StorageBuffer::Create(100000, sizeof(float));
 
 		m_VertexBuffer = LoFox::StorageBuffer::Create(1000000, sizeof(GPUVertex));
 		m_IndexBuffer = LoFox::StorageBuffer::Create(1000000, sizeof(int));
@@ -366,11 +367,12 @@ namespace RelRays {
 		cameraData.InvProj = glm::inverse(glm::perspectiveFov(glm::radians(45.0f), (float)viewportWidth, (float)viewportHeight, 0.1f, 4000.0f));
 		FillInAndUploadColorSpectraDescription(m_ActiveCamera->m_Sensor.ColorSpectra, cameraData.ColorSpectraDescription);
 
-		sceneData.AmbientLight = m_RenderSettings.AmbientLight * (m_RenderSettings.AmbientLightStrength / Units::W);
+		sceneData.AmbientLight = m_RenderSettings.AmbientLight * (m_RenderSettings.AmbientLightStrength / Units::W) / (m_RenderSettings.FullRGBPowerRatio / Units::W); // RGB doesn't work with watts: let 200 W equal full brightness
 		sceneData.OriginTime = m_ProperTime / Units::s;
 
 		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
 		renderSettingsData.Samples = m_RenderSettings.Samples;
+		renderSettingsData.AccBuffersSampleCount = m_RenderSettings.AccBuffersSampleCount;
 
 		// Storage buffers
 		// Objects
@@ -421,7 +423,7 @@ namespace RelRays {
 			GPUMaterial gpuMat = {};
 			gpuMat.Albedo = mat->m_Albedo;
 			gpuMat.EmissionColor = mat->m_EmissionColor;
-			gpuMat.EmissionStrength = mat->m_EmissionStrength;
+			gpuMat.EmissionStrength = (mat->m_EmissionStrength / Units::W) / (m_RenderSettings.FullRGBPowerRatio / Units::W);
 			gpuMat.Absorption = mat->m_Absorption;
 			FillInAndUploadColorSpectraDescription(mat->m_AbsorptionColorSpectra, gpuMat.AbsorptionColorSpectraDescription);
 			FillInAndUploadColorSpectraDescription(mat->m_EmissonColorSpectra, gpuMat.EmissionColorSpectraDescription);
@@ -453,6 +455,7 @@ namespace RelRays {
 
 		ImGui::SliderInt("Bounces", &m_RenderSettings.RayBounces, 0, 10);
 		ImGui::SliderInt("Samples", &m_RenderSettings.Samples, 0, 10);
+		ImGui::SliderInt("Acc Buffers Samples", &m_RenderSettings.AccBuffersSampleCount, 0, 1024); // 1024 is the maximum size of the buffer in the shader. To increase this, change the maxAccBuffersSampleCount.
 
 		ImGui::Separator();
 
@@ -460,7 +463,7 @@ namespace RelRays {
 
 		ImGui::ColorEdit3("Ambient Lighting", &m_RenderSettings.AmbientLight.r);
 		m_RenderSettings.AmbientLight.a = 0.0f;
-		ImGui::SliderFloat("Ambient Lighting Strength", &m_RenderSettings.AmbientLightStrengthGUI, 0.0f, 1000.0f);
+		ImGui::SliderFloat("Ambient Lighting Strength", &m_RenderSettings.AmbientLightStrengthGUI, 0.0f, 300.0f);
 		m_RenderSettings.AmbientLightStrength = m_RenderSettings.AmbientLightStrengthGUI * Units::W;
 		ImGui::Separator();
 
