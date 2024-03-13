@@ -25,6 +25,9 @@ namespace RelRays {
 		float m_ProperTime = 0.0f;
 		float m_TimeOfCreation; // The time of creation relative to the origin
 
+		glm::vec3 m_StartPos = glm::vec3(0.0f);
+		glm::vec3 m_StartVel = glm::vec3(0.0f);
+
 		glm::vec3 m_Pos = glm::vec3(0.0f);
 		glm::vec3 m_Vel = glm::vec3(0.0f);
 		glm::vec3 m_Acc = glm::vec3(0.0f);

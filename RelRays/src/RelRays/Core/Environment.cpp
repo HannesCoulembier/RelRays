@@ -51,6 +51,7 @@ namespace RelRays {
 
 		alignas(16) glm::vec4 AmbientLight;
 		alignas(4) float OriginTime;
+		alignas(4) float c;
 	};
 
 	struct GPUCameraUBO {
@@ -103,6 +104,8 @@ namespace RelRays {
 		m_FinalImageRenderData.FinalImageHeight = int((float)(m_CreateInfo.RenderTargetHeight)/8.0f)*8;
 
 		m_RenderSettings.ApplyDopplerShift = m_CreateInfo.ApplyDopplerShift;
+		m_RenderSettings.c = m_CreateInfo.CustomSpeedOfLight;
+		m_RenderSettings.cGUI = m_RenderSettings.c / (Units::m / Units::s);
 
 		m_CameraUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUCameraUBO));
 		m_SceneUniformBuffer = LoFox::UniformBuffer::Create(sizeof(GPUSceneUBO));
@@ -204,7 +207,7 @@ namespace RelRays {
 		m_RealTime = time * Units::s;
 
 		if (m_CreateInfo.UseConstantTimeStep) {
-			
+
 			m_RenderStats.SimulationFPS = 1 / (m_CreateInfo.ConstantTimeStepValue / Units::s);
 			m_SimulationTime += m_CreateInfo.ConstantTimeStepValue;
 		}
@@ -214,6 +217,9 @@ namespace RelRays {
 		}
 
 		m_ProperTime = m_SimulationTime; // TODO: update proper time properly (multiple modes, ...)
+
+		for (auto camera : m_Cameras)
+			camera->OnUpdate();
 	}
 
 	void Environment::RenderFrame(uint32_t viewportWidth, uint32_t viewportHeight) {
@@ -369,6 +375,7 @@ namespace RelRays {
 
 		sceneData.AmbientLight = m_RenderSettings.AmbientLight * (m_RenderSettings.AmbientLightStrength / Units::W) / (m_RenderSettings.FullRGBPowerRatio / Units::W); // RGB doesn't work with watts: let 200 W equal full brightness
 		sceneData.OriginTime = m_ProperTime / Units::s;
+		sceneData.c = m_RenderSettings.c / (Units::m / Units::s);
 
 		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
 		renderSettingsData.Samples = m_RenderSettings.Samples;
@@ -468,6 +475,9 @@ namespace RelRays {
 		ImGui::Separator();
 
 		ImGui::SliderFloat3("Active camera pos", &m_ActiveCamera->m_Pos.x, -10.0f, 10.0f);
+
+		ImGui::SliderFloat("Speed of light", &m_RenderSettings.cGUI, 0, 100);
+		m_RenderSettings.c = m_RenderSettings.cGUI * (Units::m / Units::s);
 
 		ImGui::End();
 

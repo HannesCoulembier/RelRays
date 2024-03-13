@@ -69,6 +69,7 @@ layout(         binding = 2)        uniform         CameraBlock             {
 layout(         binding = 3)        uniform         SceneBlock              {
     vec4 AmbientLight;
     float OriginTime;
+    float c;
 } Scene;
 layout(std140,  binding = 4 )       readonly buffer ObjectDescriptionBlock  { ObjectDescription objectDescriptions[]; };
 layout(std140,  binding = 5 )       readonly buffer ObjectFragmentBlock     { ObjectFragment objectFragments[]; };
@@ -81,14 +82,14 @@ vec4 pathAccLight = vec4(0.0, 0.0, 0.0, 0.0);
 vec4 pathAccAbsorbed = vec4(0.0, 0.0, 0.0, 0.0);
 
 struct Ray {
-    vec3 Origin;
+    vec4 Origin;
     vec3 Direction;
 };
 
 struct HitPayload {
     float HitDistance;
-    vec3 WorldPos;
-    vec3 WorldNormal;
+    vec3 HitPos;
+    vec3 HitNormal;
     int ObjectDescriptionIndex;
     int ObjectFragmentIndex;
 };
@@ -98,7 +99,7 @@ struct SmallHitPayload {
 };
 
 HitPayload TraceRay(Ray ray);
-SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3);
+SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3, vec4 objStartPos, vec3 objStartVel);
 HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex, int firstTriangleIndexIndex);
 HitPayload Miss(Ray ray);
 
@@ -110,10 +111,27 @@ void TracePath() {
 	vec2 coord = uv * 2.0f - 1.0f; // -1 -> 1
 
     Ray ray;
-    ray.Origin = Camera.Pos;
+    ray.Origin = vec4(Camera.Pos, Scene.OriginTime);
     vec4 target = Camera.InvProj * vec4(coord.x, coord.y, 1, 1);
-    ray.Direction = vec3(Camera.InvView * vec4(normalize(vec3(target) / target.w), 0)); // World space
+    ray.Direction = vec3(Camera.InvView * vec4(normalize(vec3(target) / target.w), 0)); // Camera space
+    
+    float c = Scene.c;
 
+    // Converting the ray direction in camera space to the ray direction in origin space
+    {
+        vec3 V = Camera.Vel;
+        vec3 D = ray.Direction;
+        float v = length(V);
+        float beta = v / c;
+        float gamma = 1.0 / sqrt(1.0 - beta*beta);
+
+        if (v > 0.0) {
+            vec3 newDirection = (gamma * (dot(V,D) / v + beta) * V / v + D - V * dot(V,D) / (v * v)) / (gamma * (1 + beta * dot(V,D) / v));
+            ray.Direction = newDirection;
+        }
+    }
+    // -------------------------------------------------------------
+    
 	for (int i = 0; i < RenderSettings.RayBounces; i++) {
 
 		HitPayload payload = TraceRay(ray);
@@ -131,8 +149,30 @@ void TracePath() {
         pathAccLight += mat.EmissionColor * mat.EmissionStrength * pathAccAbsorbed;
         pathAccAbsorbed *= mat.Albedo * (1.0 - mat.Absorption);
 
-		ray.Origin = payload.WorldPos + payload.WorldNormal * 0.0001f;
-        ray.Direction = normalize(reflect(ray.Direction, payload.WorldNormal));
+		ray.Origin = vec4(payload.HitPos + payload.HitNormal * 0.0001f, ray.Origin.w - payload.HitDistance / c);
+
+        // To reflect the ray, we need to first transform the ray direction into object space, reflect it and then transform it back.
+        {
+        vec3 V = objectFragment.StartVel;
+        vec3 D = ray.Direction;
+        float v = length(V);
+        float beta = v / c;
+        float gamma = 1.0 / sqrt(1.0 - beta*beta);
+
+        if (v > 0.0) {
+            vec3 newDirection = (gamma * (dot(V,D) / v - beta) * V / v + D - V * dot(V,D) / (v * v)) / (gamma * (1 - beta * dot(V,D) / v));
+            D = newDirection;
+        }
+
+        D = normalize(reflect(D, payload.HitNormal));
+
+        if (v > 0.0) {
+            vec3 newDirection = (gamma * (dot(V,D) / v + beta) * V / v + D - V * dot(V,D) / (v * v)) / (gamma * (1 + beta * dot(V,D) / v));
+            D = newDirection;
+        }
+        ray.Direction = D;
+        
+        }
 	}
 }
 
@@ -165,6 +205,8 @@ HitPayload TraceRay(Ray ray) {
 
 	float hitDistance = FLT_MAX;
 
+    float c = Scene.c;
+
 	for (int i = 0; i < objectDescriptions.length(); i++) {
         
         ObjectDescription objectDescription = objectDescriptions[i];
@@ -173,38 +215,34 @@ HitPayload TraceRay(Ray ray) {
 
             ObjectFragment objectFragment = objectFragments[objectDescription.OldestFragmentIndex + j];
 
-            // TODO: remove when switching to TSR
-            bool skipFragment = false;
-            skipFragment = skipFragment || objectFragment.StartPos.w > Scene.OriginTime; // Only consider objectFragments that are currently active
-
-            if (j < objectDescription.NumberOfFragments - 1) { // If this fragment is not the newest fragment, check the time of the next fragment
-
-                ObjectFragment nextFragment = objectFragments[objectDescription.OldestFragmentIndex + j + 1];
-                skipFragment = skipFragment || (nextFragment.StartPos.w <= Scene.OriginTime); // Only consider current objectFragment if it isn't time for the next one
-            }
-
-            if (skipFragment)
-                continue;
-
-            vec3 currentFragmentPos = objectFragment.StartPos.xyz + objectFragment.StartVel.xyz * (Scene.OriginTime - objectFragment.StartPos.w);
-            // END TODO
-
             for (int k = 0; k < (objectDescription.IndexCount) / 3; k++) { // Count up every 3 indices (per triangle)
 
                 Vertex v1 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 0]];
                 Vertex v2 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 1]];
                 Vertex v3 = vertices[indices[objectDescription.FirstIndexIndex + k * 3 + 2]];
 
-                // TODO: remove when switching to TSR
-                vec3 p1 = v1.Position + currentFragmentPos;
-                vec3 p2 = v2.Position + currentFragmentPos;
-                vec3 p3 = v3.Position + currentFragmentPos;
-                // END TODO
+                vec3 p1 = v1.Position;
+                vec3 p2 = v2.Position;
+                vec3 p3 = v3.Position;
 
-                SmallHitPayload smallPayload = CalculateHitDistance(ray, p1, p2, p3);
-                float t = smallPayload.HitDistance;
-                if (t > 0.0 && t < hitDistance) {
-                    hitDistance = t;
+                SmallHitPayload smallPayload = CalculateHitDistance(ray, p1, p2, p3, objectFragment.StartPos, objectFragment.StartVel);
+                float ct = smallPayload.HitDistance;
+
+                float hitTime = c*ray.Origin.w - ct;
+
+                // If the objectFragment wasn't active at the time of the hit, skip the hit (not the fragment)
+                bool skipHit  = false;
+                skipHit = skipHit || (hitTime < c*objectFragment.StartPos.w);
+                if (j < objectDescription.NumberOfFragments - 1) { // If this fragment is not the newest fragment, check the time of the next fragment
+                    
+                    ObjectFragment nextFragment = objectFragments[objectDescription.OldestFragmentIndex + j + 1];
+                    skipHit = skipHit || c*nextFragment.StartPos.w <= hitTime;
+                }
+                if (skipHit)
+                    continue; // Skips the hit
+
+                if (ct > 0.0 && ct < hitDistance) {
+                    hitDistance = ct;
                     closestObjectDescription = i;
                     closestObjectFragment = objectDescription.OldestFragmentIndex + j;
                     closestTriangleIndexIndex = objectDescription.FirstIndexIndex + k * 3;
@@ -221,30 +259,53 @@ HitPayload TraceRay(Ray ray) {
 }
 
 bool PointInTriangle(vec3 p, vec3 p0, vec3 p1, vec3 p2) {
-  vec3 a = p0 - p;
-  vec3 b = p1 - p;
-  vec3 c = p2 - p;
 
-  vec3 u = cross(b, c);
-  vec3 v = cross(c, a);
-  vec3 w = cross(a, b);
-
-  if (dot(u, v) < 0.0 || dot(u, w) < 0.0)
-      return false;
-  return true;
+    mat3 Ainv = mat3((p1-p0), (p2-p0), cross((p1-p0), (p2-p0)));
+    mat3 A = inverse(Ainv);
+    vec3 coords = A * (p-p0);
+    if (coords.x < 0.0 || coords.y < 0.0 || coords.x + coords.y > 1.0)
+        return false;
+    return true;
 }
 
-SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3) {
+SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3, vec4 objStartPos, vec3 objStartVel) {
     SmallHitPayload result;
     vec3 normal = normalize(cross(pos2 - pos1, pos3 - pos1));
 
-    float t = dot(normal, (pos1 - ray.Origin)) / dot(normal, ray.Direction);
+    float c = Scene.c;
+    vec3 V = objStartVel;
+    float v = length(V);
+    float beta = v / c;
+    float gamma = 1.0 / sqrt(1.0 - beta*beta);
+
+    // Convert ray.Direction to object space
+    vec3 D = ray.Direction;
+    if (v > 0.0){
+        vec3 newDirection = (gamma * (dot(V, D)/v - beta) * V / v + D - dot(V, D) * V / (v*v)) / (gamma * (1.0 - beta * dot(V, D) / v));
+        D = newDirection;
+    }
+
+    // Convert ray.Origin to object space
+    vec3 rO = ray.Origin.xyz - objStartPos.xyz;
+    float rOct = c*ray.Origin.w - c*objStartPos.w;
+    if (v > 0.0){
+        vec3 newRayOrigin = rO + (dot(V, rO) * (gamma - 1.0)/v - gamma * beta * rOct) * V/v;
+        float newRayOriginct = gamma * (rOct - beta * dot(V/v, rO));
+        rO = newRayOrigin;
+        rOct = newRayOriginct;
+    }
+
+    float ct = dot(normal, (pos1 - rO)) / dot(normal, D); // ct in object space
     
     // Check if hitPoint is in triangle
-    vec3 hitPos = ray.Origin + t * ray.Direction;
+    vec3 hitPos = rO + ct * D; // In object space
     bool isInTriangle = PointInTriangle(hitPos, pos1, pos2, pos3);
-    if (isInTriangle)
-        result.HitDistance = t;
+    if (isInTriangle) {
+        // Convert ct to origin space
+        if (v > 0.0)
+            ct = gamma * (ct - beta * dot(V, hitPos) / v);
+        result.HitDistance = ct;
+    }
     else
         result.HitDistance = -1.0;
     return result;
@@ -254,8 +315,8 @@ HitPayload Miss(Ray ray) {
     
     HitPayload payload;
     payload.HitDistance = -1.0;
-    payload.WorldPos = vec3(0.0);
-    payload.WorldNormal = ray.Direction;
+    payload.HitPos = vec3(0.0);
+    payload.HitNormal = ray.Direction;
     payload.ObjectDescriptionIndex = -1;
     payload.ObjectFragmentIndex = -1;
     return payload;
@@ -269,14 +330,13 @@ HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, in
     Vertex v2 = vertices[indices[firstTriangleIndexIndex + 1]];
     Vertex v3 = vertices[indices[firstTriangleIndexIndex + 2]];
 
-    vec3 planeNormal = cross((v2.Position - v1.Position), (v3.Position - v1.Position));
+    vec3 planeNormal = normalize(cross((v2.Position - v1.Position), (v3.Position - v1.Position)));
 
     HitPayload payload;
 
 	payload.HitDistance = hitDistance;
-	payload.WorldPos = ray.Origin + ray.Direction * hitDistance;
-    // payload.WorldNormal = normalize(payload.WorldPos - objectFragment.Pos); // For a sphere
-	payload.WorldNormal = normalize(-planeNormal * dot(ray.Direction, planeNormal)); // Multiply by dot of ray direction and normal to get the normal to face the right way, then normalize
+	payload.HitPos = ray.Origin.xyz + ray.Direction * hitDistance;
+	payload.HitNormal = normalize(-planeNormal * dot(ray.Direction, planeNormal)); // Multiply by dot of ray direction and normal to get the normal to face the right way, then normalize (this is because the normal is later used to slightly offset the new ray origin from the hitpoint)
     payload.ObjectDescriptionIndex = objectDescriptionIndex;
     payload.ObjectFragmentIndex = objectFragmentIndex;
 

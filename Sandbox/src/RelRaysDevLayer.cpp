@@ -9,7 +9,8 @@ namespace LoFox {
 		// envCreateInfo.RenderTargetWidth = 320;
 		// envCreateInfo.RenderTargetHeight = 160;
 		// envCreateInfo.UseConstantTimeStep = true;
-		// envCreateInfo.ApplyDopplerShift = false;
+		envCreateInfo.ApplyDopplerShift = false;
+		envCreateInfo.CustomSpeedOfLight = 100;
 		m_Env = RelRays::Environment::Create(envCreateInfo);
 
 		m_PurpleMaterial = m_Env->CreateMaterial(
@@ -38,7 +39,7 @@ namespace LoFox {
 		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, 	m_WhiteMaterial,	m_SpaceshipModel);
 		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m,	 	m_PurpleMaterial,	m_SpaceshipModel);
 
-		m_TestObject1->SetVel(glm::vec3(0.0f, 1.0f, 0.0f) * (Units::m / Units::s));
+		m_TestObject1->SetVel(glm::vec3(1.0f, 0.0f, 0.0f) * (Units::m / Units::s));
 
 		m_MainCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), RelRays::Defaults::Sensors::BlockCamera, true);
 		m_SecondaryCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, -100.0f), glm::vec3(0.0f, 0.0f, 1.0f), RelRays::Defaults::Sensors::EyeCamera, false);

@@ -18,6 +18,8 @@ namespace RelRays {
 		bool UseConstantTimeStep = false; // When set to false, the timestep per OnUpdate call will depend on the time between calls. When set to true, the timestep is constant (see ConstantTimeStepValue).
 		float ConstantTimeStepValue = 1.0f / 60.0f * Units::s; // When UseConstantTimeStep is enabled, this value represents the timestep for each OnUpdate call.
 	
+		float CustomSpeedOfLight = Constants::c;
+
 		bool ApplyDopplerShift = true;
 	};
 
@@ -113,6 +115,8 @@ namespace RelRays {
 			float FullRGBPowerRatio = 200.0f * Units::W; // When an rgb channel is set to 100% this corresponds to the FullRGBPowerRatio in Watts
 			float AmbientLightStrength = FullRGBPowerRatio; // Default the AmbientLightStrength to 100% rgb values
 			float AmbientLightStrengthGUI = AmbientLightStrength / Units::W;
+			float c = Constants::c;
+			float cGUI = c / (Units::m / Units::s);
 		};
 		RenderSettings m_RenderSettings = {};
 		struct RenderStats {
