@@ -103,6 +103,34 @@ SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3, v
 HitPayload ClosestHit(Ray ray, float hitDistance, int objectDescriptionIndex, int objectFragmentIndex, int firstTriangleIndexIndex);
 HitPayload Miss(Ray ray);
 
+// Special relativity helper functions
+mat4 BoostOriginToObjectMat(vec3 vel) { // Assumes (0,0) coordinate is the same in both reference frames
+
+    float c = Scene.c;
+    float v = length(vel);
+    if (v <= 0.0)
+        return mat4(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, 1.0, 0.0,
+                        0.0, 0.0, 0.0, 1.0
+                    );
+    vec3 Beta = vel / c;
+    float beta = v / c;
+    float gamma = 1.0 / sqrt(1.0 - beta * beta);
+    return mat4(
+                    1.0 + (gamma - 1.0) * Beta.x * Beta.x / (beta*beta),    (gamma - 1.0) * Beta.y * Beta.x / (beta*beta),          (gamma - 1.0) * Beta.z * Beta.x / (beta*beta),          -gamma * Beta.x,
+                    (gamma - 1.0) * Beta.x * Beta.y / (beta*beta),          1.0 + (gamma - 1.0) * Beta.y * Beta.y / (beta*beta),    (gamma - 1.0) * Beta.z * Beta.y / (beta*beta),          -gamma * Beta.y,
+                    (gamma - 1.0) * Beta.x * Beta.z / (beta*beta),          (gamma - 1.0) * Beta.y * Beta.z / (beta*beta),          1.0 + (gamma - 1.0) * Beta.z * Beta.z / (beta*beta),    -gamma * Beta.z,
+                    -gamma * Beta.x,                                        -gamma * Beta.y,                                        -gamma * Beta.z,                                        gamma
+                );
+}
+
+mat4 BoostObjectToOriginMat(vec3 vel) { // Assumes (0,0) coordinate is the same in both reference frames
+    
+    return inverse(BoostOriginToObjectMat(vel));
+}
+
 void TracePath() {
     
     ivec2 screenPos = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
@@ -279,32 +307,33 @@ SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3, v
     float gamma = 1.0 / sqrt(1.0 - beta*beta);
 
     // Convert ray.Direction to object space
-    vec3 D = ray.Direction;
-    if (v > 0.0){
-        vec3 newDirection = (gamma * (dot(V, D)/v - beta) * V / v + D - dot(V, D) * V / (v*v)) / (gamma * (1.0 - beta * dot(V, D) / v));
-        D = newDirection;
-    }
+    vec3 D = normalize((BoostOriginToObjectMat(V) * vec4(ray.Direction, 1.0)).xyz);
+
+    // if (v > 0.0){
+    //     vec3 newDirection = (gamma * (dot(V, D)/v - beta) * V / v + D - dot(V, D) * V / (v*v)) / (gamma * (1.0 - beta * dot(V, D) / v));
+    //     D = newDirection;
+    // }
 
     // Convert ray.Origin to object space
-    vec3 rO = ray.Origin.xyz - objStartPos.xyz;
-    float rOct = c*ray.Origin.w - c*objStartPos.w;
-    if (v > 0.0){
-        vec3 newRayOrigin = rO + (dot(V, rO) * (gamma - 1.0)/v - gamma * beta * rOct) * V/v;
-        float newRayOriginct = gamma * (rOct - beta * dot(V/v, rO));
-        rO = newRayOrigin;
-        rOct = newRayOriginct;
-    }
+    vec4 rO = BoostOriginToObjectMat(V) * vec4(ray.Origin.xyz - objStartPos.xyz, c*ray.Origin.w - c*objStartPos.w); // Object space
 
-    float ct = dot(normal, (pos1 - rO)) / dot(normal, D); // ct in object space
-    
-    // Check if hitPoint is in triangle
-    vec3 hitPos = rO + ct * D; // In object space
-    bool isInTriangle = PointInTriangle(hitPos, pos1, pos2, pos3);
-    if (isInTriangle) {
-        // Convert ct to origin space
-        if (v > 0.0)
-            ct = gamma * (ct - beta * dot(V, hitPos) / v);
-        result.HitDistance = ct;
+    if (dot(normal, D) != 0.0) {
+        
+        float ct = dot(normal, (pos1 - rO.xyz)) / dot(normal, D); // ct in object space
+
+        // Check if hitPoint is in triangle
+        vec4 hitPos = rO - ct * vec4(D, 1.0); // In object space
+        bool isInTriangle = PointInTriangle(hitPos.xyz, pos1, pos2, pos3);
+        if (isInTriangle) {
+            // Convert ct to origin space
+            hitPos = BoostObjectToOriginMat(V) * hitPos + vec4(objStartPos.xyz, c*objStartPos.w); // Brings the hitPos to origin space
+            // if (v > 0.0)
+            //     ct = gamma * (ct - beta * dot(V/v, hitPos.xyz));
+            // result.HitDistance = ct;
+            result.HitDistance = c*ray.Origin.w - hitPos.w;
+        }
+        else
+            result.HitDistance = -1.0;
     }
     else
         result.HitDistance = -1.0;
