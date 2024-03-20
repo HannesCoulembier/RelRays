@@ -117,6 +117,7 @@ namespace RelRays {
 			float AmbientLightStrengthGUI = AmbientLightStrength / Units::W;
 			float c = Constants::c;
 			float cGUI = c / (Units::m / Units::s);
+			float Time = 0.0f;
 		};
 		RenderSettings m_RenderSettings = {};
 		struct RenderStats {
