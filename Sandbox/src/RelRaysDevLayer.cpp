@@ -2,7 +2,7 @@
 #include <ImGui/imgui.h>
 
 namespace LoFox {
-	float c = 3.0; // c = 3 m/s => after 1 second, the point should be visible
+	float c = 10.0; // c = 3 m/s => after 1 second, the point should be visible
 	glm::mat4 BoostOriginToObjectMat(glm::vec3 vel) { // Assumes (0,0) coordinate is the same in both reference frames
 
 		// float c = 3.0f;
@@ -33,8 +33,6 @@ namespace LoFox {
 	void testFunc() {
 
 
-		glm::vec3 testV = { 0.01,0.0,0.0 };
-		glm::mat4 identityornot = BoostOriginToObjectMat(testV) * BoostOriginToObjectMat(-testV);
 
 		glm::vec3 D0 = { 0.0, 0.0, -1.0 };
 		glm::vec4 rO0 = { 0.0, 0.0, 0.0, 3.1 * c }; // Ray starts after 2 seconds
@@ -45,12 +43,19 @@ namespace LoFox {
 		glm::vec3 pos3 = {1.0, -1.0, 1.0};
 		glm::vec3 normal = glm::normalize(glm::cross(pos2-pos1, pos3-pos1));
 
-		glm::vec3 V = { 2.0, 0.0, 0.0 }; // Point moving at 66% c
+		glm::vec3 V = { 9.5, 0.0, 0.0 }; // Point moving at 66% c
 		float v = glm::length(V);
 		float beta = v / c;
 		float gamma = 1 / glm::sqrt(1 - beta * beta);
 
+		glm::vec3 testDirection1 = glm::normalize(glm::vec3(BoostObjectToOriginMat(V) * glm::vec4(D0, -1.0)));
+		glm::vec3 testDirection2 = (gamma * (glm::dot(V, D0) / v - beta) * V / v + D0 - V * glm::dot(V, D0) / (v * v)) / (gamma * (1 - beta * glm::dot(V, D0) / v));
+
 		glm::vec3 D1 = glm::normalize(glm::vec3((BoostOriginToObjectMat(V) * glm::vec4(D0, 1.0))));
+		// glm::vec3 D1 = D0;
+		// if (v > 0.0) {
+		// 	D1 = (gamma * (dot(-V, D) / -v + beta) * -V / -v + D - dot(-V, D) * -V / (v * v)) / (gamma * (1.0 + beta * dot(V, D) / v));
+		// }
 		glm::vec4 rO1 = BoostOriginToObjectMat(V) * (rO0 + pO0); // Object space
 
 		float ct1 = glm::dot(normal, (pos2 - glm::vec3(rO1))) / glm::dot(normal, D1); // ct in object space
@@ -65,8 +70,8 @@ namespace LoFox {
 		testFunc();
 
 		RelRays::EnvironmentCreateInfo envCreateInfo = {}; // Defaults are good
-		envCreateInfo.RenderTargetWidth = 320;
-		envCreateInfo.RenderTargetHeight = 160;
+		// envCreateInfo.RenderTargetWidth = 320;
+		// envCreateInfo.RenderTargetHeight = 320;
 		// envCreateInfo.UseConstantTimeStep = true;
 		envCreateInfo.ApplyDopplerShift = false;
 		envCreateInfo.CustomSpeedOfLight = 10.0f;
@@ -95,11 +100,11 @@ namespace LoFox {
 		m_CubeModel = m_Env->CreateModelFromPath("Assets/Models/cube.obj");
 		m_UtahModel = m_Env->CreateModelFromPath("Assets/Models/teapot(1).obj");
 
-		m_TestObject1 = m_Env->CreateObject(glm::vec3(0.0f, 0.0f, -9.0f) * Units::m,	 	m_YellowMaterial, m_UtahModel);
-		// m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, 	m_WhiteMaterial,	m_SpaceshipModel);
-		// m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m,	 	m_PurpleMaterial,	m_SpaceshipModel);
+		m_TestObject1 = m_Env->CreateObject(glm::vec3(1.0f, 0.0f, -50.0f) * Units::m,	 	m_YellowMaterial, m_CubeModel);
+		m_TestObject2 = m_Env->CreateObject(glm::vec3(-3.0f, -10.0f, -50.0f) * Units::m, 	m_WhiteMaterial,	m_SpaceshipModel);
+		m_TestObject3 = m_Env->CreateObject(glm::vec3(1.0f, 10.0f, -50.0f) * Units::m,	 	m_PurpleMaterial,	m_SpaceshipModel);
 
-		m_TestObject1->SetVel(glm::vec3(9.5f, 0.0f, 0.0f) * (Units::m / Units::s));
+		m_TestObject1->SetVel(glm::vec3(6.0f, 0.0f, 0.0f) * (Units::m / Units::s));
 
 		m_MainCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), RelRays::Defaults::Sensors::BlockCamera, true);
 		m_SecondaryCamera = m_Env->CreateCamera(glm::vec3(0.0f, 0.0f, -100.0f), glm::vec3(0.0f, 0.0f, 1.0f), RelRays::Defaults::Sensors::EyeCamera, false);

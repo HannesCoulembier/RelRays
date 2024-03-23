@@ -146,19 +146,7 @@ void TracePath() {
     float c = Scene.c;
 
     // Converting the ray direction in camera space to the ray direction in origin space
-    {
-        vec3 V = Camera.Vel;
-        vec3 D = ray.Direction;
-        float v = length(V);
-        float beta = v / c;
-        float gamma = 1.0 / sqrt(1.0 - beta*beta);
-
-        if (v > 0.0) {
-            vec3 newDirection = (gamma * (dot(V,D) / v + beta) * V / v + D - V * dot(V,D) / (v * v)) / (gamma * (1 + beta * dot(V,D) / v));
-            ray.Direction = newDirection;
-        }
-    }
-    // -------------------------------------------------------------
+    ray.Direction = normalize(vec3(BoostObjectToOriginMat(Camera.Vel) * vec4(ray.Direction, -1.0)));
     
 	for (int i = 0; i < RenderSettings.RayBounces; i++) {
 
@@ -175,7 +163,9 @@ void TracePath() {
         Material mat = materials[objectFragment.MaterialIndex];
         
         pathAccLight += mat.EmissionColor * mat.EmissionStrength * pathAccAbsorbed
-            * dot(payload.HitNormal, ray.Direction); // Some scuffed shading for testing
+            ;
+            // * dot(payload.HitNormal, -ray.Direction); // Some scuffed shading for testing
+            // * payload.HitDistance / 5.0;
         pathAccAbsorbed *= mat.Albedo * (1.0 - mat.Absorption);
 
 		ray.Origin = vec4(payload.HitPos + payload.HitNormal * 0.0001f, ray.Origin.w - payload.HitDistance / c);
@@ -302,35 +292,27 @@ SmallHitPayload CalculateHitDistance(Ray ray, vec3 pos1, vec3 pos2, vec3 pos3, v
     vec3 normal = normalize(cross(pos2 - pos1, pos3 - pos1));
 
     float c = Scene.c;
-    vec3 V = -objStartVel;
+    vec3 V = objStartVel;
     float v = length(V);
     float beta = v / c;
     float gamma = 1.0 / sqrt(1.0 - beta*beta);
 
     // Convert ray.Direction to object space
-    vec3 D = normalize((BoostOriginToObjectMat(V) * vec4(ray.Direction, 1.0)).xyz);
-
-    // if (v > 0.0){
-    //     vec3 newDirection = (gamma * (dot(V, D)/v - beta) * V / v + D - dot(V, D) * V / (v*v)) / (gamma * (1.0 - beta * dot(V, D) / v));
-    //     D = newDirection;
-    // }
+    vec3 D = normalize((BoostOriginToObjectMat(V) * vec4(ray.Direction, -1.0)).xyz);
 
     // Convert ray.Origin to object space
-    vec4 rO = -BoostOriginToObjectMat(V) * vec4(ray.Origin.xyz + objStartPos.xyz, c*ray.Origin.w + c*objStartPos.w); // Object space
+    vec4 rO = BoostOriginToObjectMat(V) * vec4(ray.Origin.xyz - objStartPos.xyz, c*ray.Origin.w - c*objStartPos.w); // Object space
 
     if (dot(normal, D) != 0.0) {
         
         float ct = dot(normal, (pos1 - rO.xyz)) / dot(normal, D); // ct in object space
 
         // Check if hitPoint is in triangle
-        vec4 hitPos = rO + ct * vec4(D, 1.0); // In object space
+        vec4 hitPos = rO + ct * vec4(D, -1.0); // In object space
         bool isInTriangle = PointInTriangle(hitPos.xyz, pos1, pos2, pos3);
         if (isInTriangle) {
-            // Convert ct to origin space
-            hitPos = BoostObjectToOriginMat(V) * -hitPos + vec4(objStartPos.xyz, c*objStartPos.w); // Brings the hitPos to origin space
-            // if (v > 0.0)
-            //     ct = gamma * (ct - beta * dot(V/v, hitPos.xyz));
-            // result.HitDistance = ct;
+
+            hitPos = BoostObjectToOriginMat(V) * hitPos + vec4(objStartPos.xyz, c*objStartPos.w); // Brings the hitPos to origin space
             result.HitDistance = c*ray.Origin.w - hitPos.w;
         }
         else

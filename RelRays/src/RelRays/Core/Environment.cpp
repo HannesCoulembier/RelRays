@@ -374,8 +374,7 @@ namespace RelRays {
 		FillInAndUploadColorSpectraDescription(m_ActiveCamera->m_Sensor.ColorSpectra, cameraData.ColorSpectraDescription);
 
 		sceneData.AmbientLight = m_RenderSettings.AmbientLight * (m_RenderSettings.AmbientLightStrength / Units::W) / (m_RenderSettings.FullRGBPowerRatio / Units::W); // RGB doesn't work with watts: let 200 W equal full brightness
-		// sceneData.OriginTime = m_ProperTime / Units::s;
-		sceneData.OriginTime = m_RenderSettings.Time;
+		sceneData.OriginTime = m_ProperTime / Units::s;
 		sceneData.c = m_RenderSettings.c / (Units::m / Units::s);
 
 		renderSettingsData.RayBounces = m_RenderSettings.RayBounces;
@@ -479,11 +478,6 @@ namespace RelRays {
 
 		ImGui::SliderFloat("Speed of light", &m_RenderSettings.cGUI, 0, 100);
 		m_RenderSettings.c = m_RenderSettings.cGUI * (Units::m / Units::s);
-
-
-		ImGui::Begin("test");
-		ImGui::SliderFloat("time", &m_RenderSettings.Time, 0, 100);
-		ImGui::End();
 
 		ImGui::End();
 
