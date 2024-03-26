@@ -815,7 +815,7 @@ namespace RelRays {
 		}
 
 		// TODO: Look up real values
-		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Infrared= Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::BlockPaint::Infrared= Spectrum::Create(
 			400.0f * Units::nm,
 			1000.0f * Units::nm,
 			{
@@ -829,7 +829,7 @@ namespace RelRays {
 				0.0f,
 				0.0f,
 			});
-		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Red = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::BlockPaint::Red = Spectrum::Create(
 			620.0f * Units::nm,
 			720.0f * Units::nm,
 			{
@@ -934,7 +934,7 @@ namespace RelRays {
 				1.0f,
 				1.0f,
 			});
-		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Green = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::BlockPaint::Green = Spectrum::Create(
 			500.0f * Units::nm,
 			600.0f * Units::nm,
 			{
@@ -1039,7 +1039,7 @@ namespace RelRays {
 				1.0f,
 				1.0f,
 			});
-		const LoFox::Ref<Spectrum> AbsorptionSpectra::FakePaint::Blue = Spectrum::Create(
+		const LoFox::Ref<Spectrum> AbsorptionSpectra::BlockPaint::Blue = Spectrum::Create(
 			380.0f * Units::nm,
 			480.0f * Units::nm,
 			{
@@ -1147,7 +1147,7 @@ namespace RelRays {
 
 
 		// TODO: Look up real values
-		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Infrared = Spectrum::Create(
+		const LoFox::Ref<Spectrum> EmissionSpectra::BlockLED::Infrared = Spectrum::Create(
 			400.0f * Units::nm,
 			1000.0f * Units::nm,
 			{
@@ -1162,7 +1162,7 @@ namespace RelRays {
 				0.0f,
 			},
 			true);
-		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Red = Spectrum::Create(
+		const LoFox::Ref<Spectrum> EmissionSpectra::BlockLED::Red = Spectrum::Create(
 			620.0f * Units::nm,
 			720.0f * Units::nm,
 			{
@@ -1268,7 +1268,7 @@ namespace RelRays {
 				1.0f,
 			},
 			true);
-		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Green = Spectrum::Create(
+		const LoFox::Ref<Spectrum> EmissionSpectra::BlockLED::Green = Spectrum::Create(
 			500.0f * Units::nm,
 			600.0f * Units::nm,
 			{
@@ -1374,7 +1374,7 @@ namespace RelRays {
 				1.0f,
 			},
 			true);
-		const LoFox::Ref<Spectrum> EmissionSpectra::LED::Blue = Spectrum::Create(
+		const LoFox::Ref<Spectrum> EmissionSpectra::BlockLED::Blue = Spectrum::Create(
 			380.0f * Units::nm,
 			480.0f * Units::nm,
 			{

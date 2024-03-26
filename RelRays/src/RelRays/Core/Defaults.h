@@ -2,13 +2,14 @@
 
 #include "RelRays/Physics/Spectrum.h"
 #include "RelRays/Core/Camera.h"
+#include "RelRays/Physics/Units.h"
 
 namespace RelRays {
 	namespace Defaults {
 
 		void Init();
 
-		const static LoFox::Ref<Spectrum> EmptySpectrum = Spectrum::Create(0.0f, 1000000.0f, { 0.0f });
+		const static LoFox::Ref<Spectrum> EmptySpectrum = Spectrum::Create(0.0f*Units::nm, 1000000.0f*Units::nm, { 0.0f });
 
 		namespace Sensors {
 
@@ -21,7 +22,7 @@ namespace RelRays {
 
 		namespace EmissionSpectra {
 
-			class LED {
+			class BlockLED {
 			public:
 				const static LoFox::Ref<Spectrum> Infrared;
 				const static LoFox::Ref<Spectrum> Red;
@@ -31,7 +32,7 @@ namespace RelRays {
 		}
 		namespace AbsorptionSpectra {
 
-			class FakePaint {
+			class BlockPaint {
 			public:
 				const static LoFox::Ref<Spectrum> Infrared;
 				const static LoFox::Ref<Spectrum> Red;
